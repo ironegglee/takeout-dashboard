@@ -111,6 +111,8 @@
   .metrics-row.cols4 { grid-template-columns: repeat(4, 1fr); }
   .metrics-row.cols5 { grid-template-columns: repeat(5, 1fr); }
   .m-card { background: #F7F6F2; border-radius: var(--radius-md); padding: 12px 14px; }
+  .m-card.dash-card { cursor: default; transition: box-shadow 0.2s; }
+  .m-card.dash-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
   .m-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; }
   .m-val { font-size: 20px; font-weight: 500; line-height: 1.2; }
   .m-sub { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
@@ -2818,8 +2820,10 @@ function calcRealMetrics(){
     orderDayFiltered = ORDER_DAILY.filter(d => d.date >= ds && d.date <= de);
   }
 
-  // 小程序 KPI：有日期筛选且无组织筛选时用每日汇总聚合
-  // 关键：日期有值但无匹配数据时 → 显示0，不能 fallback 到全部门店数据
+  // 小程序 KPI：
+  // - 仅日期筛选（无组织筛选）→ 用全局每日汇总
+  // - 组织筛选（有/无日期）→ 用过滤后的门店数据
+  // - 日期+无匹配数据 → 显示0（而非 fallback 全部门店）
   let mpOrd, mpAvgCook, mpAvgRate, mpRevTotal;
   if(mpDayFiltered.length > 0){
     mpOrd = mpDayFiltered.reduce((a,d)=>a+(d.orders||0),0);
@@ -2829,11 +2833,11 @@ function calcRealMetrics(){
     // 小程序业绩取 perf_daily 的 mp_revenue
     mpRevTotal = perfDayFiltered.length>0 ? perfDayFiltered.reduce((a,d)=>a+(d.mp_revenue||0),0) : 0;
     if(!mpRevTotal) mpRevTotal = mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0)*22,0); // fallback
-  } else if(ds && de){
-    // 日期筛选已设置但无匹配数据 → 显示0
+  } else if(ds && de && !hasOrgFilter){
+    // 仅日期筛选无匹配 → 显示0
     mpOrd = 0; mpAvgCook = 0; mpAvgRate = 0; mpRevTotal = 0;
   } else {
-    // 无日期筛选 → 用门店汇总
+    // 无日期筛选 或 有组织筛选 → 用过滤后的门店汇总
     mpOrd = mp.reduce((a,s)=>a+(s.orders||0),0);
     mpAvgCook = mp.length ? (mp.reduce((a,s)=>a+(s.avg||0),0)/mp.length) : 0;
     mpAvgRate = mp.length ? (mp.reduce((a,s)=>a+(s.rate||0),0)/mp.length) : 0;
@@ -2841,13 +2845,12 @@ function calcRealMetrics(){
     mpRevTotal = mp.reduce((a,s)=>a+(s.revenue||0),0);
   }
 
-  // 小程序门店数：有日期筛选时取最后一天的活跃门店数，无筛选时用架构门店数
+  // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选用每日汇总
   let mpStoreCount;
   if(mpDayFiltered.length > 0){
-    // 取筛选范围内最后一天的 store_count
     const lastDay = mpDayFiltered[mpDayFiltered.length - 1];
     mpStoreCount = lastDay.store_count || mp.length;
-  } else if(ds && de){
+  } else if(ds && de && !hasOrgFilter){
     mpStoreCount = 0;
   } else {
     mpStoreCount = mp.length;
@@ -2859,7 +2862,7 @@ function calcRealMetrics(){
     {label:'出餐达标率', val: mpAvgRate.toFixed(1)+'%', unit:'', sub:'超15min', dir:'', ref:''},
   ];
 
-  // 美团 KPI：日期有值但无匹配数据时 → 显示0，不能 fallback 到全部门店数据
+  // 美团 KPI：仅日期筛选(无组织)用每日汇总，组织筛选用过滤门店汇总
   let mtRevTotal, mtAvgScore, mtAvgExp, mtOrdCnt;
   if(mtDayFiltered.length > 0){
     mtRevTotal = perfDayFiltered.length>0 ? perfDayFiltered.reduce((a,d)=>a+(d.mt_revenue||0),0) : 0;
@@ -2867,23 +2870,23 @@ function calcRealMetrics(){
     mtAvgScore = totalStores>0 ? (mtDayFiltered.reduce((a,d)=>a+(d.store_count||0)*(d.avg_shop_score||0),0)/totalStores) : 0;
     mtAvgExp = totalStores>0 ? (mtDayFiltered.reduce((a,d)=>a+(d.store_count||0)*(d.avg_exp_score||0),0)/totalStores) : 0;
     mtOrdCnt = orderDayFiltered.length>0 ? orderDayFiltered.reduce((a,d)=>a+(d.orders||0),0) : mt.reduce((a,s)=>a+(s.orders||0),0);
-  } else if(ds && de){
-    // 日期筛选已设置但无匹配数据 → 显示0
+  } else if(ds && de && !hasOrgFilter){
+    // 仅日期筛选无匹配 → 显示0
     mtRevTotal = 0; mtAvgScore = 0; mtAvgExp = 0; mtOrdCnt = 0;
   } else {
-    // 无日期筛选 → 用门店汇总
+    // 无日期筛选 或 有组织筛选 → 用过滤后的门店汇总
     mtRevTotal = mt.reduce((a,s)=>a+(s.revenue||0),0);
     mtAvgScore = mt.length ? (mt.reduce((a,s)=>a+(s.shop_score||0),0)/mt.length) : 0;
     mtAvgExp = mt.length ? (mt.reduce((a,s)=>a+(s.exp_score||0),0)/mt.length) : 0;
     mtOrdCnt = mt.reduce((a,s)=>a+(s.orders||0),0);
   }
 
-  // 美团门店数：有日期筛选时取最后一天的活跃门店数，无筛选时用架构门店数
+  // 美团门店数：有组织筛选时用过滤结果
   let mtStoreCount;
   if(mtDayFiltered.length > 0){
     const lastDayMt = mtDayFiltered[mtDayFiltered.length - 1];
     mtStoreCount = lastDayMt.store_count || mt.length;
-  } else if(ds && de){
+  } else if(ds && de && !hasOrgFilter){
     mtStoreCount = 0;
   } else {
     mtStoreCount = mt.length;
@@ -2932,64 +2935,103 @@ function calcRealMetrics(){
 }
 
 // ═══════════════════════════════════════════
-// 大盘业绩概览模块
+// 大盘业绩概览模块（v3 — 卡片布局+饼图+组织筛选）
 // ═══════════════════════════════════════════
 function fm(n){ if((n||0)===0) return '0'; return (n/10000).toFixed(1)+'万'; }
 function fmInt(n){ return (n||0).toLocaleString(); }
+var DASH_PIE_MODE = 'total'; // 'total'=外卖占大盘比, 'platform'=平台占外卖比
+
+function togglePieMode(){
+  DASH_PIE_MODE = DASH_PIE_MODE === 'total' ? 'platform' : 'total';
+  renderDashboardSummary();
+}
 
 function renderDashboardSummary(){
   var ds = gfState.dateStart, de = gfState.dateEnd;
-  var perfFiltered = PERF_DAILY, orderFiltered = ORDER_DAILY;
-  var daysLabel = '全部';
+  var hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
   
-  if(ds && de){
-    perfFiltered = PERF_DAILY.filter(function(d){return d.date >= ds && d.date <= de;});
-    orderFiltered = ORDER_DAILY.filter(function(d){return d.date >= ds && d.date <= de;});
-    daysLabel = ds + ' ~ ' + de;
-  }
-  
-  var days = perfFiltered.length || 1;
-  
-  // ── 业绩聚合 ──
   var totalTakeout = 0, mpTakeout = 0, mtTakeout = 0, totalRevenue = 0;
-  for(var i=0;i<perfFiltered.length;i++){
-    var d = perfFiltered[i];
-    totalTakeout += (d.revenue||0);
-    mpTakeout += (d.mp_revenue||0);
-    mtTakeout += (d.mt_revenue||0);
-    totalRevenue += (d.total_revenue||0);
-  }
-  
-  // ── TC聚合 ──
   var totalTC = 0, mpTC = 0, mtTC = 0;
-  for(var i=0;i<orderFiltered.length;i++){
-    var d = orderFiltered[i];
-    totalTC += (d.orders||0);
-    mpTC += (d.mp_orders||0);
-    mtTC += (d.mt_orders||0);
-  }
-  
-  // ── 门店数去重（取外卖门店 = 自配送/美团并集）──
   var totalStores = 0, mpStores = 0, mtStores = 0;
-  if(STORE_DAILY){
-    var mpSet = {}, mtSet = {}, allSet = {};
-    var entries = Object.entries(STORE_DAILY);
-    for(var i=0;i<entries.length;i++){
-      var dateKey = entries[i][0], sd = entries[i][1];
-      if(ds && de && (dateKey < ds || dateKey > de)) continue;
-      var mpCodes = sd.mp || [], mtCodes = sd.mt || [];
-      for(var j=0;j<mpCodes.length;j++){ mpSet[mpCodes[j]]=1; allSet[mpCodes[j]]=1; }
-      for(var j=0;j<mtCodes.length;j++){ mtSet[mtCodes[j]]=1; allSet[mtCodes[j]]=1; }
-    }
-    totalStores = Object.keys(allSet).length;
-    mpStores = Object.keys(mpSet).length;
-    mtStores = Object.keys(mtSet).length;
+  var daysLabel = '全部', days = 1, isStoreMode = false;
+  
+  if(hasOrgFilter){
+    // ── 组织筛选模式：用过滤后的门店数据 ──
+    isStoreMode = true;
+    var mp = filterStores(STORE_MP);
+    var mt = filterStores(STORE_MT);
+    
+    mpTakeout = mp.reduce(function(a,s){return a+(s.revenue||0);},0);
+    mtTakeout = mt.reduce(function(a,s){return a+(s.revenue||0);},0);
+    totalTakeout = mpTakeout + mtTakeout;
+    mpTC = mp.reduce(function(a,s){return a+(s.orders||0);},0);
+    mtTC = mt.reduce(function(a,s){return a+(s.orders||0);},0);
+    totalTC = mpTC + mtTC;
+    
+    var allNames = {};
+    mp.forEach(function(s){ allNames[s.name] = 1; });
+    mt.forEach(function(s){ allNames[s.name] = 1; });
+    totalStores = Object.keys(allNames).length;
+    mpStores = mp.length;
+    mtStores = mt.length;
+    
+    totalRevenue = 0; // 门店数据无大盘业绩（全渠道含堂食）
+    days = 7; daysLabel = '门店汇总（7日）';
   } else {
-    // Fallback
-    var last = perfFiltered[perfFiltered.length-1] || {};
-    totalStores = last.store_count || 0;
-    mpStores = last.mp_stores || 0;
-    mtStores = last.mt_stores || 0;
+    // ── 全局模式：用每日汇总 ──
+    var perfFiltered = PERF_DAILY, orderFiltered = ORDER_DAILY;
+    if(ds && de){
+      perfFiltered = PERF_DAILY.filter(function(d){return d.date >= ds && d.date <= de;});
+      orderFiltered = ORDER_DAILY.filter(function(d){return d.date >= ds && d.date <= de;});
+      daysLabel = ds + ' ~ ' + de;
+    }
+    days = perfFiltered.length || 1;
+    
+    for(var i=0;i<perfFiltered.length;i++){
+      var d = perfFiltered[i];
+      totalTakeout += (d.revenue||0);
+      mpTakeout += (d.mp_revenue||0);
+      mtTakeout += (d.mt_revenue||0);
+      totalRevenue += (d.total_revenue||0);
+    }
+    for(var i=0;i<orderFiltered.length;i++){
+      var d = orderFiltered[i];
+      totalTC += (d.orders||0);
+      mpTC += (d.mp_orders||0);
+      mtTC += (d.mt_orders||0);
+    }
+    
+    if(STORE_DAILY && !ds && !de){
+      // 无日期筛选: 用 store_daily 去重
+      var mpSet2 = {}, mtSet2 = {}, allSet2 = {};
+      var entries = Object.entries(STORE_DAILY);
+      for(var i=0;i<entries.length;i++){
+        var sd = entries[i][1];
+        (sd.mp||[]).forEach(function(c){mpSet2[c]=1;allSet2[c]=1;});
+        (sd.mt||[]).forEach(function(c){mtSet2[c]=1;allSet2[c]=1;});
+      }
+      totalStores = Object.keys(allSet2).length;
+      mpStores = Object.keys(mpSet2).length;
+      mtStores = Object.keys(mtSet2).length;
+    } else if(STORE_DAILY && ds && de){
+      var mpSet3 = {}, mtSet3 = {}, allSet3 = {};
+      var entries2 = Object.entries(STORE_DAILY);
+      for(var i=0;i<entries2.length;i++){
+        var dateKey = entries2[i][0];
+        if(dateKey < ds || dateKey > de) continue;
+        var sd = entries2[i][1];
+        (sd.mp||[]).forEach(function(c){mpSet3[c]=1;allSet3[c]=1;});
+        (sd.mt||[]).forEach(function(c){mtSet3[c]=1;allSet3[c]=1;});
+      }
+      totalStores = Object.keys(allSet3).length;
+      mpStores = Object.keys(mpSet3).length;
+      mtStores = Object.keys(mtSet3).length;
+    } else {
+      var last = perfFiltered[perfFiltered.length-1] || {};
+      totalStores = last.store_count || 0;
+      mpStores = last.mp_stores || 0;
+      mtStores = last.mt_stores || 0;
+    }
   }
   
   // ── 店日均 ──
@@ -3007,74 +3049,150 @@ function renderDashboardSummary(){
   var mpOfTotalPct = totalRevenue>0 ? (mpTakeout/totalRevenue*100).toFixed(1) : '0.0';
   var mtOfTotalPct = totalRevenue>0 ? (mtTakeout/totalRevenue*100).toFixed(1) : '0.0';
   
-  document.getElementById('summary-days').textContent = daysLabel + ' · ' + days + '天 · ' + totalStores + '家外卖门店';
-  
-  // ── 构建表格 ──
-  var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-  html += '<tr style="border-bottom:2px solid #e0ddd7;background:#faf9f7">';
-  html += '<th style="padding:10px 12px;text-align:left;font-weight:600;color:var(--text-primary);width:100px">指标</th>';
-  html += '<th style="padding:10px 6px;text-align:center;font-weight:600;color:var(--text-primary)">外卖总</th>';
-  html += '<th style="padding:10px 6px;text-align:center;font-weight:600;color:var(--text-primary)"><span style="color:#C8873A">自配送</span></th>';
-  html += '<th style="padding:10px 6px;text-align:center;font-weight:600;color:var(--text-primary)"><span style="color:#E8321A">美团</span></th>';
-  html += '<th style="padding:10px 6px;text-align:center;font-weight:600;color:var(--text-primary);min-width:190px">占比拆解</th>';
-  html += '</tr>';
-  
-  // 占比单元格生成
-  function ratioCellRev(){
-    return '<td style="padding:10px 6px;text-align:center;font-size:11px;color:var(--text-muted);line-height:1.7">'
-      + '<div>外卖占大盘 <b style="color:var(--text-primary)">'+takeoutPct+'%</b></div>'
-      + '<div style="color:#C8873A">自配占外卖<b>'+mpOfTakeoutPct+'%</b> 占大盘<b>'+mpOfTotalPct+'%</b></div>'
-      + '<div style="color:#E8321A">美团占外卖<b>'+mtOfTakeoutPct+'%</b> 占大盘<b>'+mtOfTotalPct+'%</b></div>'
-      + '</td>';
-  }
-  function ratioCellTC(){
-    var tcpMp = totalTC>0 ? (mpTC/totalTC*100).toFixed(1) : '0.0';
-    var tcpMt = totalTC>0 ? (mtTC/totalTC*100).toFixed(1) : '0.0';
-    return '<td style="padding:10px 6px;text-align:center;font-size:11px;color:var(--text-muted);line-height:1.7">'
-      + '<div style="color:#C8873A">自配占外卖<b>'+tcpMp+'%</b></div>'
-      + '<div style="color:#E8321A">美团占外卖<b>'+tcpMt+'%</b></div>'
-      + '</td>';
+  // ── 饼图 SVG ──
+  var pieHtml = '';
+  if(DASH_PIE_MODE === 'total' && totalRevenue > 0){
+    // 外卖占大盘比
+    var pieSegs = [
+      {pct: +takeoutPct, color: '#639922', label: '外卖'},
+      {pct: +(100 - takeoutPct).toFixed(1), color: '#e0ddd7', label: '堂食等'}
+    ];
+    pieHtml = renderSmallPie(pieSegs, '外卖占大盘');
+  } else if(DASH_PIE_MODE === 'platform' && totalTakeout > 0){
+    // 平台占外卖比
+    var pieSegs2 = [
+      {pct: +mpOfTakeoutPct, color: '#C8873A', label: '自配送'},
+      {pct: +mtOfTakeoutPct, color: '#E8321A', label: '美团'}
+    ];
+    pieHtml = renderSmallPie(pieSegs2, '平台占比');
+  } else if(isStoreMode){
+    // 门店模式: 无大盘数据，只显示平台占比
+    var pieSegs3 = [
+      {pct: +mpOfTakeoutPct, color: '#C8873A', label: '自配送'},
+      {pct: +mtOfTakeoutPct, color: '#E8321A', label: '美团'}
+    ];
+    pieHtml = renderSmallPie(pieSegs3, '平台占比');
+  } else {
+    pieHtml = renderSmallPie([{pct: 100, color: '#e0ddd7', label: '无数据'}], '');
   }
   
-  var rows = [
-    {label:'业绩', unit:'万',
-      vals:[fm(totalTakeout), fm(mpTakeout), fm(mtTakeout)],
-      extra: ratioCellRev()
-    },
-    {label:'TC', unit:'单',
-      vals:[fm(totalTC), fm(mpTC), fm(mtTC)],
-      extra: ratioCellTC()
-    },
-    {label:'门店数', unit:'家',
-      vals:[totalStores+'', mpStores+'', mtStores+''],
-      extra: '<td style="padding:10px 6px;text-align:center;font-size:11px;color:var(--text-muted)">去重: 外卖门店=两平台并集<br>含'+mpStores+'家自配 + '+mtStores+'家美团</td>'
-    },
-    {label:'店日均业绩', unit:'元',
-      vals:[storeDailyRev.toLocaleString(), mpStoreDailyRev.toLocaleString(), mtStoreDailyRev.toLocaleString()],
-      extra: '<td style="padding:10px 6px;text-align:center;font-size:11px;color:var(--text-muted)">'+days+'天均值</td>'
-    },
-    {label:'店日均TC', unit:'单',
-      vals:[storeDailyTC, mpStoreDailyTC, mtStoreDailyTC],
-      extra: '<td style="padding:10px 6px;text-align:center;font-size:11px;color:var(--text-muted)">'+days+'天均值</td>'
-    },
+  // ── 标题栏 ──
+  var titleBar = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    + '<span style="font-size:13px;color:var(--text-muted)">'+daysLabel+' · '+days+'天 · '+totalStores+'家外卖门店'
+    + (isStoreMode ? ' <span style="font-size:10px;color:#EF9F27">(筛选模式下为门店汇总)</span>' : '')
+    + '</span>';
+  if(!isStoreMode){
+    titleBar += '<button onclick="togglePieMode()" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:4px;background:#faf9f7;cursor:pointer;color:var(--text-primary)">'
+      + (DASH_PIE_MODE==='total'?'🔀 切换为平台占比':'🔀 切换为大盘占比')+'</button>';
+  }
+  titleBar += '</div>';
+  
+  // ── 卡片布局：每行3个指标卡片 ──
+  var cards = [
+    {label:'外卖业绩', vals: [
+      {v: fm(totalTakeout), tag: '外卖总', cls: ''},
+      {v: fm(mpTakeout), tag: '自配送', cls: '#C8873A'},
+      {v: fm(mtTakeout), tag: '美团', cls: '#E8321A'}
+    ]},
+    {label:'外卖TC', vals: [
+      {v: fm(totalTC), tag: '外卖总', cls: ''},
+      {v: fm(mpTC), tag: '自配送', cls: '#C8873A'},
+      {v: fm(mtTC), tag: '美团', cls: '#E8321A'}
+    ]},
+    {label:'门店数', vals: [
+      {v: totalStores+'', tag: '外卖总', cls: ''},
+      {v: mpStores+'', tag: '自配送', cls: '#C8873A'},
+      {v: mtStores+'', tag: '美团', cls: '#E8321A'}
+    ]},
+    {label:'店日均业绩', vals: [
+      {v: storeDailyRev.toLocaleString()+'元', tag: '外卖总', cls: ''},
+      {v: mpStoreDailyRev.toLocaleString()+'元', tag: '自配送', cls: '#C8873A'},
+      {v: mtStoreDailyRev.toLocaleString()+'元', tag: '美团', cls: '#E8321A'}
+    ]},
+    {label:'店日均TC', vals: [
+      {v: storeDailyTC+'单', tag: '外卖总', cls: ''},
+      {v: mpStoreDailyTC+'单', tag: '自配送', cls: '#C8873A'},
+      {v: mtStoreDailyTC+'单', tag: '美团', cls: '#E8321A'}
+    ]},
   ];
   
-  for(var ri=0;ri<rows.length;ri++){
-    var row = rows[ri];
-    html += '<tr style="border-bottom:1px solid var(--border);'+(ri%2===0?'background:#faf9f7':'')+'">';
-    html += '<td style="padding:12px 12px;font-weight:600;color:var(--text-primary);cursor:pointer" onclick="showMetricInfo(\''+row.label+'\')" title="点击查看指标说明">'+row.label;
-    if(row.unit) html += '<span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px">('+row.unit+')</span>';
-    html += '</td>';
-    var colStyles = ['','color:#C8873A;font-weight:600','color:#E8321A;font-weight:600'];
-    for(var ci=0;ci<3;ci++){
-      html += '<td style="padding:12px 6px;text-align:center;font-weight:600;'+colStyles[ci]+'">'+row.vals[ci]+'</td>';
+  var cardHtml = '';
+  for(var ci=0;ci<cards.length;ci++){
+    var c = cards[ci];
+    cardHtml += '<div class="m-card dash-card">'
+      + '<div class="m-label">'+c.label
+      + '<span style="font-size:9px;color:var(--text-muted);font-weight:400"> ('+days+'天)</span></div>';
+    cardHtml += '<div style="display:flex;gap:8px;margin-top:6px">';
+    for(var vi=0;vi<c.vals.length;vi++){
+      var v = c.vals[vi];
+      cardHtml += '<div style="flex:1;text-align:center">'
+        + '<div style="font-size:18px;font-weight:700;'+(v.cls?'color:'+v.cls+';':'')+'">'+v.v+'</div>'
+        + '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+v.tag+'</div>'
+        + '</div>';
     }
-    html += row.extra;
-    html += '</tr>';
+    cardHtml += '</div></div>';
   }
-  html += '</table>';
   
-  document.getElementById('summary-grid').innerHTML = html;
+  // ── 饼图卡片：占5个指标卡下方 ──
+  document.getElementById('summary-days').innerHTML = titleBar;
+  document.getElementById('summary-grid').innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">'
+    + cardHtml + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">'
+    + pieHtml
+    + renderRatioDetail()
+    + '</div>';
+}
+
+function renderSmallPie(segs, title){
+  var totalPct = segs.reduce(function(a,s){return a+s.pct;},0);
+  var r = 40, cx = 48, cy = 48, svgW = 96, svgH = 96;
+  var cum = -90; // start at top
+  var paths = '';
+  for(var i=0;i<segs.length;i++){
+    if(totalPct <= 0) break;
+    var angle = segs[i].pct / totalPct * 360;
+    var a1 = cum * Math.PI/180, a2 = (cum + angle) * Math.PI/180;
+    var x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+    var x2 = cx + r*Math.cos(a2), y2 = cy + r*Math.sin(a2);
+    var large = angle > 180 ? 1 : 0;
+    paths += '<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+',1 '+x2+','+y2+' Z" fill="'+segs[i].color+'"/>';
+    cum += angle;
+  }
+  var legend = segs.map(function(s){
+    return '<div style="display:flex;align-items:center;gap:4px;font-size:10px"><span style="width:8px;height:8px;border-radius:2px;background:'+s.color+';display:inline-block"></span>'+s.label+' '+s.pct+'%</div>';
+  }).join('');
+  return '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;text-align:center">'
+    + '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">'+(title||'占比')+'</div>'
+    + '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:80px;height:80px">'+paths+'</svg>'
+    + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:2px;align-items:center">'+legend+'</div>'
+    + '</div>';
+}
+
+function renderRatioDetail(){
+  var hasTotal = !isStoreMode && totalRevenue > 0;
+  var mpOfTakeoutPct2 = totalTakeout>0 ? (mpTakeout/totalTakeout*100).toFixed(1) : '0.0';
+  var mtOfTakeoutPct2 = totalTakeout>0 ? (mtTakeout/totalTakeout*100).toFixed(1) : '0.0';
+  var mpOfTotalPct2 = totalRevenue>0 ? (mpTakeout/totalRevenue*100).toFixed(1) : '0.0';
+  var mtOfTotalPct2 = totalRevenue>0 ? (mtTakeout/totalRevenue*100).toFixed(1) : '0.0';
+  var takeoutPct2 = totalRevenue>0 ? (totalTakeout/totalRevenue*100).toFixed(1) : '0.0';
+  
+  var lines = [];
+  if(hasTotal){
+    lines.push('<div style="font-size:11px"><b>外卖总业绩</b> '+fm(totalTakeout)+' / 大盘 '+fm(totalRevenue)+' <span style="color:#639922;font-weight:600">占'+takeoutPct2+'%</span></div>');
+  } else {
+    lines.push('<div style="font-size:11px"><b>外卖总业绩</b> '+fm(totalTakeout)+'<span style="color:var(--text-muted)">（筛选模式，无大盘对比）</span></div>');
+  }
+  lines.push('<div style="font-size:11px;color:#C8873A"><b>自配送</b> '+fm(mpTakeout)
+    + ' — <b>平台占比</b> '+mpOfTakeoutPct2+'%'
+    + (hasTotal ? ' · <b>大盘占比</b> '+mpOfTotalPct2+'%' : '')
+    + '</div>');
+  lines.push('<div style="font-size:11px;color:#E8321A"><b>美团</b> '+fm(mtTakeout)
+    + ' — <b>平台占比</b> '+mtOfTakeoutPct2+'%'
+    + (hasTotal ? ' · <b>大盘占比</b> '+mtOfTotalPct2+'%' : '')
+    + '</div>');
+  lines.push('<div style="font-size:10px;color:var(--text-muted);margin-top:4px">门店数: 外卖'+totalStores+'家（去重） = 自配送'+mpStores+' + 美团'+mtStores+'</div>');
+  
+  return '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:4px;justify-content:center">'+lines.join('')+'</div>';
 }
 
 function showMetricInfo(label){
