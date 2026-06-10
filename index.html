@@ -2951,7 +2951,7 @@ function renderDashboardSummary(){
   var hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
   
   var totalTakeout = 0, mpTakeout = 0, mtTakeout = 0, totalRevenue = 0;
-  var totalTC = 0, mpTC = 0, mtTC = 0;
+  var totalTC = 0, mpTC = 0, mtTC = 0, totalAllTC = 0;
   var totalStores = 0, mpStores = 0, mtStores = 0;
   var daysLabel = '全部', days = 1, isStoreMode = false;
   
@@ -2976,6 +2976,7 @@ function renderDashboardSummary(){
     mtStores = mt.length;
     
     totalRevenue = 0; // 门店数据无大盘业绩（全渠道含堂食）
+    totalAllTC = 0;   // 门店数据无大盘订单
     days = 7; daysLabel = '门店汇总（7日）';
   } else {
     // ── 全局模式：用每日汇总 ──
@@ -2997,41 +2998,38 @@ function renderDashboardSummary(){
     for(var i=0;i<orderFiltered.length;i++){
       var d = orderFiltered[i];
       totalTC += (d.orders||0);
+      totalAllTC += (d.total_orders||0);
       mpTC += (d.mp_orders||0);
       mtTC += (d.mt_orders||0);
     }
     
     if(STORE_DAILY && !ds && !de){
       // 无日期筛选: 用 store_daily 去重
-      var mpSet2 = {}, mtSet2 = {}, allSet2 = {};
+      var allSet2 = {};
       var entries = Object.entries(STORE_DAILY);
       for(var i=0;i<entries.length;i++){
         var sd = entries[i][1];
-        (sd.mp||[]).forEach(function(c){mpSet2[c]=1;allSet2[c]=1;});
-        (sd.mt||[]).forEach(function(c){mtSet2[c]=1;allSet2[c]=1;});
+        (sd.all||[]).forEach(function(c){allSet2[c]=1;});
       }
       totalStores = Object.keys(allSet2).length;
-      mpStores = Object.keys(mpSet2).length;
-      mtStores = Object.keys(mtSet2).length;
     } else if(STORE_DAILY && ds && de){
-      var mpSet3 = {}, mtSet3 = {}, allSet3 = {};
+      var allSet3 = {};
       var entries2 = Object.entries(STORE_DAILY);
       for(var i=0;i<entries2.length;i++){
         var dateKey = entries2[i][0];
         if(dateKey < ds || dateKey > de) continue;
         var sd = entries2[i][1];
-        (sd.mp||[]).forEach(function(c){mpSet3[c]=1;allSet3[c]=1;});
-        (sd.mt||[]).forEach(function(c){mtSet3[c]=1;allSet3[c]=1;});
+        (sd.all||[]).forEach(function(c){allSet3[c]=1;});
       }
       totalStores = Object.keys(allSet3).length;
-      mpStores = Object.keys(mpSet3).length;
-      mtStores = Object.keys(mtSet3).length;
     } else {
       var last = perfFiltered[perfFiltered.length-1] || {};
       totalStores = last.store_count || 0;
-      mpStores = last.mp_stores || 0;
-      mtStores = last.mt_stores || 0;
     }
+    // 小程序/美团门店数：从订单数据源取（对应字段非0门店数）
+    var lastOrd = orderFiltered[orderFiltered.length-1] || {};
+    mpStores = lastOrd.mp_stores || 0;
+    mtStores = lastOrd.mt_stores || 0;
   }
   
   // ── 店日均 ──
@@ -3139,7 +3137,7 @@ function renderDashboardSummary(){
     + cardHtml + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">'
     + pieHtml
-    + renderRatioDetail()
+    + renderRatioDetail(totalTakeout, mpTakeout, mtTakeout, totalRevenue, totalStores, mpStores, mtStores, totalAllTC, isStoreMode, totalTC)
     + '</div>';
 }
 
@@ -3168,29 +3166,35 @@ function renderSmallPie(segs, title){
     + '</div>';
 }
 
-function renderRatioDetail(){
-  var hasTotal = !isStoreMode && totalRevenue > 0;
-  var mpOfTakeoutPct2 = totalTakeout>0 ? (mpTakeout/totalTakeout*100).toFixed(1) : '0.0';
-  var mtOfTakeoutPct2 = totalTakeout>0 ? (mtTakeout/totalTakeout*100).toFixed(1) : '0.0';
-  var mpOfTotalPct2 = totalRevenue>0 ? (mpTakeout/totalRevenue*100).toFixed(1) : '0.0';
-  var mtOfTotalPct2 = totalRevenue>0 ? (mtTakeout/totalRevenue*100).toFixed(1) : '0.0';
-  var takeoutPct2 = totalRevenue>0 ? (totalTakeout/totalRevenue*100).toFixed(1) : '0.0';
+function renderRatioDetail(ttlTakeout, mpT, mtT, ttlRevenue, ttlStores, mpS, mtS, ttlAllTC, isSM, totalTC){
+  var hasTotal = !isSM && ttlRevenue > 0;
+  var mpOfTakeoutPct2 = ttlTakeout>0 ? (mpT/ttlTakeout*100).toFixed(1) : '0.0';
+  var mtOfTakeoutPct2 = ttlTakeout>0 ? (mtT/ttlTakeout*100).toFixed(1) : '0.0';
+  var mpOfTotalPct2 = ttlRevenue>0 ? (mpT/ttlRevenue*100).toFixed(1) : '0.0';
+  var mtOfTotalPct2 = ttlRevenue>0 ? (mtT/ttlRevenue*100).toFixed(1) : '0.0';
+  var takeoutPct2 = ttlRevenue>0 ? (ttlTakeout/ttlRevenue*100).toFixed(1) : '0.0';
   
   var lines = [];
+  // 业绩概览
   if(hasTotal){
-    lines.push('<div style="font-size:11px"><b>外卖总业绩</b> '+fm(totalTakeout)+' / 大盘 '+fm(totalRevenue)+' <span style="color:#639922;font-weight:600">占'+takeoutPct2+'%</span></div>');
+    lines.push('<div style="font-size:11px"><b>外卖总业绩</b> '+fm(ttlTakeout)+' / 大盘 '+fm(ttlRevenue)+' <span style="color:#639922;font-weight:600">占'+takeoutPct2+'%</span></div>');
   } else {
-    lines.push('<div style="font-size:11px"><b>外卖总业绩</b> '+fm(totalTakeout)+'<span style="color:var(--text-muted)">（筛选模式，无大盘对比）</span></div>');
+    lines.push('<div style="font-size:11px"><b>外卖总业绩</b> '+fm(ttlTakeout)+'<span style="color:var(--text-muted)">（筛选模式，无大盘对比）</span></div>');
   }
-  lines.push('<div style="font-size:11px;color:#C8873A"><b>自配送</b> '+fm(mpTakeout)
+  lines.push('<div style="font-size:11px;color:#C8873A"><b>自配送</b> '+fm(mpT)
     + ' — <b>平台占比</b> '+mpOfTakeoutPct2+'%'
     + (hasTotal ? ' · <b>大盘占比</b> '+mpOfTotalPct2+'%' : '')
     + '</div>');
-  lines.push('<div style="font-size:11px;color:#E8321A"><b>美团</b> '+fm(mtTakeout)
+  lines.push('<div style="font-size:11px;color:#E8321A"><b>美团</b> '+fm(mtT)
     + ' — <b>平台占比</b> '+mtOfTakeoutPct2+'%'
     + (hasTotal ? ' · <b>大盘占比</b> '+mtOfTotalPct2+'%' : '')
     + '</div>');
-  lines.push('<div style="font-size:10px;color:var(--text-muted);margin-top:4px">门店数: 外卖'+totalStores+'家（去重） = 自配送'+mpStores+' + 美团'+mtStores+'</div>');
+  // 订单概览
+  if(!isSM && ttlAllTC > 0){
+    var tcTakeoutPct = (totalTC/ttlAllTC*100).toFixed(1);
+    lines.push('<div style="font-size:10px;color:var(--text-muted);margin-top:4px">📦 <b>外卖总订单</b> '+fm(totalTC)+' / 大盘 '+fm(ttlAllTC)+' 占比'+tcTakeoutPct+'%</div>');
+  }
+  lines.push('<div style="font-size:10px;color:var(--text-muted);margin-top:4px">门店数: 外卖'+ttlStores+'家（去重） = 自配送'+mpS+' + 美团'+mtS+'</div>');
   
   return '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:4px;justify-content:center">'+lines.join('')+'</div>';
 }
