@@ -164,6 +164,7 @@ for _, row in mt_latest.iterrows():
         }
     })
 
+mt_stores = [s for s in mt_stores if s.get('name') and s.get('brand') and s['brand'] != 'nan']
 print(f'美团门店匹配: {len(mt_stores)}/{len(mt_latest)}, 未匹配: {mt_unmatched}')
 
 # ═══════════════════════════════════════════
@@ -254,6 +255,7 @@ for _, row in agg.iterrows():
         'cups': safe_int(row['总杯数']),
     })
 
+mp_stores = [s for s in mp_stores if s.get('name') and s.get('brand') and s['brand'] != 'nan']
 print(f'小程序匹配: {len(mp_stores)}/{len(agg)}, 未匹配: {len(mp_unmatched)}')
 
 # ═══════════════════════════════════════════
