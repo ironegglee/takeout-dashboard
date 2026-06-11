@@ -2949,6 +2949,20 @@ function setActiveMarket(market){
   renderDashboardSummary();
 }
 
+// ── 品牌名统一归一化（JS端二次防护）──
+function normBrand(v){
+  v = (v||'').trim();
+  if(!v) return '';
+  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜诗','昼夜诗':'昼夜诗','饼坊':'饼坊','饼行':'饼坊'};
+  if(exact[v]) return exact[v];
+  if(v.indexOf('茶颜')>=0) return '茶颜悦色';
+  if(v.indexOf('鸳央')>=0 || v.indexOf('鸯央')>=0) return '鸳央咖啡';
+  if(v.indexOf('墨柠')>=0 || v.indexOf('古德')>=0) return '墨柠';
+  if(v.indexOf('昼夜')>=0) return '昼夜诗';
+  if(v.indexOf('饼坊')>=0 || v.indexOf('饼行')>=0) return '饼坊';
+  return v;
+}
+
 // ── 按市场+品牌汇总 ──
 function computeMarketSummary(){
   var markets = {}, brands = {};
@@ -2967,11 +2981,11 @@ function computeMarketSummary(){
   
   sourceMp.forEach(function(s){
     addToGroup(markets, s.market||'其他', s.revenue||0, 0, s.orders||0, 0, s.name);
-    addToGroup(brands, s.brand||'其他', s.revenue||0, 0, s.orders||0, 0, s.name);
+    addToGroup(brands, normBrand(s.brand)||'其他', s.revenue||0, 0, s.orders||0, 0, s.name);
   });
   sourceMt.forEach(function(s){
     addToGroup(markets, s.market||'其他', 0, s.revenue||0, 0, s.orders||0, s.name);
-    addToGroup(brands, s.brand||'其他', 0, s.revenue||0, 0, s.orders||0, s.name);
+    addToGroup(brands, normBrand(s.brand)||'其他', 0, s.revenue||0, 0, s.orders||0, s.name);
   });
   
   function finalize(grp){
@@ -3188,7 +3202,7 @@ function renderDashboardSummary(){
   document.getElementById('summary-days').innerHTML = titleBar;
   document.getElementById('summary-grid').innerHTML = 
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px">' + cardHtml + '</div>'
-    + '<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;align-items:start">'
+    + '<div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:start">'
     + pieRowHtml
     + (activeData ? renderActiveDetail(activeData, active, days) : '')
     + '</div>';
@@ -3232,16 +3246,17 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
     pies.push(makePie(b, b, d.mpRev, d.mtRev, d.totalRev, ''));
   });
   
-  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:#faf9f7;border-radius:8px">';
+  // 横排滚动容器
+  var html = '<div style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:12px;padding:12px;background:#faf9f7;border-radius:8px;scrollbar-width:thin;">';
   for(var i=0;i<pies.length;i++){
     var p = pies[i];
     var isActive = p.key === active;
     var ringSvg = renderDonutRing(p.segs, isActive);
-    html += '<div onclick="setActiveMarket(\''+p.key+'\')" style="cursor:pointer;text-align:center;padding:8px 12px;border-radius:10px;'+(isActive?'background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.1);transform:scale(1.05);':'')+'transition:all 0.2s">'
-      + '<div style="font-size:11px;color:'+(isActive?'var(--text-primary)':'var(--text-muted)')+';margin-bottom:5px;font-weight:'+(isActive?'700':'400')+'">'+p.label+'</div>'
-      + ringSvg
-      + (p.sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:3px">'+p.sub+'</div>' : '')
-      + '<div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-top:3px">'+fm(p.total)+'</div>'
+    html += '<div onclick="setActiveMarket(\''+p.key+'\')" style="flex:0 0 auto;width:90px;cursor:pointer;text-align:center;padding:10px 8px;border-radius:10px;'+(isActive?'background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.1);transform:scale(1.05);':'')+'transition:all 0.2s">'
+      + '<div style="font-size:12px;color:'+(isActive?'var(--text-primary)':'var(--text-muted)')+';margin-bottom:6px;font-weight:'+(isActive?'700':'400')+'">'+p.label+'</div>'
+      + '<div style="display:flex;justify-content:center">'+ringSvg+'</div>'
+      + (p.sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:4px">'+p.sub+'</div>' : '')
+      + '<div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-top:4px">'+fm(p.total)+'</div>'
       + '</div>';
   }
   html += '</div>';

@@ -9,7 +9,34 @@ OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.xlsx'
 NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-6.8.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-01-16-48-48/dashboard/data.json'
 
-BRAND_MAP = {'茶颜': '茶颜悦色', '鸳央': '鸳央咖啡', '墨柠': '墨柠', '昼夜': '昼夜诗', '饼坊': '饼坊'}
+BRAND_MAP = {
+    '茶颜': '茶颜悦色', '茶颜悦色': '茶颜悦色',
+    '鸳央': '鸳央咖啡', '鸳央咖啡': '鸳央咖啡',
+    '墨柠': '墨柠', '古德墨柠': '墨柠',
+    '昼夜': '昼夜诗', '昼夜诗': '昼夜诗',
+    '饼坊': '饼坊'
+}
+
+def normalize_brand(val):
+    """品牌名统一归一化：处理各种变体/简写/错别字"""
+    v = str(val).strip() if pd.notna(val) else ''
+    if not v or v == 'nan':
+        return ''
+    # 精确映射
+    if v in BRAND_MAP:
+        return BRAND_MAP[v]
+    # 模糊匹配
+    if '茶颜' in v:
+        return '茶颜悦色'
+    if '鸳央' in v or '鸯央' in v:
+        return '鸳央咖啡'
+    if '墨柠' in v or '古德' in v:
+        return '墨柠'
+    if '昼夜' in v:
+        return '昼夜诗'
+    if '饼坊' in v or '饼行' in v:
+        return '饼坊'
+    return v
 
 def safe_float(val, default=0.0):
     try: v = float(val); return default if math.isnan(v) else v
@@ -46,7 +73,7 @@ for _, r in arch.iterrows():
     region = str(r['大区']) if pd.notna(r['大区']) else ''
     area = str(r['区域']) if pd.notna(r['区域']) else ''
     leader = str(r['大店']) if pd.notna(r['大店']) else ''
-    brand = BRAND_MAP.get(str(r['品牌']), str(r['品牌']))
+    brand = normalize_brand(r['品牌'])
     market = str(r['市场']) if pd.notna(r['市场']) else ''
     code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
     
@@ -270,7 +297,7 @@ if '省份' in perf_new.columns and '市场/品牌' not in perf_new.columns:
     perf_new = perf_new.rename(columns={'省份': '市场/品牌'})
 perf = pd.concat([perf_old, perf_new], ignore_index=True).drop_duplicates().reset_index(drop=True)
 perf['日期_dt'] = pd.to_datetime(perf['日期'].astype(str), format='%Y%m%d', errors='coerce')
-perf['品牌'] = perf['品牌'].map(BRAND_MAP).fillna(perf['品牌'])
+perf['品牌'] = perf['品牌'].apply(normalize_brand)
 perf['region_mgr'] = perf['大区'].astype(str)
 perf['area_mgr'] = perf['区经理'].astype(str)
 perf['leader'] = perf['大店长'].astype(str)
@@ -335,7 +362,7 @@ orders_old = pd.read_excel(OLD_PATH, sheet_name='订单数据源')
 orders_new = pd.read_excel(NEW_PATH, sheet_name='订单数据源')
 orders_df = pd.concat([orders_old, orders_new], ignore_index=True).drop_duplicates().reset_index(drop=True)
 orders_df['日期_dt'] = pd.to_datetime(orders_df['日期'].astype(str), format='%Y%m%d', errors='coerce')
-orders_df['品牌'] = orders_df['品牌'].map(BRAND_MAP).fillna(orders_df['品牌'])
+orders_df['品牌'] = orders_df['品牌'].apply(normalize_brand)
 orders_df['region_mgr'] = orders_df['大区'].astype(str)
 orders_df['area_mgr'] = orders_df['区经理'].astype(str)
 orders_df['leader'] = orders_df['大店长'].astype(str)
