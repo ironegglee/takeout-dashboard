@@ -478,6 +478,8 @@
 </script></head>
 <body>
 
+<div id="js-error-log" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#fff0f0;border-bottom:3px solid red;padding:8px 16px;max-height:200px;overflow-y:auto;font-family:monospace;font-size:12px"></div>
+
 <header class="header">
   <div class="header-brand">
     <span class="dot"></span>
@@ -3794,6 +3796,18 @@ function applyRealData(jsonData){
 }
 
 (function init(){
+  // 全局错误捕获，帮助调试
+  window.onerror=function(msg,src,line,col,err){
+    var erEl=document.getElementById('js-error-log');
+    if(erEl){
+      erEl.style.display='block';
+      erEl.innerHTML += '<div style="color:#e00;font-size:11px;padding:2px 0;border-bottom:1px solid #fdd">'+
+        'JS错误: '+msg+' @行'+line+(col?':列'+col:'')+'</div>';
+    }
+    return false;
+  };
+  try{
+
   const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
   // 默认显示最新单日
   document.getElementById('gf-date-start').value=EMBEDDED_DATE_END;
@@ -3819,6 +3833,13 @@ function applyRealData(jsonData){
   doRender();
   // 移动端默认折叠筛选栏
   if(window.innerWidth <= 768){ toggleMobileFilter(); }
+  }catch(e){
+    var erEl=document.getElementById('js-error-log');
+    if(erEl){
+      erEl.style.display='block';
+      erEl.innerHTML='<div style="color:red;font-weight:bold;padding:8px;border:2px solid red">初始化异常: '+e.message+'</div>';
+    }
+  }
 })();
 
 /* ═══ 移动端筛选折叠 ═══ */
