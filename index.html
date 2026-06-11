@@ -626,6 +626,14 @@
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="mgmt-card">
         <div class="mgmt-card-header">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#C8873A"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">牌</text></svg>
+          品牌排名
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看品牌详情</span>
+        </div>
+        <div class="mgmt-card-body" id="brand-rank-container"></div>
+      </div>
+      <div class="mgmt-card">
+        <div class="mgmt-card-header">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#639922"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">市</text></svg>
           市场排名
           <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看市场详情</span>
@@ -1097,7 +1105,8 @@ function onMgmtSortClick(table, key){
   const st=mgmtSortState[table];
   if(st.key===key){st.dir=st.dir==='asc'?'desc':'asc';}
   else{st.key=key;st.dir='desc';}
-  if(table==='market')renderMarketRank();
+  if(table==='brand')renderBrandRank();
+  else if(table==='market')renderMarketRank();
   else if(table==='region')renderRegionMgrRank();
   else renderAreaMgrRank();
 }
@@ -1625,7 +1634,7 @@ function openAlertDetail(alert){
   cardHtml += '<div style="flex:1">';
   cardHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
   cardHtml += '<span style="font-size:20px">'+icon+'</span>';
-  cardHtml += '<span style="font-size:16px;font-weight:700;color:var(--text)">'+esc(alert.store)+'</span>';
+  cardHtml += '<span style="font-size:16px;font-weight:700;color:var(--text-primary)">'+esc(alert.store)+'</span>';
   cardHtml += '</div>';
   cardHtml += '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
   cardHtml += '<span style="padding:2px 8px;border-radius:10px;background:'+color+'14;color:'+color+';font-size:11px;font-weight:500">'+label+'</span>';
@@ -2929,7 +2938,19 @@ function calcRealMetrics(){
     mpAvgRate = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalOrders) : 0;
     // 小程序业绩取 perf_daily 的 mp_revenue
     mpRevTotal = perfDayFiltered.length>0 ? perfDayFiltered.reduce((a,d)=>a+(d.mp_revenue||0),0) : 0;
-    if(!mpRevTotal) mpRevTotal = mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0)*22,0); // fallback
+    if(!mpRevTotal && perfDayFiltered.length>0){
+      // 无业绩数据时用美团业绩按门店比例估算（比orders*avg*22更可靠）
+      var mtRevTotal = perfDayFiltered.reduce((a,d)=>a+(d.mt_revenue||0),0);
+      var mpStCnt = mpDayFiltered.length>0 ? (mpDayFiltered[mpDayFiltered.length-1].store_count||0) : mp.length;
+      var mtStCnt = perfDayFiltered.length>0 ? (perfDayFiltered[mpDayFiltered.length-1]||{}).mt_store_count||0 : mt.length;
+      if(mtRevTotal>0 && mpStCnt>0 && mtStCnt>0){
+        // 按门店数比例推算
+        mpRevTotal = mtRevTotal * (mpStCnt / Math.max(mtStCnt, mpStCnt)) * 0.75;
+      } else {
+        // 终极兜底：订单量×均出餐×22
+        mpRevTotal = mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0)*22,0);
+      }
+    }
   } else if(ds && de && !hasOrgFilter){
     // 仅日期筛选无匹配 → 显示0
     mpOrd = 0; mpAvgCook = 0; mpAvgRate = 0; mpRevTotal = 0;
@@ -3548,15 +3569,16 @@ function renderActiveDetail(ad, marketName, days){
   return html;
 }
 
+var METRIC_INFO = {
+  '业绩': '<b>业绩</b>：所选日期范围内的外卖总收款金额（含自配送+美团）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总业绩" 求和。<br><br><b>数据来源</b>：业绩数据源（POS+平台对账汇总）。<br><br><b>自配送</b>：小程序外卖订单总金额；<b>美团</b>：美团平台订单总金额。<br><br><b>💡 如何提升</b>：优化菜单结构提高客单价、提升门店流量增加曝光、开展营销活动促进复购。',
+  'TC': '<b>TC（订单量）</b>：所选日期范围内的外卖总订单数（Transaction Count）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总"订单数 求和。<br><br><b>数据来源</b>：订单数据源。<br><br><b>自配送</b>：小程序外卖订单数；<b>美团</b>：美团平台订单数。<br><br><b>💡 如何提升</b>：增加外卖平台曝光投入、优化门店评分吸引顾客、高峰期保障出餐速度。',
+  '门店数': '<b>门店数</b>：所选日期范围内有外卖业绩的活跃门店总数（去重）。<br><br><b>计算公式</b>：业绩>0 的门店按编码去重计数（自配送与美团取并集）。<br><br><b>数据来源</b>：业绩数据源按日统计。<br><br><b>💡 如何保持</b>：确保所有营业门店均开通外卖服务，新开门店及时上线。',
+  '店日均业绩': '<b>店日均业绩</b>：单店每日平均外卖营收。<br><br><b>计算公式</b>：外卖总额 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量单店外卖运营效率的核心指标，可比性远高于总额。<br><br><b>💡 如何提升</b>：提高门店曝光排名、优化外卖菜单、缩短出餐时间、提升店铺分吸引顾客。',
+  '店日均TC': '<b>店日均TC</b>：单店每日平均外卖订单数。<br><br><b>计算公式</b>：外卖总订单 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量门店外卖客流强度，配合客单价分析可定位增长空间。<br><br><b>💡 如何提升</b>：高峰期安排充足人手、保障出餐速度、参与平台活动提升曝光。',
+};
+
 function showMetricInfo(label){
-  var infoMap = {
-    '业绩': '<b>业绩</b>：所选日期范围内的外卖总收款金额（含自配送+美团）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总业绩" 求和。<br><br><b>数据来源</b>：业绩数据源（POS+平台对账汇总）。<br><br><b>自配送</b>：小程序外卖订单总金额；<b>美团</b>：美团平台订单总金额。<br><br><b>💡 如何提升</b>：优化菜单结构提高客单价、提升门店流量增加曝光、开展营销活动促进复购。',
-    'TC': '<b>TC（订单量）</b>：所选日期范围内的外卖总订单数（Transaction Count）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总"订单数 求和。<br><br><b>数据来源</b>：订单数据源。<br><br><b>自配送</b>：小程序外卖订单数；<b>美团</b>：美团平台订单数。<br><br><b>💡 如何提升</b>：增加外卖平台曝光投入、优化门店评分吸引顾客、高峰期保障出餐速度。',
-    '门店数': '<b>门店数</b>：所选日期范围内有外卖业绩的活跃门店总数（去重）。<br><br><b>计算公式</b>：业绩>0 的门店按编码去重计数（自配送与美团取并集）。<br><br><b>数据来源</b>：业绩数据源按日统计。<br><br><b>💡 如何保持</b>：确保所有营业门店均开通外卖服务，新开门店及时上线。',
-    '店日均业绩': '<b>店日均业绩</b>：单店每日平均外卖营收。<br><br><b>计算公式</b>：外卖总额 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量单店外卖运营效率的核心指标，可比性远高于总额。<br><br><b>💡 如何提升</b>：提高门店曝光排名、优化外卖菜单、缩短出餐时间、提升店铺分吸引顾客。',
-    '店日均TC': '<b>店日均TC</b>：单店每日平均外卖订单数。<br><br><b>计算公式</b>：外卖总订单 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量门店外卖客流强度，配合客单价分析可定位增长空间。<br><br><b>💡 如何提升</b>：高峰期安排充足人手、保障出餐速度、参与平台活动提升曝光。',
-  };
-  var detail = infoMap[label] || '暂无该指标的详细说明。';
+  var detail = METRIC_INFO[label] || '暂无该指标的详细说明。';
   var detailEl = document.getElementById('summary-detail');
   var btnEl = document.getElementById('summary-toggle-btn');
   if(detailEl.style.display==='block'){
@@ -3572,16 +3594,9 @@ function toggleSummaryDetail(){
     detailEl.style.display='none';
     btnEl.textContent='指标说明 ▸';
   } else {
-    // Default: show 业绩 explanation
-    var infoMap = {
-      '业绩': '<b>业绩</b>：所选日期范围内的外卖总收款金额（含自配送+美团）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总业绩" 求和。<br><br><b>数据来源</b>：业绩数据源（POS+平台对账汇总）。<br><br><b>自配送</b>：小程序外卖订单总金额；<b>美团</b>：美团平台订单总金额。<br><br><b>💡 如何提升</b>：优化菜单结构提高客单价、提升门店流量增加曝光、开展营销活动促进复购。',
-      'TC': '<b>TC</b>：所选日期范围内的外卖总订单数（Transaction Count）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总"订单数 求和。<br><br><b>数据来源</b>：订单数据源。<br><br><b>自配送</b>：小程序外卖订单数；<b>美团</b>：美团平台订单数。<br><br><b>💡 如何提升</b>：增加外卖平台曝光投入、优化门店评分吸引顾客、高峰期保障出餐速度。',
-      '门店数': '<b>门店数</b>：所选日期范围内有外卖业绩的活跃门店总数（去重）。<br><br><b>计算公式</b>：业绩>0 的门店按编码去重计数（自配送与美团取并集）。<br><br><b>数据来源</b>：业绩数据源按日统计。<br><br><b>💡 如何保持</b>：确保所有营业门店均开通外卖服务，新开门店及时上线。',
-      '店日均业绩': '<b>店日均业绩</b>：单店每日平均外卖营收。<br><br><b>计算公式</b>：外卖总额 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量单店外卖运营效率的核心指标，可比性远高于总额。<br><br><b>💡 如何提升</b>：提高门店曝光排名、优化外卖菜单、缩短出餐时间、提升店铺分吸引顾客。',
-      '店日均TC': '<b>店日均TC</b>：单店每日平均外卖订单数。<br><br><b>计算公式</b>：外卖总订单 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量门店外卖客流强度，配合客单价分析可定位增长空间。<br><br><b>💡 如何提升</b>：高峰期安排充足人手、保障出餐速度、参与平台活动提升曝光。',
-    };
+    // Default: show all metric explanations from shared METRIC_INFO
     var parts = [];
-    for(var k in infoMap){ parts.push(infoMap[k]); }
+    for(var k in METRIC_INFO){ parts.push(METRIC_INFO[k]); }
     detailEl.innerHTML = '<div style="columns:2;column-gap:24px">'+parts.join('<hr style="border:none;border-top:1px dashed #ddd;margin:8px 0">')+'</div>';
     detailEl.style.display='block';
     btnEl.textContent='收起说明 ▾';
@@ -3627,6 +3642,7 @@ function render(){
   }
 
   renderAlerts();
+  renderBrandRank();
   renderMarketRank();
   renderRegionMgrRank();
   renderAreaMgrRank();
