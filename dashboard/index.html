@@ -2942,12 +2942,12 @@ function calcRealMetrics(){
     mpRevTotal = perfDayFiltered.length>0 ? perfDayFiltered.reduce((a,d)=>a+(d.mp_revenue||0),0) : 0;
     if(!mpRevTotal && perfDayFiltered.length>0){
       // 无业绩数据时用美团业绩按门店比例估算（比orders*avg*22更可靠）
-      var mtRevTotal = perfDayFiltered.reduce((a,d)=>a+(d.mt_revenue||0),0);
-      var mpStCnt = mpDayFiltered.length>0 ? (mpDayFiltered[mpDayFiltered.length-1].store_count||0) : mp.length;
-      var mtStCnt = perfDayFiltered.length>0 ? (perfDayFiltered[mpDayFiltered.length-1]||{}).mt_store_count||0 : mt.length;
-      if(mtRevTotal>0 && mpStCnt>0 && mtStCnt>0){
+      mtRevTotal = perfDayFiltered.reduce((a,d)=>a+(d.mt_revenue||0),0);
+      var _mpStCnt = mpDayFiltered.length>0 ? (mpDayFiltered[mpDayFiltered.length-1].store_count||0) : mp.length;
+      var _mtStCnt = perfDayFiltered.length>0 ? (perfDayFiltered[mpDayFiltered.length-1]||{}).mt_store_count||0 : mt.length;
+      if(mtRevTotal>0 && _mpStCnt>0 && _mtStCnt>0){
         // 按门店数比例推算
-        mpRevTotal = mtRevTotal * (mpStCnt / Math.max(mtStCnt, mpStCnt)) * 0.75;
+        mpRevTotal = mtRevTotal * (_mpStCnt / Math.max(_mtStCnt, _mpStCnt)) * 0.75;
       } else {
         // 终极兜底：订单量×均出餐×22
         mpRevTotal = mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0)*22,0);
