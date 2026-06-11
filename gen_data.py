@@ -38,6 +38,48 @@ def normalize_brand(val):
         return '饼坊'
     return v
 
+# 品牌→市场映射：当市场字段被品牌名污染时，根据品牌推断真实市场
+BRAND_TO_MARKET = {
+    '墨柠': '湖南', '古德墨柠': '湖南',
+    '鸳央咖啡': '湖南', '鸳央': '湖南',
+    '昼夜诗': '湖南', '昼夜': '湖南',
+    '饼坊': '湖南',
+}
+
+def normalize_market(market_val, brand_val=''):
+    """市场名归一化：去除品牌污染 + 统一省市名格式"""
+    v = str(market_val).strip() if pd.notna(market_val) else ''
+    if not v or v == 'nan':
+        return ''
+    
+    # 如果市场值本身就是品牌名（或被品牌污染），用品牌→市场映射纠正
+    if v in BRAND_TO_MARKET:
+        return BRAND_TO_MARKET[v]
+    
+    # 如果已知品牌且市场值匹配品牌关键词，也纠正
+    brand_norm = normalize_brand(brand_val) if brand_val else ''
+    if brand_norm in BRAND_TO_MARKET and (brand_norm in v or v in brand_norm or ('墨柠' in v and '墨柠' in brand_norm) or ('鸳央' in v and '鸳央' in brand_norm) or ('昼夜' in v and '昼夜' in brand_norm)):
+        return BRAND_TO_MARKET[brand_norm]
+    
+    # 省市名格式归一化
+    MARKET_NORM = {
+        '湖南': '湖南', '湖南省': '湖南', '湖南省市场': '湖南',
+        '江苏': '江苏', '江苏省': '江苏', '江苏省市场': '江苏',
+        '湖北': '湖北', '湖北省': '湖北', '湖北省市场': '湖北',
+        '重庆': '重庆', '重庆市': '重庆', '重庆市市场': '重庆',
+        '广东': '广东', '广东省': '广东', '广东市场': '广东',
+        '深圳': '广东',
+    }
+    if v in MARKET_NORM:
+        return MARKET_NORM[v]
+    
+    # 模糊匹配：如果市场名包含标准省市名
+    for std_name, normed in [('湖南','湖南'),('江苏','江苏'),('湖北','湖北'),('重庆','重庆'),('广东','广东')]:
+        if std_name in v and v != normed:
+            return normed
+    
+    return v
+
 def safe_float(val, default=0.0):
     try: v = float(val); return default if math.isnan(v) else v
     except: return default
@@ -74,7 +116,7 @@ for _, r in arch.iterrows():
     area = str(r['区域']) if pd.notna(r['区域']) else ''
     leader = str(r['大店']) if pd.notna(r['大店']) else ''
     brand = normalize_brand(r['品牌'])
-    market = str(r['市场']) if pd.notna(r['市场']) else ''
+    market = normalize_market(r['市场'], brand)
     code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
     
     info = {
@@ -112,8 +154,8 @@ mt_arch = {}
 for _, r in mt.iterrows():
     code = str(r.get('门店编码','')) if pd.notna(r.get('门店编码')) else ''
     name_arch = str(r.get('门店名称.1','')) if pd.notna(r.get('门店名称.1')) else ''
-    brand = BRAND_MAP.get(str(r.get('品牌','')), str(r.get('品牌','')))
-    market = str(r.get('市场','')) if pd.notna(r.get('市场')) else ''
+    brand = normalize_brand(r.get('品牌'))
+    market = normalize_market(r.get('市场'), brand)
     city = str(r.get('城市','')) if pd.notna(r.get('城市')) else ''
     region = str(r.get('大区','')) if pd.notna(r.get('大区')) else ''
     area = str(r.get('区域','')) if pd.notna(r.get('区域')) else ''
@@ -349,7 +391,7 @@ for _, r in perf_store.iterrows():
         perf_by_code[code] = {
             'revenue': int(r['revenue']), 'mp_revenue': int(r['mp_revenue']),
             'mt_revenue': int(r['mt_revenue']), 'days': int(r['days']),
-            'market': str(r['市场/品牌']) if pd.notna(r['市场/品牌']) else ''
+            'market': normalize_market(r['市场/品牌'], r['品牌'])
         }
 
 print(f'业绩门店数(7日): {len(perf_by_code)}')
