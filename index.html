@@ -3245,7 +3245,11 @@ function renderDashboardSummary(){
   }
   
   // ── 生成环形饼图行 ──
-  var pieRowHtml = renderMarketPieRow(marketData, marketNames, brandData, brandNames, storeAllTakeout, storeAllMp, storeAllMt, totalRevenue, active);
+  // store-level: 用于市场/品牌饼（非日期过滤），daily-level: 用于大盘饼（日期过滤）
+  var pieRowHtml = renderMarketPieRow(marketData, marketNames, brandData, brandNames, 
+    storeAllTakeout, storeAllMp, storeAllMt,   // store口
+    totalTakeout, mpTakeout, mtTakeout,        // daily口（PERF_DAILY，日期过滤）
+    totalRevenue, active);
   
   // ── 标题栏 ──
   var titleBar = '<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">'
@@ -3302,7 +3306,9 @@ function renderDashboardSummary(){
 }
 
 // ── 环形饼图行（多市场+品牌 4列grid）──
-function renderMarketPieRow(marketData, marketNames, brandData, brandNames, totalTakeout, mpTakeout, mtTakeout, totalRevenue, active){
+// totalTakeout/mpTakeout/mtTakeout = store级（computeMarketSummary聚合，用于市场/品牌饼）
+// globalRev/globalMp/globalMt = daily级（PERF_DAILY，日期过滤，用于大盘饼）
+function renderMarketPieRow(marketData, marketNames, brandData, brandNames, totalTakeout, mpTakeout, mtTakeout, globalRev, globalMp, globalMt, totalRevenue, active){
   var pies = [];
   
   var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜诗':'昼夜','饼坊':'饼坊'};
@@ -3316,13 +3322,13 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
     return {key: key, label: label, segs: segs, sub: sub, total: total};
   }
   
-  // 1. 大盘
+  // 1. 大盘 — 使用 daily-level 数据（日期过滤）
   var allSub = '';
-  if(totalRevenue > 0){
+  if(totalRevenue > 0 && globalRev > 0){
     var hasOrg = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
-    if(!hasOrg) allSub = '占大盘 '+(totalTakeout/totalRevenue*100).toFixed(0)+'%';
+    if(!hasOrg) allSub = '占大盘 '+(globalRev/totalRevenue*100).toFixed(1)+'%';
   }
-  pies.push(makePie('大盘', '大盘', mpTakeout, mtTakeout, totalTakeout, 0));
+  pies.push(makePie('大盘', '大盘', globalMp, globalMt, globalRev||1, 0));
   if(allSub) pies[0].sub = allSub;
   
   // 2. 市场
@@ -3388,12 +3394,60 @@ function renderDonutRing(segs, isActive){
   return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:54px;height:54px">'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#f0edeb" stroke-width="'+strokeW+'"/>'
     + paths
+    // 小百分比标签（居中显示）
+    + (segs.length===2 
+      ? '<text x="'+cx+'" y="'+(cy-6)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+segs[0].color+'">'+Math.round(segs[0].pct)+'%</text>'
+       + '<text x="'+cx+'" y="'+(cy+8)+'" text-anchor="middle" font-size="8" fill="'+segs[1].color+'">'+Math.round(segs[1].pct)+'%</text>'
+      : (segs.length===1
+        ? '<text x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+segs[0].color+'">'+Math.round(segs[0].pct)+'%</text>'
+        : ''))
     + '</svg>';
 }
 
-// ── 选中市场的详情面板（自配送上、美团下，与饼图对称）──
+// ── 大饼图 SVG（自配送/美团/其他 占大盘比）──
+function renderBigPie(segments, title){
+  var r = 56, cx = 70, cy = 70, svgW = 140, svgH = 140;
+  var total = segments.reduce(function(a,s){return a+s.val;},0);
+  if(total <= 0) return '<div style="text-align:center;color:var(--text-muted);font-size:10px">暂无数据</div>';
+  
+  // 计算弧路径
+  var cum = 0;
+  var paths = '';
+  var labels = '';
+  for(var i=0;i<segments.length;i++){
+    var pct = segments[i].val / total;
+    if(pct < 0.001) continue;
+    var startAngle = cum * 360 - 90;
+    var endAngle = (cum + pct) * 360 - 90;
+    var midAngle = (cum + pct/2) * 360 - 90;
+    cum += pct;
+    
+    var largeArc = (pct > 0.5) ? 1 : 0;
+    var x1 = cx + r * Math.cos(startAngle * Math.PI/180);
+    var y1 = cy + r * Math.sin(startAngle * Math.PI/180);
+    var x2 = cx + r * Math.cos(endAngle * Math.PI/180);
+    var y2 = cy + r * Math.sin(endAngle * Math.PI/180);
+    paths += '<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+largeArc+',1 '+x2+','+y2+' Z" fill="'+segments[i].color+'" stroke="#fff" stroke-width="1"/>';
+    
+    // 标签（居中偏外）
+    var lr = r * 0.6;
+    var lx = cx + lr * Math.cos(midAngle * Math.PI/180);
+    var ly = cy + lr * Math.sin(midAngle * Math.PI/180) + 4;
+    if((pct*100) >= 3 || segments[i].label.indexOf('其他')<0){
+      labels += '<text x="'+lx+'" y="'+ly+'" text-anchor="middle" font-size="9" font-weight="600" fill="white">'+(pct*100).toFixed(1)+'%</text>';
+    }
+  }
+  
+  return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:130px;height:130px">'
+    + paths
+    + labels
+    + '<text x="'+cx+'" y="'+(cy+50)+'" text-anchor="middle" font-size="9" fill="var(--text-muted)">'+title+'</text>'
+    + '</svg>';
+}
+
+// ── 选中市场的详情面板（自配送上、美团下，含大盘占比饼图）──
 function renderActiveDetail(ad, marketName, days){
-  var html = '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column;justify-content:center">';
+  var html = '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column">';
   html += '<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-primary)">'+marketName+' 平台占比</div>';
   
   var totalR = ad.totalRev || 0;
@@ -3424,6 +3478,24 @@ function renderActiveDetail(ad, marketName, days){
     html += ' · <span style="color:#639922">占大盘'+tkPct+'%</span>';
   }
   html += '</div>';
+  
+  // ── 大盘占比大饼图（仅大盘模式显示）──
+  if(ad.isGlobal && ad.totalRevenue > 0){
+    var bigPieData = [
+      {label:'自配送', val:ad.mpRev, color:'#4CAF50'},
+      {label:'美团',   val:ad.mtRev, color:'#FFB300'},
+      {label:'其他(堂食等)', val:ad.totalRevenue - totalR, color:'#d0cdc7'}
+    ];
+    html += '<div style="margin-top:10px;text-align:center">';
+    html += '<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">外卖业绩占大盘比例</div>';
+    html += renderBigPie(bigPieData, '大盘业绩 '+fm(ad.totalRevenue));
+    html += '</div>';
+  }
+  // 非大盘模式也显示饼图：外卖 vs 大盘
+  else if(ad.isGlobal && ad.totalRevenue <= 0){
+    // 门店筛选模式：无大盘数据
+    html += '<div style="margin-top:8px;font-size:10px;color:var(--text-muted);text-align:center">筛选模式下无大盘数据</div>';
+  }
   
   html += '</div>';
   return html;
