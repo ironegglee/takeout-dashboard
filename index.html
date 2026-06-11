@@ -1508,7 +1508,9 @@ function drillDim(dimName, category){
     }
     if(val > 0) stores.push({name:s.name, market:s.market, city:s.city, brand:s.brand, val:val});
   });
-  stores.sort(function(a,b){return b.val - a.val;});
+  // 默认升序
+  stores.sort(function(a,b){return a.val - b.val;});
+  var sortDir = 'asc'; // 当前排序方向
   var avg = stores.length>0 ? (stores.reduce(function(a,s){return a+s.val;},0)/stores.length).toFixed(2) : '--';
   var below = stores.filter(function(s){return s.val < meta.target;}).length;
   
@@ -1529,12 +1531,18 @@ function drillDim(dimName, category){
   h += '</div></div>';
   h += '<div style="max-height:400px;overflow-y:auto;padding:0 20px 16px">';
   h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
-  h += '<tr style="background:#faf9f7;text-align:left"><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:36px">#</th><th style="padding:8px 6px;border-bottom:1px solid var(--border)">门店</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px">市场</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:56px;text-align:right">'+dimName+'</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px;text-align:center">状态</th></tr>';
+  h += '<tr style="background:#faf9f7;text-align:left"><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:36px">#</th><th style="padding:8px 6px;border-bottom:1px solid var(--border)">门店</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px">市场</th><th onclick="drillDimResort(this)" data-dim="'+dimName+'" data-cat="'+category+'" style="padding:8px 6px;border-bottom:1px solid var(--border);width:56px;text-align:right;cursor:pointer;user-select:none;color:#667eea">'+dimName+' ▲</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px;text-align:center">状态</th></tr>';
+  h += '<tbody id="drill-dim-tbody">';
   for(var i=0;i<stores.length;i++){
     var s = stores[i], ok = s.val >= meta.target;
     h += '<tr style="border-bottom:1px solid #f0edeb"><td style="padding:6px;color:var(--text-muted);font-size:10px">'+(i+1)+'</td><td style="padding:6px;font-weight:500">'+s.name+'</td><td style="padding:6px;color:var(--text-muted);font-size:10px">'+s.market+'</td><td style="padding:6px;text-align:right;font-weight:600;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+s.val.toFixed(2)+'</td><td style="padding:6px;text-align:center;font-size:10px;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+(ok?'达标':'未达标')+'</td></tr>';
   }
-  h += '</table></div></div>';
+  h += '</tbody></table></div></div>';
+  
+  // Store sort data in global for resort
+  window._drillStores = stores;
+  window._drillMeta = meta;
+  
   if(alertDetailModal){ try{document.body.removeChild(alertDetailModal);}catch(e){} }
   alertDetailModal = document.createElement('div');
   alertDetailModal.className = 'modal-overlay';
@@ -1542,6 +1550,25 @@ function drillDim(dimName, category){
   alertDetailModal.onclick = function(e){ if(e.target===alertDetailModal) document.body.removeChild(alertDetailModal); };
   alertDetailModal.innerHTML = h;
   document.body.appendChild(alertDetailModal);
+}
+
+// ── drillDim 排序切换 ──
+function drillDimResort(th){
+  var stores = window._drillStores;
+  var meta = window._drillMeta;
+  if(!stores || stores.length===0) return;
+  var curDir = th.textContent.indexOf('▲')>=0 ? 'asc' : 'desc';
+  var newDir = curDir==='asc' ? 'desc' : 'asc';
+  th.textContent = th.textContent.replace(/[▲▼]/, newDir==='asc'?'▲':'▼');
+  stores.sort(function(a,b){ return newDir==='asc' ? a.val - b.val : b.val - a.val; });
+  var tbody = document.getElementById('drill-dim-tbody');
+  if(!tbody) return;
+  var h = '';
+  for(var i=0;i<stores.length;i++){
+    var s = stores[i], ok = s.val >= meta.target;
+    h += '<tr style="border-bottom:1px solid #f0edeb"><td style="padding:6px;color:var(--text-muted);font-size:10px">'+(i+1)+'</td><td style="padding:6px;font-weight:500">'+s.name+'</td><td style="padding:6px;color:var(--text-muted);font-size:10px">'+s.market+'</td><td style="padding:6px;text-align:right;font-weight:600;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+s.val.toFixed(2)+'</td><td style="padding:6px;text-align:center;font-size:10px;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+(ok?'达标':'未达标')+'</td></tr>';
+  }
+  tbody.innerHTML = h;
 }
 
 let alertDetailModal = null;
@@ -3394,12 +3421,12 @@ function renderDonutRing(segs, isActive){
   return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:54px;height:54px">'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#f0edeb" stroke-width="'+strokeW+'"/>'
     + paths
-    // 小百分比标签（居中显示）
+    // 百分比标签（外圈一左一右，醒目显示）
     + (segs.length===2 
-      ? '<text x="'+cx+'" y="'+(cy-6)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+segs[0].color+'">'+Math.round(segs[0].pct)+'%</text>'
-       + '<text x="'+cx+'" y="'+(cy+8)+'" text-anchor="middle" font-size="8" fill="'+segs[1].color+'">'+Math.round(segs[1].pct)+'%</text>'
+      ? '<text x="10" y="'+(cy+5)+'" text-anchor="end" font-size="9" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
+       + '<text x="58" y="'+(cy+5)+'" text-anchor="start" font-size="9" font-weight="700" fill="'+segs[1].color+'">'+segs[1].pct.toFixed(0)+'%</text>'
       : (segs.length===1
-        ? '<text x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+segs[0].color+'">'+Math.round(segs[0].pct)+'%</text>'
+        ? '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
         : ''))
     + '</svg>';
 }
@@ -3448,54 +3475,66 @@ function renderBigPie(segments, title){
 // ── 选中市场的详情面板（自配送上、美团下，含大盘占比饼图）──
 function renderActiveDetail(ad, marketName, days){
   var html = '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column">';
-  html += '<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-primary)">'+marketName+' 平台占比</div>';
+  html += '<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-primary)">'+marketName+' 平台占比</div>';
   
   var totalR = ad.totalRev || 0;
   var mpPct = totalR>0 ? (ad.mpRev/totalR*100).toFixed(1) : '0';
   var mtPct = totalR>0 ? (ad.mtRev/totalR*100).toFixed(1) : '0';
   
-  // 自配送卡片（上）
-  html += '<div style="background:#f5faf5;border-radius:6px;padding:10px;margin-bottom:8px">';
-  html += '<div style="color:#4CAF50;font-weight:600;margin-bottom:4px;font-size:11px">🟢 自配送</div>';
-  html += '<div style="font-size:18px;font-weight:700;color:#4CAF50">'+fm(ad.mpRev)+'</div>';
-  html += '<div style="color:var(--text-muted);font-size:10px;margin-top:2px">'+ad.mpStores+'家 · '+fm(ad.mpTC)+'单</div>';
-  html += '<div style="font-size:10px;color:#4CAF50;margin-top:2px">占外卖 '+mpPct+'%</div>';
+  // 紧凑双栏：左卡片区 + 右大饼图
+  html += '<div style="display:flex;gap:8px">';
+  
+  // 左栏：卡片
+  html += '<div style="flex:1;min-width:0">';
+  // 自配送卡片
+  html += '<div style="background:#f5faf5;border-radius:6px;padding:8px;margin-bottom:6px">';
+  html += '<div style="color:#4CAF50;font-weight:600;margin-bottom:2px;font-size:10px">🟢 自配送</div>';
+  html += '<div style="font-size:16px;font-weight:700;color:#4CAF50">'+fm(ad.mpRev)+'</div>';
+  html += '<div style="color:var(--text-muted);font-size:9px;margin-top:1px">'+ad.mpStores+'家 · '+fm(ad.mpTC)+'单</div>';
+  html += '<div style="font-size:9px;color:#4CAF50;margin-top:1px">占外卖 '+mpPct+'%</div>';
   html += '</div>';
   
-  // 美团卡片（下）
-  html += '<div style="background:#fffbf2;border-radius:6px;padding:10px">';
-  html += '<div style="color:#FFB300;font-weight:600;margin-bottom:4px;font-size:11px">🟡 美团</div>';
-  html += '<div style="font-size:18px;font-weight:700;color:#FFB300">'+fm(ad.mtRev)+'</div>';
-  html += '<div style="color:var(--text-muted);font-size:10px;margin-top:2px">'+ad.mtStores+'家 · '+fm(ad.mtTC)+'单</div>';
-  html += '<div style="font-size:10px;color:#FFB300;margin-top:2px">占外卖 '+mtPct+'%</div>';
+  // 美团卡片
+  html += '<div style="background:#fffbf2;border-radius:6px;padding:8px">';
+  html += '<div style="color:#FFB300;font-weight:600;margin-bottom:2px;font-size:10px">🟡 美团</div>';
+  html += '<div style="font-size:16px;font-weight:700;color:#FFB300">'+fm(ad.mtRev)+'</div>';
+  html += '<div style="color:var(--text-muted);font-size:9px;margin-top:1px">'+ad.mtStores+'家 · '+fm(ad.mtTC)+'单</div>';
+  html += '<div style="font-size:9px;color:#FFB300;margin-top:1px">占外卖 '+mtPct+'%</div>';
+  html += '</div>';
   html += '</div>';
   
-  // 外卖总计行
-  html += '<div style="margin-top:8px;padding:8px;background:#faf9f7;border-radius:6px;font-size:11px">';
-  html += '<b>外卖总计</b> '+fm(totalR)+' · '+ad.totalStores+'家门店 · '+fm(ad.totalTC)+'单';
+  // 右栏：大饼图（所有实体都显示）
+  html += '<div style="flex-shrink:0;text-align:center;display:flex;flex-direction:column;justify-content:center">';
+  var bigPieData = [];
+  var pieTitle = '';
+  if(ad.isGlobal && ad.totalRevenue > 0){
+    bigPieData = [
+      {label:'自配送', val:ad.mpRev, color:'#4CAF50'},
+      {label:'美团',   val:ad.mtRev, color:'#FFB300'},
+      {label:'其他(堂食等)', val:ad.totalRevenue - totalR, color:'#d0cdc7'}
+    ];
+    pieTitle = '大盘 '+fm(ad.totalRevenue);
+    html += '<div style="font-size:9px;color:var(--text-muted);margin-bottom:2px">占大盘比例</div>';
+  } else {
+    bigPieData = [
+      {label:'自配送', val:ad.mpRev, color:'#4CAF50'},
+      {label:'美团',   val:ad.mtRev, color:'#FFB300'}
+    ];
+    pieTitle = '外卖 '+fm(totalR);
+    html += '<div style="font-size:9px;color:var(--text-muted);margin-bottom:2px">渠道占比</div>';
+  }
+  html += renderBigPie(bigPieData, pieTitle);
+  html += '</div>';
+  html += '</div>'; // end flex双栏
+  
+  // 外卖总计行（紧凑）
+  html += '<div style="margin-top:6px;padding:6px 8px;background:#faf9f7;border-radius:6px;font-size:10px">';
+  html += '<b>外卖总计</b> '+fm(totalR)+' · '+ad.totalStores+'家 · '+fm(ad.totalTC)+'单';
   if(ad.isGlobal && ad.totalRevenue > 0){
     var tkPct = (totalR/ad.totalRevenue*100).toFixed(1);
     html += ' · <span style="color:#639922">占大盘'+tkPct+'%</span>';
   }
   html += '</div>';
-  
-  // ── 大盘占比大饼图（仅大盘模式显示）──
-  if(ad.isGlobal && ad.totalRevenue > 0){
-    var bigPieData = [
-      {label:'自配送', val:ad.mpRev, color:'#4CAF50'},
-      {label:'美团',   val:ad.mtRev, color:'#FFB300'},
-      {label:'其他(堂食等)', val:ad.totalRevenue - totalR, color:'#d0cdc7'}
-    ];
-    html += '<div style="margin-top:10px;text-align:center">';
-    html += '<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">外卖业绩占大盘比例</div>';
-    html += renderBigPie(bigPieData, '大盘业绩 '+fm(ad.totalRevenue));
-    html += '</div>';
-  }
-  // 非大盘模式也显示饼图：外卖 vs 大盘
-  else if(ad.isGlobal && ad.totalRevenue <= 0){
-    // 门店筛选模式：无大盘数据
-    html += '<div style="margin-top:8px;font-size:10px;color:var(--text-muted);text-align:center">筛选模式下无大盘数据</div>';
-  }
   
   html += '</div>';
   return html;
