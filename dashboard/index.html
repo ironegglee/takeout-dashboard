@@ -3494,13 +3494,13 @@ function renderDonutRing(segs, isActive){
     paths += '<path d="M'+x1+','+y1+' A'+midR+','+midR+' 0 '+largeArc+',1 '+x2+','+y2+'" fill="none" stroke="'+segs[i].color+'" stroke-width="'+strokeW+'" stroke-linecap="butt"/>';
     cum += angle;
   }
-  return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:72px;height:72px">'
+  return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:72px;height:72px;overflow:visible">'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#f0edeb" stroke-width="'+strokeW+'"/>'
     + paths
-    // 百分比标签（外圈一左一右，大号加粗）
+    // 百分比标签（外圈一左一右，overflow:visible 防止 viewBox 裁剪）
     + (segs.length===2 
-      ? '<text x="6" y="'+(cy+5)+'" text-anchor="end" font-size="16" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
-       + '<text x="62" y="'+(cy+5)+'" text-anchor="start" font-size="16" font-weight="700" fill="'+segs[1].color+'">'+segs[1].pct.toFixed(0)+'%</text>'
+      ? '<text x="8" y="'+(cy+5)+'" text-anchor="end" font-size="16" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
+       + '<text x="60" y="'+(cy+5)+'" text-anchor="start" font-size="16" font-weight="700" fill="'+segs[1].color+'">'+segs[1].pct.toFixed(0)+'%</text>'
       : (segs.length===1
         ? '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
         : ''))
@@ -3546,8 +3546,8 @@ function renderBigPie(segments, title){
     }
   }
   
-  // display:block 防止 inline SVG 被挤压变形
-  return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="display:block;width:130px;height:130px;flex-shrink:0">'
+  // display:block 防止 inline SVG 被挤压变形；overflow:visible 防止标题被 viewBox 裁剪
+  return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="display:block;width:130px;height:130px;flex-shrink:0;overflow:visible">'
     + paths
     + labels
     + '<text x="'+cx+'" y="'+(cy+55)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)">'+title+'</text>'
@@ -3802,6 +3802,7 @@ function applyRealData(jsonData){
     leader: s.leader || ('大店长-' + s.city),
     channel: 'mt',
     revenue: s.revenue || 0,
+    orders: s.orders || 0,
     shop_score: s.shop_score || 0,
     exp_score: s.exp_score || 0,
     shop_dims: {
