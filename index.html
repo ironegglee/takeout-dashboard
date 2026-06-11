@@ -3201,8 +3201,10 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
     pies.push(makePie(m, m, d.mpRev, d.mtRev, d.totalRev, ''));
   });
   
-  // 3. 品牌
+  // 3. 品牌（排除茶颜悦色和饼坊：主品牌不单独展示，饼坊合并后不展示）
+  var EXCLUDE_BRANDS = {'茶颜悦色':1, '饼坊':1};
   brandNames.forEach(function(b){
+    if(EXCLUDE_BRANDS[b]) return;
     var d = brandData[b];
     if(!d || d.totalRev <= 0) return;
     // 去重：品牌名如果和市场名相同则跳过
