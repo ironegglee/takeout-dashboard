@@ -446,13 +446,24 @@
     .detail-dim-target { width: 36px; font-size: 9px; }
     
     /* 饼图文字移动端缩小 */
-    .donut-pct { font-size: 11px !important; }
-    .bigpie-pct { font-size: 8px !important; }
-    .bigpie-title { font-size: 8px !important; }
+    .donut-pct { font-size: 10px !important; }
+    .bigpie-pct { font-size: 7px !important; }
+    .bigpie-title { font-size: 7px !important; }
 
     /* 饼图SVG容器移动端缩小 */
-    .dash-card { padding: 10px 8px; }
+    .dash-card { padding: 8px 6px; }
     .dash-card .m-label { font-size: 9px; }
+
+    /* 大盘卡片数值缩小 */
+    .dash-card .m-val { font-size: 15px; }
+    .summary-grid { padding: 6px; }
+    
+    /* 大盘标题栏 */
+    .summary-header { padding: 8px 14px; font-size: 12px; }
+    #summary-toggle-btn { font-size: 10px; padding: 2px 10px; }
+    
+    /* 饼图4列变2列 */
+    .renderMarketPieRow-grid { grid-template-columns: repeat(2,1fr) !important; }
 
     /* 移动端筛选折叠按钮 */
     .gf-mobile-toggle {
@@ -485,10 +496,19 @@
     .store-rank-panel .rank-table { min-width: 500px; }
     
     /* 饼图文字进一步缩小 */
-    .donut-pct { font-size: 10px !important; }
-    .bigpie-pct { font-size: 7px !important; }
-    .bigpie-title { font-size: 7px !important; }
+    .donut-pct { font-size: 9px !important; }
+    .bigpie-pct { font-size: 6px !important; }
+    .bigpie-title { font-size: 6px !important; }
     .dash-card .m-label { font-size: 8px; }
+    .dash-card .m-val { font-size: 13px; }
+    
+    /* 饼图2列 */
+    .renderMarketPieRow-grid { grid-template-columns: repeat(2,1fr) !important; gap:4px !important; }
+    
+    /* 卡片更紧凑 */
+    .summary-grid { padding: 4px; }
+    .summary-header { padding: 6px 10px; font-size: 11px; }
+    .dash-card { padding: 6px 4px; }
   }
 </style>
 <script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
@@ -617,7 +637,7 @@
   <div class="channel-grid">
 
     <!-- ═══ 小程序自配送 ═══ -->
-    <div class="channel-panel">
+    <div class="channel-panel" id="mp-section">
       <div class="channel-header mp">
         <div class="channel-label">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#EF9F27"/><text x="9" y="13" text-anchor="middle" font-size="10" fill="white" font-family="sans-serif">小</text></svg>
@@ -644,7 +664,7 @@
     </div>
 
     <!-- ═══ 美团第三方 ═══ -->
-    <div class="channel-panel">
+    <div class="channel-panel" id="mt-section">
       <div class="channel-header mt">
         <div class="channel-label">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#E8321A"/><text x="9" y="13" text-anchor="middle" font-size="10" fill="white" font-family="sans-serif">美</text></svg>
@@ -666,7 +686,7 @@
   </div>
 
   <!-- ═══ 管理层级排名：左侧上下叠(市场+大区) | 右侧(区经理) ═══ -->
-  <div class="mgmt-grid" style="align-items:start;">
+  <div class="mgmt-grid" id="mgmt-grid-wrap" style="align-items:start;">
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="mgmt-card">
         <div class="mgmt-card-header">
@@ -703,7 +723,7 @@
     </div>
   </div>
 
-  <div class="bottom-row">
+  <div class="bottom-row" id="alert-section">
     <div class="card">
       <div class="card-title">⏱ 出餐超15分钟</div>
       <div class="alert-col-header cook" id="cook-header">0 家门店</div>
@@ -722,7 +742,7 @@
   </div>
 
   <!-- ═══ 门店排名（底部双栏·统一列） ═══ -->
-  <div class="store-rank-section">
+  <div class="store-rank-section" id="store-rank-section">
     <div class="store-rank-panel">
       <div class="store-rank-header">
         <span class="section-label">☕ 标杆门店（最优 →）</span>
@@ -1355,20 +1375,6 @@ var EXPORT_SECTIONS = [
 ];
 
 function exportSnapshot(){
-  // 初始化分区ID（确保页面元素有指定ID）
-  (function ensureSectionIds(){
-    var mpPanel = document.querySelector('.channel-panel:nth-child(1)');
-    if(mpPanel && !mpPanel.id) mpPanel.id = 'mp-section';
-    var mtPanel = document.querySelector('.channel-panel:nth-child(2)');
-    if(mtPanel && !mtPanel.id) mtPanel.id = 'mt-section';
-    var mgmtGrid = document.querySelector('.mgmt-grid');
-    if(mgmtGrid && !mgmtGrid.id) mgmtGrid.id = 'mgmt-grid-wrap';
-    var bottomRow = document.querySelector('.bottom-row');
-    if(bottomRow && !bottomRow.id) bottomRow.id = 'alert-section';
-    var storeRank = document.querySelector('.store-rank-section');
-    if(storeRank && !storeRank.id) storeRank.id = 'store-rank-section';
-  })();
-
   var btn = document.getElementById('exportBtn');
   var origText = btn.textContent;
   
@@ -1377,26 +1383,22 @@ function exportSnapshot(){
     return;
   }
   
-  btn.textContent = '生成中...';
+  btn.textContent = '导出中 0/'+EXPORT_SECTIONS.length;
   btn.style.pointerEvents = 'none';
   btn.style.opacity = '0.7';
-  btn.style.display = 'none';
   var badge = document.querySelector('.live-badge');
   if(badge) badge.style.display = 'none';
   
   var dateStr = new Date().toISOString().slice(0,10);
-  var idx = 0;
+  var idx = 0, done = 0;
   
   function captureNext(){
     if(idx >= EXPORT_SECTIONS.length){
-      // 完成
-      btn.style.display = '';
-      btn.textContent = origText;
+      btn.textContent = '✓ 已导出 '+done+' 张';
       btn.style.pointerEvents = '';
       btn.style.opacity = '';
       if(badge) badge.style.display = '';
-      btn.textContent = '✓ 已导出';
-      setTimeout(function(){ btn.textContent = origText; }, 2000);
+      setTimeout(function(){ btn.textContent = origText; }, 2500);
       return;
     }
     
@@ -1404,10 +1406,12 @@ function exportSnapshot(){
     var el = document.getElementById(sec.id);
     idx++;
     
-    if(!el || el.offsetParent === null){
+    if(!el){
       captureNext();
       return;
     }
+    
+    btn.textContent = '导出中 '+(idx)+'/'+EXPORT_SECTIONS.length+' '+sec.name;
     
     html2canvas(el, {
       scale: 2,
@@ -1416,13 +1420,14 @@ function exportSnapshot(){
       backgroundColor: '#F5F3EF',
       logging: false,
     }).then(function(canvas){
+      done++;
       var link = document.createElement('a');
       link.download = '外卖看板_' + sec.name + '_' + dateStr + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
-      // 短暂延迟避免浏览器拦截连续下载
-      setTimeout(captureNext, 300);
-    }).catch(function(){
+      setTimeout(captureNext, 400);
+    }).catch(function(err){
+      console.warn('导出失败:', sec.name, err);
       captureNext();
     });
   }
@@ -2335,9 +2340,48 @@ function openStoreMerged(storeName){
   document.getElementById('drawerMeta').innerHTML =
     `${store.market} · ${store.city} · ${store.brand}　|　大区：${store.region_mgr}　区经理：${store.area_mgr}`;
 
+  // ── 门店诊断总结 ──
+  var issues = [], tips = [];
+  if(mpStore){
+    if(mpStore.avg > 8) { issues.push('平均出餐'+mpStore.avg+'分钟超SLA(8分钟)'); tips.push('优化后厨动线或增加高峰时段人力'); }
+    else if(mpStore.avg > 6.5) { issues.push('平均出餐'+mpStore.avg+'分钟偏高'); tips.push('关注出餐瓶颈时段'); }
+    else if(mpStore.avg > 5.5) { issues.push('出餐效率良好'); }
+    else { issues.push('出餐效率优秀'); }
+    if(mpStore.rate < 90) { issues.push('出餐达标率仅'+mpStore.rate+'%'); tips.push('减少超15分钟订单占比'); }
+    if(mpStore.max > 12) { tips.push('最长出餐'+mpStore.max+'分钟，排查极端超时原因'); }
+  }
+  if(mtStore){
+    var sd = mtStore.shop_dims, ed = mtStore.exp_dims;
+    if(mtStore.shop_score < 95) { issues.push('店铺分'+mtStore.shop_score+'低于95'); tips.push('关注六维中最低分项优先改进'); }
+    if(mtStore.exp_score < 4.6) { issues.push('综合体验分'+mtStore.exp_score+'低于4.6预警线'); tips.push('重点提升复购率和服务反馈'); }
+    // 找出最差维度
+    var worstShop = '', worstShopVal = 100, worstExp = '', worstExpVal = 5;
+    var shopDims = [['差评回复率',sd.reply_rate],['商家评分',sd.merchant_rating],['高峰营业',sd.peak_hours],['接单率',sd.reject_rate],['基础营业',sd.base_hours],['出餐上报',sd.cook_report]];
+    var expDims = [['商品满意度',ed.product_sat],['包装满意度',ed.pack_sat],['复购率',ed.repurchase],['消息回复',ed.msg_reply],['服务反馈',ed.service_neg],['食安反馈',ed.food_safety]];
+    shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
+    expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
+    if(worstShopVal < 95) tips.push('店铺分最低维度：'+worstShop+'('+worstShopVal.toFixed(1)+')，建议重点突破');
+    if(worstExpVal < 4.6) tips.push('体验分最短板：'+worstExp+'('+worstExpVal.toFixed(2)+')，优先改善');
+  }
+  if(!mpStore && !mtStore) issues.push('暂无经营数据');
+  
+  var summaryHTML = '';
+  if(issues.length > 0 || tips.length > 0){
+    var summaryText = issues.join('；') + (tips.length>0 ? '。建议：'+tips.slice(0,2).join('；') : '');
+    summaryHTML = '<div class="drawer-summary" style="margin:0 0 16px;padding:12px 16px;background:linear-gradient(135deg,#fef9e7,#fefce8);border-radius:8px;border-left:4px solid #EF9F27;font-size:13px;line-height:1.7;color:#5D4E37">'
+      + '<span style="font-weight:700;color:#854F0B">📋 诊断总结：</span>' + summaryText
+      + '</div>';
+  }
+
   const body = document.getElementById('drawerBody');
-  if (mpStore) renderMpDetail(mpStore, body);
-  else if (mtStore) renderMtDetail(mtStore, body);
+  if (mpStore) {
+    renderMpDetail(mpStore, body);
+    if(summaryHTML) body.insertAdjacentHTML('afterbegin', summaryHTML);
+  }
+  else if (mtStore) {
+    renderMtDetail(mtStore, body);
+    if(summaryHTML) body.insertAdjacentHTML('afterbegin', summaryHTML);
+  }
 
   // 如果两个平台都有, 追加美团详情（小程序已渲染）
   if (mpStore && mtStore) {
@@ -3240,7 +3284,8 @@ function normMarket(v, brand){
 }
 
 // ── 按市场+品牌汇总（店数按日期+维度，营收/订单按全期聚合）──
-function computeMarketSummary(mpCodeSet, mtCodeSet, allCodeSet){
+// totalCodeSet: 大盘堂食门店编码集合（用于门店数维度计算大盘门店占比）
+function computeMarketSummary(mpCodeSet, mtCodeSet, allCodeSet, totalCodeSet){
   var markets = {}, brands = {};
   var hasOrg = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
   var sourceMp = hasOrg ? filterStores(STORE_MP) : STORE_MP;
@@ -3275,6 +3320,26 @@ function computeMarketSummary(mpCodeSet, mtCodeSet, allCodeSet){
     }
   });
   
+  // ── 计算每个市场/品牌的大盘门店数（通过 CODE_TO_ORG 匹配 totalCodeSet 中的编码）──
+  function computeGlobalStoreCount(d, grpKey){
+    d.globalStores = 0;
+    if(!totalCodeSet) return;
+    var allCodeSetForGrp = {};
+    Object.keys(d.mpCodes).forEach(function(c){ allCodeSetForGrp[c]=1; });
+    Object.keys(d.mtCodes).forEach(function(c){ allCodeSetForGrp[c]=1; });
+    var count = 0;
+    Object.keys(totalCodeSet).forEach(function(code){
+      if(allCodeSetForGrp[code]){ count++; return; }
+      // 该编码可能不在外卖门店集合中，但该市场/品牌下有堂食数据
+      var org = CODE_TO_ORG[code];
+      if(!org) return;
+      var mkt = normMarket(org.market, org.brand)||'其他';
+      var brd = normBrand(org.brand)||'其他';
+      if(mkt === grpKey || brd === grpKey) count++;
+    });
+    d.globalStores = count;
+  }
+  
   // 用日期维度过滤后的编码计算门店数
   function finalize(grp){
     Object.keys(grp).forEach(function(k){
@@ -3305,6 +3370,8 @@ function computeMarketSummary(mpCodeSet, mtCodeSet, allCodeSet){
       d.totalStores = Object.keys(allSet).length;
       d.totalRev = d.mpRev + d.mtRev;
       d.totalTC = d.mpTC + d.mtTC;
+      // 大盘门店（堂食营业）— 跳过"其他"分组
+      if(totalCodeSet && k !== '其他') computeGlobalStoreCount(d, k);
     });
   }
   finalize(markets);
@@ -3459,7 +3526,7 @@ function renderDashboardSummary(){
   var takeoutPct = totalRevenue>0 ? (totalTakeout/totalRevenue*100).toFixed(1) : '0.0';
   
   // ── 按市场+品牌汇总 ──
-  var combined = computeMarketSummary(GLOBAL_MP_CODES, GLOBAL_MT_CODES, GLOBAL_ALL_CODES);
+  var combined = computeMarketSummary(GLOBAL_MP_CODES, GLOBAL_MT_CODES, GLOBAL_ALL_CODES, totalCodes);
   var marketData = combined.markets;
   var brandData = combined.brands;
   var marketNames = Object.keys(marketData).sort(function(a,b){return (marketData[b].totalRev||0) - (marketData[a].totalRev||0);});
@@ -3611,19 +3678,29 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
   // 用于判断层级的基准总量（始终用业绩判断是否有数据，避免TC/门店数为0时隐藏）
   function hasData(d){ return (d.mpRev||0)+(d.mtRev||0) > 0; }
   
-  function makePie(key, label, mpR, mtR, total, pct_ref, dim){
+  function makePie(key, label, mpR, mtR, total, pct_ref, dim, globalTotalStore){
     var fmtFn = dim === '业绩' ? fm : (dim === 'TC' ? fm : function(v){return v+'';});
-    if(total <= 0) return {key: key, label: label, segs: [], sub: '', total: 0, fmtTotal: '0', dim: dim};
+    if(total <= 0 && dim !== '门店数') return {key: key, label: label, segs: [], sub: '', total: 0, fmtTotal: '0', dim: dim};
     var segs = [];
     if(dim === '门店数'){
-      // 门店数维度不分拆MP/MT两段（门店在双平台重叠），单段展示总门店数
-      segs.push({pct: 100, color: '#639922', label: '外卖门店'});
+      // 门店数维度：外卖门店(绿) vs 仅堂食(灰)
+      var gts = globalTotalStore || total; // 如果没有大盘总数，退化为外卖门店=100%
+      var storeTotal = Math.max(total, gts);
+      if(total > 0){
+        var wpct = parseFloat((total/storeTotal*100).toFixed(1));
+        if(wpct > 0) segs.push({pct: wpct, color: '#639922', label: '外卖门店'});
+        var dpct = parseFloat(((storeTotal-total)/storeTotal*100).toFixed(1));
+        if(dpct > 0) segs.push({pct: dpct, color: '#B4B2A9', label: '仅堂食'});
+      }
+      if(segs.length === 0) segs.push({pct: 100, color: '#B4B2A9', label: '仅堂食'});
+      var sub2 = pct_ref > 0 ? '占外卖 '+pct_ref+'%' : '';
+      return {key: key, label: label, segs: segs, sub: sub2, total: storeTotal, fmtTotal: storeTotal+'家', dim: dim};
     } else {
       if(mpR > 0) segs.push({pct: parseFloat((mpR/total*100).toFixed(1)), color: '#4CAF50', label: '自配'});
       if(mtR > 0) segs.push({pct: parseFloat((mtR/total*100).toFixed(1)), color: '#FFB300', label: '美团'});
+      var sub = pct_ref > 0 ? '占外卖 '+pct_ref+'%' : '';
+      return {key: key, label: label, segs: segs, sub: sub, total: total, fmtTotal: fmtFn(total), dim: dim};
     }
-    var sub = pct_ref > 0 ? '占外卖 '+pct_ref+'%' : '';
-    return {key: key, label: label, segs: segs, sub: sub, total: total, fmtTotal: fmtFn(total), dim: dim};
   }
   
   // 维度标签映射
@@ -3646,7 +3723,7 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
   } else if(dimension === 'TC'){
     pies.push(makePie('大盘', '大盘', globalMpTC, globalMtTC, globalTC||0, 0, dimension));
   } else {
-    pies.push(makePie('大盘', '大盘', globalMpStores, globalMtStores, globalStores||0, 0, dimension));
+    pies.push(makePie('大盘', '大盘', globalMpStores, globalMtStores, globalStores||0, 0, dimension, totalAllStoresRef));
   }
   if(allSub) pies[0].sub = allSub;
   
@@ -3658,7 +3735,8 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
     var v = pickStore(d, dimension);
     if(v.total <= 0) return;
     var pct = storeTotal>0 ? (v.total/storeTotal*100).toFixed(1) : '0';
-    pies.push(makePie(m, m, v.mpR, v.mtR, v.total, parseFloat(pct), dimension));
+    var gtsMkt = (dimension==='门店数' && d.globalStores) ? d.globalStores : undefined;
+    pies.push(makePie(m, m, v.mpR, v.mtR, v.total, parseFloat(pct), dimension, gtsMkt));
   });
   
   // 3. 品牌（排除茶颜悦色：主品牌不单独展示；排除市场同名）
@@ -3671,11 +3749,12 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
     var v = pickStore(d, dimension);
     if(v.total <= 0) return;
     var pct = storeTotal>0 ? (v.total/storeTotal*100).toFixed(1) : '0';
-    pies.push(makePie(b, shortLabel(b), v.mpR, v.mtR, v.total, parseFloat(pct), dimension));
+    var gtsBrd = (dimension==='门店数' && d.globalStores) ? d.globalStores : undefined;
+    pies.push(makePie(b, shortLabel(b), v.mpR, v.mtR, v.total, parseFloat(pct), dimension, gtsBrd));
   });
   
   // 4列网格布局
-  var html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px;background:#faf9f7;border-radius:8px">';
+  var html = '<div class="renderMarketPieRow-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px;background:#faf9f7;border-radius:8px">';
   for(var i=0;i<pies.length;i++){
     var p = pies[i];
     var isActive = p.key === active;
