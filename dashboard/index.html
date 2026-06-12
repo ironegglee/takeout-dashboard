@@ -2340,41 +2340,115 @@ function openStoreMerged(storeName){
   document.getElementById('drawerMeta').innerHTML =
     `${store.market} · ${store.city} · ${store.brand}　|　大区：${store.region_mgr}　区经理：${store.area_mgr}`;
 
-  // ── 门店诊断总结 ──
-  var issues = [], tips = [];
+  // ── 门店诊断总结（含具体改善动作）──
+  var issues = [], actions = [], status = 'ok'; // ok / warn / bad
   if(mpStore){
-    if(mpStore.avg > 8) { issues.push('平均出餐'+mpStore.avg+'分钟超SLA(8分钟)'); tips.push('优化后厨动线或增加高峰时段人力'); }
-    else if(mpStore.avg > 6.5) { issues.push('平均出餐'+mpStore.avg+'分钟偏高'); tips.push('关注出餐瓶颈时段'); }
-    else if(mpStore.avg > 5.5) { issues.push('出餐效率良好'); }
-    else { issues.push('出餐效率优秀'); }
-    if(mpStore.rate < 90) { issues.push('出餐达标率仅'+mpStore.rate+'%'); tips.push('减少超15分钟订单占比'); }
-    if(mpStore.max > 12) { tips.push('最长出餐'+mpStore.max+'分钟，排查极端超时原因'); }
+    // 小程序出餐诊断
+    if(mpStore.avg > 8) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA(8分钟)');
+      actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
+      actions.push('② 优化备料流程：预制高频菜品半成品，高峰期直接组装而非现做');
+      actions.push('③ 检查后厨动线：炉灶→打包台→出餐口的距离是否可缩短'); }
+    else if(mpStore.avg > 6.5) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于行业均值');
+      actions.push('① 分析每日出餐耗时分布，锁定最慢的1-2个时段精准改善');
+      actions.push('② 检查是否存在"单量激增→人手不足→出餐变慢"的恶性循环'); }
+    else if(mpStore.avg > 5.5) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
+    else { issues.push('出餐效率优秀('+mpStore.avg+'分钟)'); }
+    if(mpStore.rate < 70) { status = 'bad'; issues.push('出餐达标率仅'+mpStore.rate+'%，近三分之一订单超15分钟');
+      actions.push('① 排查超时订单集中在哪些时段/哪些菜品，针对性优化');
+      actions.push('② 设置出餐倒计时提醒：接单后8分钟未出餐自动弹窗预警');
+      actions.push('③ 对高频超时菜品考虑简化工艺或提前预制'); }
+    else if(mpStore.rate < 90) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
+      actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
+    if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如炖品/烤制）导致，可调整备货策略'); }
   }
   if(mtStore){
     var sd = mtStore.shop_dims, ed = mtStore.exp_dims;
-    if(mtStore.shop_score < 95) { issues.push('店铺分'+mtStore.shop_score+'低于95'); tips.push('关注六维中最低分项优先改进'); }
-    if(mtStore.exp_score < 4.6) { issues.push('综合体验分'+mtStore.exp_score+'低于4.6预警线'); tips.push('重点提升复购率和服务反馈'); }
-    // 找出最差维度
+    if(mtStore.shop_score < 85) { status = 'bad'; issues.push('店铺分'+mtStore.shop_score+'分，严重低于标准(≥95)');
+      actions.push('① 建议立即召开门店会议，逐项分析六维失分原因');
+      actions.push('② 优先攻克"差评回复率"和"接单率"（权重最高、见效最快）'); }
+    else if(mtStore.shop_score < 95) { status = (status==='ok'?'warn':status); issues.push('店铺分'+mtStore.shop_score+'分，距达标(≥95)差'+(95-mtStore.shop_score)+'分');
+      actions.push('① 对照六维得分逐项排查，找到最低维度优先提升'); }
+    if(mtStore.exp_score < 4.0) { status = 'bad'; issues.push('综合体验分'+mtStore.exp_score+'，远低于预警线(4.6)');
+      actions.push('① 重点提升复购率：设置老客专属优惠券、会员日福利、积分兑换');
+      actions.push('② 优化服务反馈差评率：每条差评24小时内回复，针对共性问题出整改方案'); }
+    else if(mtStore.exp_score < 4.6) { status = (status==='ok'?'warn':status); issues.push('综合体验分'+mtStore.exp_score+'，低于预警线(4.6)');
+      actions.push('① 分析体验分六维中最短板，集中资源改善最关键的一项'); }
+    // 找出最差维度并给针对性建议
     var worstShop = '', worstShopVal = 100, worstExp = '', worstExpVal = 5;
     var shopDims = [['差评回复率',sd.reply_rate],['商家评分',sd.merchant_rating],['高峰营业',sd.peak_hours],['接单率',sd.reject_rate],['基础营业',sd.base_hours],['出餐上报',sd.cook_report]];
     var expDims = [['商品满意度',ed.product_sat],['包装满意度',ed.pack_sat],['复购率',ed.repurchase],['消息回复',ed.msg_reply],['服务反馈',ed.service_neg],['食安反馈',ed.food_safety]];
     shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
     expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
-    if(worstShopVal < 95) tips.push('店铺分最低维度：'+worstShop+'('+worstShopVal.toFixed(1)+')，建议重点突破');
-    if(worstExpVal < 4.6) tips.push('体验分最短板：'+worstExp+'('+worstExpVal.toFixed(2)+')，优先改善');
+    // 各维度针对性改善动作
+    var dimActions = {
+      '差评回复率': ['① 安排专人每日定时查看差评，24小时内完成回复',
+                     '② 回复模板：致歉+问题解释+补偿方案（优惠券/退款）',
+                     '③ 每周汇总差评高频词，找到共性问题根源'],
+      '商家评分':   ['① 引导好评：随餐附评分引导卡，好评晒图送小礼品',
+                     '② 重点关注商品描述真实度，避免"图片与实物不符"差评'],
+      '高峰营业':   ['① 检查平台设置的高峰营业时段与实际是否一致',
+                     '② 节假日/恶劣天气提前调整营业状态，避免非营业时间接单'],
+      '接单率':     ['① 设置自动接单功能，避免人工漏接',
+                     '② 高峰期安排专人盯屏，确保每单15秒内响应'],
+      '基础营业':   ['① 确保每日营业时长覆盖平台要求的核心时段',
+                     '② 如需临时关店，提前在平台设置休息状态'],
+      '出餐上报':   ['① 每次出餐后第一时间在平台点击"已出餐"',
+                     '② 培养后厨"出餐=上报"的肌肉记忆，纳入绩效考核'],
+      '商品满意度': ['① 抽检高频差评菜品，对比竞品定价和品质',
+                     '② 在商品描述中标注克重/份量，降低期望落差',
+                     '③ 每款新品上线前进行内部试吃打分(≥4.5分才上架)'],
+      '包装满意度': ['① 汤汁类菜品换用防洒封口杯/密封碗',
+                     '② 冬季换用保温袋，夏季冷饮加冰袋',
+                     '③ 附赠湿巾/吸管/手套等小物提升开箱体验'],
+      '复购率':     ['① 设置\"下单满X次送饮品\"\"集章卡\"等复购激励',
+                     '② 每周推送会员专属优惠，精准触达30天未回购用户',
+                     '③ 优化爆款SKU稳定性和口味一致性，让顾客愿意回头'],
+      '消息回复':   ['① 开启自动回复话术库(常见问题预设答案)',
+                     '② 设置消息提醒音效，确保顾客咨询5分钟内响应'],
+      '服务反馈':   ['① 每单随餐附\"如有问题请联系我们\"卡片，引导私了而非差评',
+                     '② 出餐前二次核对订单内容与菜品，减少漏装/错装',
+                     '③ 建立\"差评溯源→问题认领→整改复查\"闭环机制'],
+      '食安反馈':   ['① 每日营业前拍照记录后厨卫生状况',
+                     '② 食材进货索证索票，定期更新台账',
+                     '③ 员工持健康证上岗，每月食品安全培训一次']
+    };
+    if(worstShopVal < 95){
+      var wsa = dimActions[worstShop] || [];
+      if(wsa.length) actions = actions.concat(wsa.slice(0,2));
+      else actions.push('① 店铺分最低维度：'+worstShop+'('+worstShopVal.toFixed(1)+')，建议重点突破');
+    }
+    if(worstExpVal < 4.6){
+      var wea = dimActions[worstExp] || [];
+      if(wea.length && actions.length < 3) actions = actions.concat(wea.slice(0,2));
+      else if(!wea.length) actions.push('① 体验分最短板：'+worstExp+'('+worstExpVal.toFixed(2)+')，优先改善');
+    }
   }
-  if(!mpStore && !mtStore) issues.push('暂无经营数据');
+  if(!mpStore && !mtStore) { issues.push('暂无经营数据'); status = 'warn'; }
   
-  // 诊断总结始终展示（即使健康也要给出结论）
+  // 去重 actions（保留顺序，去除完全相同的条目）
+  var seen = {}, uniqueActions = [];
+  actions.forEach(function(a){ if(!seen[a]){ seen[a]=true; uniqueActions.push(a); } });
+  actions = uniqueActions.slice(0, 5); // 最多展示5条改善动作
+
+  // 诊断总结始终展示
   var summaryHTML = '';
-  if(issues.length === 0 && tips.length === 0){
-    summaryHTML = '<div class="drawer-summary" style="margin:0 0 16px;padding:12px 16px;background:linear-gradient(135deg,#f0f7e6,#f6fae6);border-radius:8px;border-left:4px solid #639922;font-size:13px;line-height:1.7;color:#3B6D11">'
-      + '<span style="font-weight:700;color:#3B6D11">✅ 诊断总结：</span>当前门店各项经营指标表现良好，暂未发现明显异常。继续保持现有运营节奏即可。'
+  if(status === 'ok' && issues.length === 0 && actions.length === 0){
+    summaryHTML = '<div class="drawer-summary" style="margin:0 0 16px;padding:14px 18px;background:linear-gradient(135deg,#f0f7e6,#f6fae6);border-radius:8px;border-left:4px solid #639922;font-size:13px;line-height:1.7;color:#3B6D11">'
+      + '<div style="font-weight:700;font-size:14px;color:#3B6D11;margin-bottom:4px">✅ 诊断总结</div>'
+      + '<div>当前门店各项经营指标表现良好，暂未发现明显异常。继续保持现有运营节奏即可。</div>'
       + '</div>';
   } else {
-    var summaryText = issues.join('；') + (tips.length>0 ? '。建议：'+tips.slice(0,2).join('；') : '');
-    summaryHTML = '<div class="drawer-summary" style="margin:0 0 16px;padding:12px 16px;background:linear-gradient(135deg,#fef9e7,#fefce8);border-radius:8px;border-left:4px solid #EF9F27;font-size:13px;line-height:1.7;color:#5D4E37">'
-      + '<span style="font-weight:700;color:#854F0B">📋 诊断总结：</span>' + summaryText
+    var badgeColor = status==='bad' ? '#E8321A' : '#EF9F27';
+    var badgeText = status==='bad' ? '需重点关注' : '需关注改善';
+    var summaryLines = issues.length > 0 ? issues.map(function(s){ return '· '+s; }).join('<br>') : '';
+    var actionLines = actions.length > 0 ? actions.map(function(s){ return '<div style="margin:3px 0;padding-left:4px">'+s+'</div>'; }).join('') : '';
+    summaryHTML = '<div class="drawer-summary" style="margin:0 0 16px;padding:14px 18px;background:'+(status==='bad'?'linear-gradient(135deg,#fef2f2,#fff7ed)':'linear-gradient(135deg,#fef9e7,#fefce8)')+';border-radius:8px;border-left:4px solid '+badgeColor+';font-size:13px;line-height:1.8;color:#5D4E37">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        + '<span style="font-weight:700;font-size:14px;color:'+badgeColor+'">📋 诊断总结</span>'
+        + '<span style="font-size:11px;background:'+badgeColor+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:600">'+badgeText+'</span>'
+      + '</div>'
+      + (summaryLines ? '<div style="margin-bottom:'+(actionLines?'10px':'0')+';line-height:1.7">'+summaryLines+'</div>' : '')
+      + (actionLines ? '<div style="border-top:1px dashed rgba(0,0,0,0.1);margin-top:8px;padding-top:8px"><div style="font-weight:700;color:'+badgeColor+';margin-bottom:4px">🔧 建议改善动作</div>'+actionLines+'</div>' : '')
       + '</div>';
   }
 
