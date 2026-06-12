@@ -446,9 +446,13 @@
     .detail-dim-target { width: 36px; font-size: 9px; }
     
     /* 饼图文字移动端缩小 */
-    .donut-pct { font-size: 12px !important; }
-    .bigpie-pct { font-size: 9px !important; }
+    .donut-pct { font-size: 11px !important; }
+    .bigpie-pct { font-size: 8px !important; }
     .bigpie-title { font-size: 8px !important; }
+
+    /* 饼图SVG容器移动端缩小 */
+    .dash-card { padding: 10px 8px; }
+    .dash-card .m-label { font-size: 9px; }
 
     /* 移动端筛选折叠按钮 */
     .gf-mobile-toggle {
@@ -479,6 +483,12 @@
     .detail-dim-name { width: 50px; }
     .mgmt-table { min-width: 480px; }
     .store-rank-panel .rank-table { min-width: 500px; }
+    
+    /* 饼图文字进一步缩小 */
+    .donut-pct { font-size: 10px !important; }
+    .bigpie-pct { font-size: 7px !important; }
+    .bigpie-title { font-size: 7px !important; }
+    .dash-card .m-label { font-size: 8px; }
   }
 </style>
 <script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
@@ -1334,65 +1344,90 @@ function fallbackCopy(text){
   setTimeout(()=>{ btn.textContent='复制链接'; }, 2000);
 }
 
-// ── 导出快照（html2canvas 一键导出为图片）──
+// ── 导出快照（html2canvas 分片区导出）──
+var EXPORT_SECTIONS = [
+  {id:'dashboard-summary-card', name:'大盘业绩概览'},
+  {id:'mp-section', name:'小程序自配送'},
+  {id:'mt-section', name:'美团外卖'},
+  {id:'mgmt-grid-wrap', name:'管理层排名（品牌/市场/大区/区经理）'},
+  {id:'alert-section', name:'预警中心'},
+  {id:'store-rank-section', name:'门店排名'},
+];
+
 function exportSnapshot(){
+  // 初始化分区ID（确保页面元素有指定ID）
+  (function ensureSectionIds(){
+    var mpPanel = document.querySelector('.channel-panel:nth-child(1)');
+    if(mpPanel && !mpPanel.id) mpPanel.id = 'mp-section';
+    var mtPanel = document.querySelector('.channel-panel:nth-child(2)');
+    if(mtPanel && !mtPanel.id) mtPanel.id = 'mt-section';
+    var mgmtGrid = document.querySelector('.mgmt-grid');
+    if(mgmtGrid && !mgmtGrid.id) mgmtGrid.id = 'mgmt-grid-wrap';
+    var bottomRow = document.querySelector('.bottom-row');
+    if(bottomRow && !bottomRow.id) bottomRow.id = 'alert-section';
+    var storeRank = document.querySelector('.store-rank-section');
+    if(storeRank && !storeRank.id) storeRank.id = 'store-rank-section';
+  })();
+
   var btn = document.getElementById('exportBtn');
   var origText = btn.textContent;
-  btn.textContent = '生成中...';
-  btn.style.pointerEvents = 'none';
-  btn.style.opacity = '0.7';
-  
-  // 临时隐藏导出按钮本身、错误日志、live badge
-  btn.style.display = 'none';
-  var badge = document.querySelector('.live-badge');
-  if(badge) badge.style.display = 'none';
-  
-  var container = document.getElementById('app-root') || document.body;
   
   if(typeof html2canvas === 'undefined'){
-    // 降级：如果没有 html2canvas，使用简单的 DOM 导出
-    btn.style.display = '';
-    btn.textContent = origText;
-    btn.style.pointerEvents = '';
-    btn.style.opacity = '';
-    if(badge) badge.style.display = '';
     alert('html2canvas 未加载，请刷新页面后重试');
     return;
   }
   
-  html2canvas(container, {
-    scale: 2,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#F5F3EF',
-    logging: false,
-    windowWidth: container.scrollWidth,
-    windowHeight: container.scrollHeight,
-  }).then(function(canvas){
-    // 恢复按钮
-    btn.style.display = '';
-    btn.textContent = origText;
-    btn.style.pointerEvents = '';
-    btn.style.opacity = '';
-    if(badge) badge.style.display = '';
+  btn.textContent = '生成中...';
+  btn.style.pointerEvents = 'none';
+  btn.style.opacity = '0.7';
+  btn.style.display = 'none';
+  var badge = document.querySelector('.live-badge');
+  if(badge) badge.style.display = 'none';
+  
+  var dateStr = new Date().toISOString().slice(0,10);
+  var idx = 0;
+  
+  function captureNext(){
+    if(idx >= EXPORT_SECTIONS.length){
+      // 完成
+      btn.style.display = '';
+      btn.textContent = origText;
+      btn.style.pointerEvents = '';
+      btn.style.opacity = '';
+      if(badge) badge.style.display = '';
+      btn.textContent = '✓ 已导出';
+      setTimeout(function(){ btn.textContent = origText; }, 2000);
+      return;
+    }
     
-    // 下载图片
-    var link = document.createElement('a');
-    link.download = '外卖业务运营看板_' + new Date().toISOString().slice(0,10) + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    var sec = EXPORT_SECTIONS[idx];
+    var el = document.getElementById(sec.id);
+    idx++;
     
-    // 快速反馈
-    btn.textContent = '✓ 已导出';
-    setTimeout(function(){ btn.textContent = origText; }, 2000);
-  }).catch(function(err){
-    btn.style.display = '';
-    btn.textContent = origText;
-    btn.style.pointerEvents = '';
-    btn.style.opacity = '';
-    if(badge) badge.style.display = '';
-    alert('导出失败: ' + (err.message || err));
-  });
+    if(!el || el.offsetParent === null){
+      captureNext();
+      return;
+    }
+    
+    html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#F5F3EF',
+      logging: false,
+    }).then(function(canvas){
+      var link = document.createElement('a');
+      link.download = '外卖看板_' + sec.name + '_' + dateStr + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      // 短暂延迟避免浏览器拦截连续下载
+      setTimeout(captureNext, 300);
+    }).catch(function(){
+      captureNext();
+    });
+  }
+  
+  captureNext();
 }
 
 function updateClock(){
