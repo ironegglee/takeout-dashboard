@@ -2544,10 +2544,12 @@ function openStoreMerged(storeName){
         charts['detailMtTrend'] = new Chart(canvas, {
           type: 'line', data: { labels: trend.days, datasets: [
             { label: '店铺分', data: trend.shop, borderColor: '#667eea', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y',
-              datalabels:{anchor:'end',align:'end',offset:14,color:'#667eea',font:{size:10,weight:'bold'},
+              datalabels:{anchor:'center',align:270,offset:8,color:'#667eea',font:{size:9,weight:'bold'},
+                backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
                 formatter:function(v){return v.toFixed(1);}}},
             { label: '体验分', data: trend.exp, borderColor: '#f093fb', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y1',
-              datalabels:{anchor:'end',align:'end',offset:14,color:'#f093fb',font:{size:10,weight:'bold'},
+              datalabels:{anchor:'center',align:90,offset:8,color:'#f093fb',font:{size:9,weight:'bold'},
+                backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
                 formatter:function(v){return v.toFixed(2);}}}
           ]},
           options: { responsive: true, maintainAspectRatio: false,
@@ -2619,7 +2621,8 @@ function renderMpDetail(store, body){
     charts['detailMpTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'出餐时长',data:trend.vals,borderColor:'#C8873A',backgroundColor:'rgba(200,135,58,0.08)',borderWidth:2,pointRadius:4,fill:true,tension:0.3,
-          datalabels:{anchor:'end',align:'end',offset:14,color:'#C8873A',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'center',align:270,offset:6,color:'#C8873A',font:{size:9,weight:'bold'},
+            backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
             formatter:function(v){return v.toFixed(1)+'分';}}},
         {label:'SLA',data:Array(trend.days.length).fill(trend.sla),borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,
           datalabels:{display:false}},
@@ -2699,10 +2702,12 @@ function renderMtDetail(store, body){
     charts['detailMtTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'店铺分',data:trend.shop,borderColor:'#667eea',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y',
-          datalabels:{anchor:'end',align:'end',offset:14,color:'#667eea',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'center',align:270,offset:8,color:'#667eea',font:{size:9,weight:'bold'},
+            backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
             formatter:function(v){return v.toFixed(1);}}},
         {label:'体验分',data:trend.exp,borderColor:'#f093fb',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y1',
-          datalabels:{anchor:'end',align:'end',offset:14,color:'#f093fb',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'center',align:90,offset:8,color:'#f093fb',font:{size:9,weight:'bold'},
+            backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
             formatter:function(v){return v.toFixed(2);}}},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
