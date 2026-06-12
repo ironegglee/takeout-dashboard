@@ -1367,7 +1367,7 @@ function fallbackCopy(text){
   setTimeout(()=>{ btn.textContent='复制链接'; }, 2000);
 }
 
-// ── 导出快照（html2canvas 分片区导出）──
+// ── 导出快照（html2canvas 分片区导出，含筛选感知 + 门店诊断）──
 var EXPORT_SECTIONS = [
   {id:'dashboard-summary-card', name:'大盘业绩概览'},
   {id:'mp-section', name:'小程序自配送'},
@@ -1376,6 +1376,122 @@ var EXPORT_SECTIONS = [
   {id:'alert-section', name:'预警中心'},
   {id:'store-rank-section', name:'门店排名'},
 ];
+
+// ── 获取筛选条件可读文本 ──
+function getFilterLabel(){
+  var parts = [];
+  var mb = gfState.marketBrand;
+  if(mb !== 'all'){
+    if(mb.startsWith('mkt:')) parts.push(mb.slice(4));
+    else if(mb.startsWith('brd:')) parts.push(mb.slice(4));
+    else parts.push(mb);
+  }
+  if(gfState.regionMgr !== 'all') parts.push(gfState.regionMgr);
+  if(gfState.areaMgr !== 'all') parts.push(gfState.areaMgr);
+  if(gfState.city !== 'all') parts.push(gfState.city);
+  // 日期范围
+  var ds = document.getElementById('gf-date-start');
+  var de = document.getElementById('gf-date-end');
+  if(ds && de){
+    var s = ds.value || '', e = de.value || '';
+    if(s && e) parts.push(s + '~' + e);
+    else if(s) parts.push(s + '~');
+    else if(e) parts.push('~' + e);
+  }
+  return parts.length > 0 ? parts.join('_') : '全部门店';
+}
+
+// ── 获取门店诊断汇总 HTML（用于临时添加到 DOM 后截图）──
+function buildStoreDiagHTML(){
+  // 收集当前筛选范围内的门店（取并集去重，复用 filterStores）
+  var allStores = [];
+  var seenName = {};
+  STORE_MP.forEach(function(s){
+    if(!seenName[s.name]){ seenName[s.name]=1; allStores.push(s); }
+  });
+  STORE_MT.forEach(function(s){
+    if(!seenName[s.name]){ seenName[s.name]=1; allStores.push(s); }
+  });
+  
+  var filtered = filterStores(allStores);
+  if(filtered.length === 0) return '';
+  
+  // 诊断分类统计
+  var badList = [], warnList = [], okList = [];
+  filtered.forEach(function(s){
+    var d = getStoreDiag(s.name);
+    if(d.status === 'bad') badList.push({name:s.name, diag:d});
+    else if(d.status === 'warn') warnList.push({name:s.name, diag:d});
+    else okList.push({name:s.name, diag:d});
+  });
+  
+  var h = '<div id="export-store-diag" style="background:#fff;padding:24px;border-radius:12px;margin:20px 0;font-family:system-ui,-apple-system,sans-serif">';
+  h += '<div style="font-size:18px;font-weight:700;color:#333;margin-bottom:4px">📋 门店诊断汇总</div>';
+  h += '<div style="font-size:12px;color:#999;margin-bottom:16px">筛选条件：'+getFilterLabel()+'　|　共'+filtered.length+'家　🔴异常'+badList.length+'　🟡关注'+warnList.length+'　🟢正常'+okList.length+'</div>';
+  
+  // 异常门店
+  if(badList.length > 0){
+    h += '<div style="margin-bottom:20px">';
+    h += '<div style="font-size:14px;font-weight:600;color:#A32D2D;margin-bottom:10px;border-bottom:2px solid #A32D2D;padding-bottom:4px">🔴 异常门店（'+badList.length+'家）</div>';
+    badList.forEach(function(item){
+      h += buildOneStoreDiagCard(item.name, item.diag);
+    });
+    h += '</div>';
+  }
+  
+  // 关注门店
+  if(warnList.length > 0){
+    h += '<div style="margin-bottom:20px">';
+    h += '<div style="font-size:14px;font-weight:600;color:#854F0B;margin-bottom:10px;border-bottom:2px solid #854F0B;padding-bottom:4px">🟡 需关注门店（'+warnList.length+'家）</div>';
+    warnList.forEach(function(item){
+      h += buildOneStoreDiagCard(item.name, item.diag);
+    });
+    h += '</div>';
+  }
+  
+  // 正常门店（精简列出）
+  if(okList.length > 0){
+    h += '<div>';
+    h += '<div style="font-size:14px;font-weight:600;color:#3B6D11;margin-bottom:8px;border-bottom:2px solid #3B6D11;padding-bottom:4px">🟢 正常门店（'+okList.length+'家）</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    okList.forEach(function(item){
+      h += '<span style="font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px">'+item.name+'</span>';
+    });
+    h += '</div></div>';
+  }
+  
+  h += '</div>';
+  return h;
+}
+
+function buildOneStoreDiagCard(name, diag){
+  var statusColor = diag.status==='bad'?'#A32D2D':(diag.status==='warn'?'#854F0B':'#3B6D11');
+  var statusBg = diag.status==='bad'?'#fff0f0':(diag.status==='warn'?'#fff8ec':'#f0f7e6');
+  var h = '<div style="background:'+statusBg+';border-left:4px solid '+statusColor+';border-radius:4px;padding:12px 14px;margin-bottom:10px;font-size:12px">';
+  h += '<div style="font-weight:700;font-size:13px;color:'+statusColor+';margin-bottom:6px">'+name;
+  // 关键指标
+  var km = diag.keyMetrics;
+  if(km.mp_avg != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">出餐'+km.mp_avg.toFixed(1)+'min</span>';
+  if(km.mp_rate != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">达标率'+km.mp_rate.toFixed(1)+'%</span>';
+  if(km.mt_shop != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">店铺分'+km.mt_shop.toFixed(1)+'</span>';
+  if(km.mt_exp != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">体验分'+km.mt_exp.toFixed(2)+'</span>';
+  h += '</div>';
+  // 问题
+  if(diag.issues.length > 0){
+    h += '<div style="margin-bottom:4px;color:#555">';
+    diag.issues.forEach(function(iss){ h += '<div>· '+iss+'</div>'; });
+    h += '</div>';
+  }
+  // 改善动作
+  if(diag.actions.length > 0){
+    h += '<div style="color:#555;padding-top:4px;border-top:1px dashed #ddd">';
+    h += '<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:2px">🔧 改善建议</div>';
+    diag.actions.forEach(function(act){ h += '<div style="margin-left:4px">'+act+'</div>'; });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
 
 function exportSnapshot(){
   var btn = document.getElementById('exportBtn');
@@ -1386,17 +1502,35 @@ function exportSnapshot(){
     return;
   }
   
-  btn.textContent = '导出中 0/'+EXPORT_SECTIONS.length;
+  // ── 动态构建导出板块列表 ──
+  var sections = EXPORT_SECTIONS.slice(); // 复制基础板块
+  
+  // 构建门店诊断板块（临时添加到 DOM，导出时切换显示）
+  var diagHTML = buildStoreDiagHTML();
+  var diagDiv = null;
+  if(diagHTML){
+    diagDiv = document.createElement('div');
+    diagDiv.innerHTML = diagHTML;
+    diagDiv.style.cssText = 'position:fixed;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none;max-height:100vh;overflow-y:auto';
+    document.body.appendChild(diagDiv);
+    sections.push({id:'export-store-diag', name:'门店诊断汇总', isTemp:true});
+  }
+  
+  var totalCount = sections.length;
+  btn.textContent = '导出中 0/'+totalCount;
   btn.style.pointerEvents = 'none';
   btn.style.opacity = '0.7';
   var badge = document.querySelector('.live-badge');
   if(badge) badge.style.display = 'none';
   
   var dateStr = new Date().toISOString().slice(0,10);
+  var filterLabel = getFilterLabel();
   var idx = 0, done = 0;
   
   function captureNext(){
-    if(idx >= EXPORT_SECTIONS.length){
+    if(idx >= sections.length){
+      // 清理临时 DOM
+      if(diagDiv && diagDiv.parentNode){ diagDiv.style.display = 'none'; diagDiv.parentNode.removeChild(diagDiv); }
       btn.textContent = '✓ 已导出 '+done+' 张';
       btn.style.pointerEvents = '';
       btn.style.opacity = '';
@@ -1405,8 +1539,13 @@ function exportSnapshot(){
       return;
     }
     
-    var sec = EXPORT_SECTIONS[idx];
+    var sec = sections[idx];
     var el = document.getElementById(sec.id);
+    
+    // 临时板块：显示后再截图
+    if(sec.isTemp && el){
+      el.style.display = 'block';
+    }
     idx++;
     
     if(!el){
@@ -1414,7 +1553,7 @@ function exportSnapshot(){
       return;
     }
     
-    btn.textContent = '导出中 '+(idx)+'/'+EXPORT_SECTIONS.length+' '+sec.name;
+    btn.textContent = '导出中 '+idx+'/'+totalCount+' '+sec.name;
     
     html2canvas(el, {
       scale: 2,
@@ -1424,12 +1563,15 @@ function exportSnapshot(){
       logging: false,
     }).then(function(canvas){
       done++;
+      // 隐藏临时板块
+      if(sec.isTemp && el){ el.style.display = 'none'; }
       var link = document.createElement('a');
-      link.download = '外卖看板_' + sec.name + '_' + dateStr + '.png';
+      link.download = '外卖看板_' + filterLabel + '_' + sec.name + '_' + dateStr + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
       setTimeout(captureNext, 400);
     }).catch(function(err){
+      if(sec.isTemp && el){ el.style.display = 'none'; }
       console.warn('导出失败:', sec.name, err);
       captureNext();
     });
@@ -2327,27 +2469,15 @@ function renderUnifiedStoreRank(){
 /* ================================================================
    单店详情抽屉
 ================================================================ */
-function openStoreMerged(storeName){
+function getStoreDiag(storeName){
   const mpStore = STORE_MP.find(s => s.name === storeName);
   const mtStore = STORE_MT.find(s => s.name === storeName);
-  if (!mpStore && !mtStore) return;
-
-  const store = mpStore || mtStore;
-  const overlay = document.getElementById('drawerOverlay');
-  let title = `<span style="display:inline-flex;align-items:center;gap:8px">${store.name}`;
-  if (mpStore) title += `<span class="channel-tag tag-mp">小程序</span>`;
-  if (mtStore) title += `<span class="channel-tag tag-mt">美团</span>`;
-  title += `</span>`;
-
-  document.getElementById('drawerTitle').innerHTML = title;
-  document.getElementById('drawerMeta').innerHTML =
-    `${store.market} · ${store.city} · ${store.brand}　|　大区：${store.region_mgr}　区经理：${store.area_mgr}`;
-
-  // ── 门店诊断总结（含具体改善动作）──
   var issues = [], actions = [], status = 'ok'; // ok / warn / bad
+  var keyMetrics = {}; // 关键指标汇总
+  
   try {
   if(mpStore){
-    // 小程序出餐诊断
+    keyMetrics.mp_avg = mpStore.avg; keyMetrics.mp_rate = mpStore.rate; keyMetrics.mp_max = mpStore.max;
     if(mpStore.avg > 15) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA标杆(15分钟)');
       actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
       actions.push('② 优化备料流程：预制高频菜品半成品，高峰期直接组装而非现做');
@@ -2363,10 +2493,11 @@ function openStoreMerged(storeName){
       actions.push('③ 对高频超时菜品考虑简化工艺或提前预制'); }
     else if(mpStore.rate < 90) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
       if(mpStore.avg > 10) { actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
-      else { actions.push('① 达标率偏低但平均出餐正常，关注极端超时个例（最长'+mpStore.max+'分钟）'); } }
+      else { actions.push('① 达标率偏低但平均出餐正常，关注极端超时个例（最长'+(mpStore.max||'--')+'分钟）'); } }
     if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如炖品/烤制）导致，可调整备货策略'); }
   }
   if(mtStore){
+    keyMetrics.mt_shop = mtStore.shop_score; keyMetrics.mt_exp = mtStore.exp_score;
     var sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
     if(mtStore.shop_score < 85) { status = 'bad'; issues.push('店铺分'+mtStore.shop_score+'分，严重低于标准(≥95)');
       actions.push('① 建议立即召开门店会议，逐项分析六维失分原因');
@@ -2384,38 +2515,19 @@ function openStoreMerged(storeName){
     var expDims = [['商品满意度',ed.product_sat||0],['包装满意度',ed.pack_sat||0],['复购率',ed.repurchase||0],['消息回复',ed.msg_reply||0],['服务反馈',ed.service_neg||0],['食安反馈',ed.food_safety||0]];
     shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
     expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
-    // 各维度针对性改善动作
     var dimActions = {
-      '差评回复率': ['① 安排专人每日定时查看差评，24小时内完成回复',
-                     '② 回复模板：致歉+问题解释+补偿方案（优惠券/退款）',
-                     '③ 每周汇总差评高频词，找到共性问题根源'],
-      '商家评分':   ['① 引导好评：随餐附评分引导卡，好评晒图送小礼品',
-                     '② 重点关注商品描述真实度，避免"图片与实物不符"差评'],
-      '高峰营业':   ['① 检查平台设置的高峰营业时段与实际是否一致',
-                     '② 节假日/恶劣天气提前调整营业状态，避免非营业时间接单'],
-      '接单率':     ['① 设置自动接单功能，避免人工漏接',
-                     '② 高峰期安排专人盯屏，确保每单15秒内响应'],
-      '基础营业':   ['① 确保每日营业时长覆盖平台要求的核心时段',
-                     '② 如需临时关店，提前在平台设置休息状态'],
-      '出餐上报':   ['① 每次出餐后第一时间在平台点击"已出餐"',
-                     '② 培养后厨"出餐=上报"的肌肉记忆，纳入绩效考核'],
-      '商品满意度': ['① 抽检高频差评菜品，对比竞品定价和品质',
-                     '② 在商品描述中标注克重/份量，降低期望落差',
-                     '③ 每款新品上线前进行内部试吃打分(≥4.5分才上架)'],
-      '包装满意度': ['① 汤汁类菜品换用防洒封口杯/密封碗',
-                     '② 冬季换用保温袋，夏季冷饮加冰袋',
-                     '③ 附赠湿巾/吸管/手套等小物提升开箱体验'],
-      '复购率':     ['① 设置\"下单满X次送饮品\"\"集章卡\"等复购激励',
-                     '② 每周推送会员专属优惠，精准触达30天未回购用户',
-                     '③ 优化爆款SKU稳定性和口味一致性，让顾客愿意回头'],
-      '消息回复':   ['① 开启自动回复话术库(常见问题预设答案)',
-                     '② 设置消息提醒音效，确保顾客咨询5分钟内响应'],
-      '服务反馈':   ['① 每单随餐附\"如有问题请联系我们\"卡片，引导私了而非差评',
-                     '② 出餐前二次核对订单内容与菜品，减少漏装/错装',
-                     '③ 建立\"差评溯源→问题认领→整改复查\"闭环机制'],
-      '食安反馈':   ['① 每日营业前拍照记录后厨卫生状况',
-                     '② 食材进货索证索票，定期更新台账',
-                     '③ 员工持健康证上岗，每月食品安全培训一次']
+      '差评回复率': ['① 安排专人每日定时查看差评，24小时内完成回复','② 回复模板：致歉+问题解释+补偿方案（优惠券/退款）','③ 每周汇总差评高频词，找到共性问题根源'],
+      '商家评分':['① 引导好评：随餐附评分引导卡，好评晒图送小礼品','② 重点关注商品描述真实度，避免"图片与实物不符"差评'],
+      '高峰营业':['① 检查平台设置的高峰营业时段与实际是否一致','② 节假日/恶劣天气提前调整营业状态，避免非营业时间接单'],
+      '接单率':['① 设置自动接单功能，避免人工漏接','② 高峰期安排专人盯屏，确保每单15秒内响应'],
+      '基础营业':['① 确保每日营业时长覆盖平台要求的核心时段','② 如需临时关店，提前在平台设置休息状态'],
+      '出餐上报':['① 每次出餐后第一时间在平台点击"已出餐"','② 培养后厨"出餐=上报"的肌肉记忆，纳入绩效考核'],
+      '商品满意度':['① 抽检高频差评菜品，对比竞品定价和品质','② 在商品描述中标注克重/份量，降低期望落差','③ 每款新品上线前进行内部试吃打分(≥4.5分才上架)'],
+      '包装满意度':['① 汤汁类菜品换用防洒封口杯/密封碗','② 冬季换用保温袋，夏季冷饮加冰袋','③ 附赠湿巾/吸管/手套等小物提升开箱体验'],
+      '复购率':['① 设置\"下单满X次送饮品\"\"集章卡\"等复购激励','② 每周推送会员专属优惠，精准触达30天未回购用户','③ 优化爆款SKU稳定性和口味一致性，让顾客愿意回头'],
+      '消息回复':['① 开启自动回复话术库(常见问题预设答案)','② 设置消息提醒音效，确保顾客咨询5分钟内响应'],
+      '服务反馈':['① 每单随餐附\"如有问题请联系我们\"卡片，引导私了而非差评','② 出餐前二次核对订单内容与菜品，减少漏装/错装','③ 建立\"差评溯源→问题认领→整改复查\"闭环机制'],
+      '食安反馈':['① 每日营业前拍照记录后厨卫生状况','② 食材进货索证索票，定期更新台账','③ 员工持健康证上岗，每月食品安全培训一次']
     };
     if(worstShopVal < 95){
       var wsa = dimActions[worstShop] || [];
@@ -2430,15 +2542,34 @@ function openStoreMerged(storeName){
   }
   if(!mpStore && !mtStore) { issues.push('暂无经营数据'); status = 'warn'; }
   
-  // 去重 actions（保留顺序，去除完全相同的条目）
+  // 去重 actions
   var seen = {}, uniqueActions = [];
   actions.forEach(function(a){ if(!seen[a]){ seen[a]=true; uniqueActions.push(a); } });
-  actions = uniqueActions.slice(0, 5); // 最多展示5条改善动作
+  actions = uniqueActions.slice(0, 5);
+  } catch(e) { status = 'warn'; issues = ['诊断数据读取异常']; }
+  
+  return {issues: issues, actions: actions, status: status, keyMetrics: keyMetrics};
+}
 
-  } catch(e) {
-    console.error('[诊断] 诊断总结生成异常:', e.message);
-    status = 'warn'; issues = ['诊断数据读取异常，请刷新重试'];
-  }
+function openStoreMerged(storeName){
+  const mpStore = STORE_MP.find(s => s.name === storeName);
+  const mtStore = STORE_MT.find(s => s.name === storeName);
+  if (!mpStore && !mtStore) return;
+
+  const store = mpStore || mtStore;
+  const overlay = document.getElementById('drawerOverlay');
+  let title = `<span style="display:inline-flex;align-items:center;gap:8px">${store.name}`;
+  if (mpStore) title += `<span class="channel-tag tag-mp">小程序</span>`;
+  if (mtStore) title += `<span class="channel-tag tag-mt">美团</span>`;
+  title += `</span>`;
+
+  document.getElementById('drawerTitle').innerHTML = title;
+  document.getElementById('drawerMeta').innerHTML =
+    `${store.market} · ${store.city} · ${store.brand}　|　大区：${store.region_mgr}　区经理：${store.area_mgr}`;
+
+  // ── 门店诊断总结（含具体改善动作）──
+  var diag = getStoreDiag(storeName);
+  var issues = diag.issues, actions = diag.actions, status = diag.status;
 
   // 诊断总结始终展示
   var summaryHTML = '';
