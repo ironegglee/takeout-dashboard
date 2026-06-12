@@ -3516,10 +3516,10 @@ function renderDonutRing(segs, isActive){
     + paths
     // 百分比标签（外圈一左一右，overflow:visible 防止 viewBox 裁剪）
     + (segs.length===2 
-      ? '<text x="8" y="'+(cy+5)+'" text-anchor="end" font-size="16" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
-       + '<text x="60" y="'+(cy+5)+'" text-anchor="start" font-size="16" font-weight="700" fill="'+segs[1].color+'">'+segs[1].pct.toFixed(0)+'%</text>'
+      ? '<text x="8" y="'+(cy+5)+'" text-anchor="end" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
+       + '<text x="60" y="'+(cy+5)+'" text-anchor="start" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[1].color+'">'+segs[1].pct.toFixed(0)+'%</text>'
       : (segs.length===1
-        ? '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
+        ? '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'">'+segs[0].pct.toFixed(0)+'%</text>'
         : ''))
     + '</svg>';
 }
@@ -3559,7 +3559,7 @@ function renderBigPie(segments, title){
     var lx = cx + lr * Math.cos(midAngle * Math.PI/180);
     var ly = cy + lr * Math.sin(midAngle * Math.PI/180) + 4;
     if((pct*100) >= 5){
-      labels += '<text x="'+lx+'" y="'+ly+'" text-anchor="middle" font-size="11" font-weight="700" fill="white">'+(pct*100).toFixed(1)+'%</text>';
+      labels += '<text x="'+lx+'" y="'+ly+'" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="white">'+(pct*100).toFixed(1)+'%</text>';
     }
   }
   
@@ -3567,7 +3567,7 @@ function renderBigPie(segments, title){
   return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="display:block;width:130px;height:130px;flex-shrink:0;overflow:visible">'
     + paths
     + labels
-    + '<text x="'+cx+'" y="'+(cy+55)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)">'+title+'</text>'
+    + '<text x="'+cx+'" y="'+(cy+55)+'" text-anchor="middle" font-size="10" font-family="system-ui,-apple-system,sans-serif" fill="var(--text-muted)">'+title+'</text>'
     + '</svg>';
 }
 
@@ -3932,10 +3932,10 @@ function applyRealData(jsonData){
   try{
 
   const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-  // 默认显示最新单日
-  document.getElementById('gf-date-start').value=EMBEDDED_DATE_END;
+  // 默认显示全量数据范围
+  document.getElementById('gf-date-start').value=EMBEDDED_DATE_START;
   document.getElementById('gf-date-end').value=EMBEDDED_DATE_END;
-  gfState.dateStart=EMBEDDED_DATE_END;gfState.dateEnd=EMBEDDED_DATE_END;
+  gfState.dateStart=EMBEDDED_DATE_START;gfState.dateEnd=EMBEDDED_DATE_END;
 
   // 标题栏数据更新日期
   const hd = document.getElementById('headerUpdateDate');
