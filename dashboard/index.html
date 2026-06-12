@@ -2362,7 +2362,8 @@ function openStoreMerged(storeName){
       actions.push('② 设置出餐倒计时提醒：接单后8分钟未出餐自动弹窗预警');
       actions.push('③ 对高频超时菜品考虑简化工艺或提前预制'); }
     else if(mpStore.rate < 90) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
-      actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
+      if(mpStore.avg > 10) { actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
+      else { actions.push('① 达标率偏低但平均出餐正常，关注极端超时个例（最长'+mpStore.max+'分钟）'); } }
     if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如炖品/烤制）导致，可调整备货策略'); }
   }
   if(mtStore){
@@ -2543,13 +2544,14 @@ function openStoreMerged(storeName){
         charts['detailMtTrend'] = new Chart(canvas, {
           type: 'line', data: { labels: trend.days, datasets: [
             { label: '店铺分', data: trend.shop, borderColor: '#667eea', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y',
-              datalabels:{anchor:'end',align:'end',offset:8,color:'#667eea',font:{size:10,weight:'bold'},
+              datalabels:{anchor:'end',align:'end',offset:14,color:'#667eea',font:{size:10,weight:'bold'},
                 formatter:function(v){return v.toFixed(1);}}},
             { label: '体验分', data: trend.exp, borderColor: '#f093fb', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y1',
-              datalabels:{anchor:'end',align:'end',offset:8,color:'#f093fb',font:{size:10,weight:'bold'},
+              datalabels:{anchor:'end',align:'end',offset:14,color:'#f093fb',font:{size:10,weight:'bold'},
                 formatter:function(v){return v.toFixed(2);}}}
           ]},
           options: { responsive: true, maintainAspectRatio: false,
+            layout: { padding: { top: 18, right: 10 } },
             plugins: { legend: { display: true, labels: { font: { size: 11 }, usePointStyle: true, boxWidth: 8 } },
                        datalabels: { display: true } },
             scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } },
@@ -2617,12 +2619,14 @@ function renderMpDetail(store, body){
     charts['detailMpTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'出餐时长',data:trend.vals,borderColor:'#C8873A',backgroundColor:'rgba(200,135,58,0.08)',borderWidth:2,pointRadius:4,fill:true,tension:0.3,
-          datalabels:{anchor:'end',align:'end',offset:10,color:'#C8873A',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'end',align:'end',offset:14,color:'#C8873A',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(1)+'分';}}},
         {label:'SLA',data:Array(trend.days.length).fill(trend.sla),borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,
           datalabels:{display:false}},
       ]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:true}},
+      options:{responsive:true,maintainAspectRatio:false,
+        layout:{padding:{top:18,right:10}},
+        plugins:{legend:{display:false},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
                 y:{min:3,max:10,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'分'}}}}
     });
@@ -2695,13 +2699,14 @@ function renderMtDetail(store, body){
     charts['detailMtTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'店铺分',data:trend.shop,borderColor:'#667eea',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y',
-          datalabels:{anchor:'end',align:'end',offset:8,color:'#667eea',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'end',align:'end',offset:14,color:'#667eea',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(1);}}},
         {label:'体验分',data:trend.exp,borderColor:'#f093fb',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y1',
-          datalabels:{anchor:'end',align:'end',offset:8,color:'#f093fb',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'end',align:'end',offset:14,color:'#f093fb',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(2);}}},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
+        layout:{padding:{top:18,right:10}},
         plugins:{legend:{display:true,labels:{font:{size:11},usePointStyle:true,boxWidth:8}},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
                 y:{min:80,max:100,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},stepSize:5,callback:v=>v.toFixed(0)}},
@@ -3881,7 +3886,7 @@ function renderDonutRing(segs, isActive, dimension){
     if(totalPct <= 0){
     return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:72px;height:72px"><circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#e0ddd7" stroke-width="'+strokeW+'"/></svg>';
   }
-  var cum = -90; // start at top
+  var cum = -90; // start at top (12 o'clock)
   var paths = '';
   for(var i=0;i<segs.length;i++){
     var angle = segs[i].pct / totalPct * 360;
@@ -3897,17 +3902,26 @@ function renderDonutRing(segs, isActive, dimension){
     paths += '<path d="M'+x1+','+y1+' A'+midR+','+midR+' 0 '+largeArc+',1 '+x2+','+y2+'" fill="none" stroke="'+segs[i].color+'" stroke-width="'+strokeW+'" stroke-linecap="butt"/>';
     cum += angle;
   }
+  // ── 按每段中点角度放置标签（cos>0→右侧，cos<0→左侧）──
+  var labelTexts = '';
+  if(segs.length === 2){
+    var cum2 = -90;
+    for(var j=0;j<2;j++){
+      var a = segs[j].pct / totalPct * 360;
+      var midDeg = cum2 + a/2;
+      cum2 += a;
+      var onRight = Math.cos(midDeg * Math.PI/180) > 0;
+      var lx = onRight ? 60 : 8;
+      var ta = onRight ? 'start' : 'end';
+      labelTexts += '<text x="'+lx+'" y="'+(cy+5)+'" text-anchor="'+ta+'" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[j].color+'" class="donut-pct">'+segs[j].pct.toFixed(0)+'%</text>';
+    }
+  } else if(segs.length===1 && dimension !== '门店数'){
+    labelTexts = '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'" class="donut-pct">'+segs[0].pct.toFixed(0)+'%</text>';
+  }
   return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:72px;height:72px;overflow:visible">'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#f0edeb" stroke-width="'+strokeW+'"/>'
     + paths
-    // 百分比标签（外圈一左一右，overflow:visible 防止 viewBox 裁剪）
-    // 2段=左右两百分比；单段门店数不显示(无拆分意义)
-    + (segs.length===2
-      ? '<text x="8" y="'+(cy+5)+'" text-anchor="end" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'" class="donut-pct">'+segs[0].pct.toFixed(0)+'%</text>'
-       + '<text x="60" y="'+(cy+5)+'" text-anchor="start" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[1].color+'" class="donut-pct">'+segs[1].pct.toFixed(0)+'%</text>'
-      : (segs.length===1 && dimension !== '门店数'
-        ? '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'" class="donut-pct">'+segs[0].pct.toFixed(0)+'%</text>'
-        : ''))
+    + labelTexts
     + '</svg>';
 }
 
