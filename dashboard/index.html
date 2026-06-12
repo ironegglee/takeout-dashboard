@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.7.5">
+<meta name="version" content="v2.8.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.7.5@20260612";
+  var VER = "v2.8.0@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -691,19 +691,11 @@
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="mgmt-card">
         <div class="mgmt-card-header">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#C8873A"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">牌</text></svg>
-          品牌排名
-          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看品牌详情</span>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#639922"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">总</text></svg>
+          市场/品牌排名
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看详情</span>
         </div>
-        <div class="mgmt-card-body" id="brand-rank-container"></div>
-      </div>
-      <div class="mgmt-card">
-        <div class="mgmt-card-header">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#639922"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">市</text></svg>
-          市场排名
-          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看市场详情</span>
-        </div>
-        <div class="mgmt-card-body" id="market-rank-container"></div>
+        <div class="mgmt-card-body" id="market-brand-rank-container"></div>
       </div>
       <div class="mgmt-card">
         <div class="mgmt-card-header">
@@ -806,7 +798,7 @@ if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
    数据源定义
    组织架构：
      市场 = 纯地理区域（湖南/湖北/江苏/重庆 — 不含子品牌）
-     品牌 = 茶颜悦色/鸳央咖啡/墨柠/昼夜诗
+     品牌 = 茶颜悦色/鸳央咖啡/墨柠/昼夜
      大区经理 = 真实负责人姓名（陈坤/陈琦…10人 — 不含品牌名）
      区经理 = 隶属于大区经理（31人）
      城市 = 随市场联动（39城）
@@ -855,7 +847,7 @@ const STORE_MP = [
   { market:'湖南',brand:'鸳央咖啡',region_mgr:'周薇',area_mgr:'张娇',city:'长沙',name:'鸳央德思勤店',avg:5.7,max:10,rate:96.5,revenue:7200},
   { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'李曦',city:'长沙',name:'古德墨柠裕园店',avg:4.8,max:8,rate:98.5,revenue:5200},
   { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'林阳阳',city:'长沙',name:'古德墨柠荷花路店',avg:5.2,max:9,rate:97.0,revenue:4800},
-  { market:'湖南',brand:'昼夜诗',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜诗文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
+  { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
 ];
 
 const STORE_MT = [
@@ -939,7 +931,7 @@ const STORE_MT = [
     shop_dims:{reply_rate:97.8,merchant_rating:4.90,peak_hours:11.2,reject_rate:0.9,base_hours:13.8,cook_report:98.7},
     exp_dims:{product_sat:4.90,pack_sat:4.88,msg_reply:97.2,service_neg:0.12,food_neg:0.03},
     revenue:10200},
-  { market:'湖南',brand:'昼夜诗',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜诗文艺店',
+  { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',
     shop_score:93.6,exp_score:4.85,
     shop_dims:{reply_rate:98.6,merchant_rating:4.93,peak_hours:11.6,reject_rate:0.6,base_hours:14.1,cook_report:99.2},
     exp_dims:{product_sat:4.94,pack_sat:4.91,msg_reply:98.0,service_neg:0.07,food_neg:0.02},
@@ -1154,7 +1146,7 @@ const DATA = {
 let charts={};
 const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all'};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
-const mgmtSortState={market:{key:'score',dir:'desc'},brand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
+const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
 let rankSortKey = 'score';   // 榜单排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
 let rankSortDir = 'desc';    // 标杆榜单方向 (预警自动反向)
 
@@ -1172,8 +1164,7 @@ function onMgmtSortClick(table, key){
   const st=mgmtSortState[table];
   if(st.key===key){st.dir=st.dir==='asc'?'desc':'asc';}
   else{st.key=key;st.dir='desc';}
-  if(table==='brand')renderBrandRank();
-  else if(table==='market')renderMarketRank();
+  if(table==='marketBrand')renderMarketBrandRank();
   else if(table==='region')renderRegionMgrRank();
   else renderAreaMgrRank();
 }
@@ -1370,7 +1361,7 @@ var EXPORT_SECTIONS = [
   {id:'dashboard-summary-card', name:'大盘业绩概览'},
   {id:'mp-section', name:'小程序自配送'},
   {id:'mt-section', name:'美团外卖'},
-  {id:'mgmt-grid-wrap', name:'管理层排名（品牌/市场/大区/区经理）'},
+  {id:'mgmt-grid-wrap', name:'管理层排名（市场·品牌/大区/区经理）'},
   {id:'alert-section', name:'预警中心'},
   {id:'store-rank-section', name:'门店排名'},
 ];
@@ -2905,12 +2896,12 @@ function renderMtHourlyCook(store){
   </div>`;
 }
 
-function renderMarketRank(){
-  // 市场排名：统计所有品牌，不再限定茶颜悦色
+function renderMarketBrandRank(){
+  // 市场+品牌合并排名：聚合并展示所有市场和品牌
   const mpStores=filterStores(STORE_MP);
   const mtStores=filterStores(STORE_MT);
   const mkColors={'湖南':'#639922','湖北':'#EF9F27','江苏':'#667eea','重庆':'#E8321A'};
-  const kmap={};
+  const brdColors={'茶颜悦色':'#639922','鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A','饼坊':'#C8873A'};
 
   // Calculate days from date filter
   var rankDays = 7;
@@ -2919,38 +2910,42 @@ function renderMarketRank(){
     rankDays = Math.max(1, Math.round((d2-d1)/86400000)+1);
   }
 
+  // ── 按市场聚合 ──
+  const mkMap={};
   mpStores.forEach(s=>{
     const k=s.market;
-    if(!kmap[k])kmap[k]={market:s.market,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    kmap[k].mpRev+=s.revenue; kmap[k].cookSum+=s.avg; kmap[k].cookCnt++; kmap[k].mpOrd+=(s.orders||0);
-    kmap[k].storeSet.add(s.name);
+    if(!mkMap[k])mkMap[k]={type:'market',name:s.market,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    mkMap[k].cookSum+=s.avg; mkMap[k].cookCnt++; mkMap[k].storeSet.add(s.name);
   });
   mtStores.forEach(s=>{
     const k=s.market;
-    if(!kmap[k])kmap[k]={market:s.market,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    kmap[k].mtRev+=s.revenue; kmap[k].scoreSum+=s.shop_score; kmap[k].scoreCnt++;
-    kmap[k].ratingSum+=(s.exp_score||0); kmap[k].ratingCnt++;
-    kmap[k].mtOrd+=(s.orders||0);
-    kmap[k].storeSet.add(s.name);
+    if(!mkMap[k])mkMap[k]={type:'market',name:s.market,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    mkMap[k].scoreSum+=s.shop_score; mkMap[k].scoreCnt++; mkMap[k].ratingSum+=(s.exp_score||0); mkMap[k].ratingCnt++; mkMap[k].storeSet.add(s.name);
   });
 
-  let rows=Object.values(kmap).map(m=>{
-    var stCnt = m.storeSet.size;
-    return {
-    ...m,
-    totalRev:m.mpRev+m.mtRev, totalOrd:m.mpOrd+m.mtOrd,
+  // ── 按品牌聚合 ──
+  const brdMap={};
+  mpStores.forEach(s=>{
+    const k=s.brand;
+    if(!brdMap[k])brdMap[k]={type:'brand',name:s.brand,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    brdMap[k].cookSum+=s.avg; brdMap[k].cookCnt++; brdMap[k].storeSet.add(s.name);
+  });
+  mtStores.forEach(s=>{
+    const k=s.brand;
+    if(!brdMap[k])brdMap[k]={type:'brand',name:s.brand,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    brdMap[k].scoreSum+=s.shop_score; brdMap[k].scoreCnt++; brdMap[k].ratingSum+=(s.exp_score||0); brdMap[k].ratingCnt++; brdMap[k].storeSet.add(s.name);
+  });
+
+  // ── 合并所有行 ──
+  let rows=[...Object.values(mkMap),...Object.values(brdMap)].map(m=>({
+    type:m.type, name:m.name, storeCount:m.storeSet.size,
     avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
     avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
     avgRating:m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
-    dailyRev: stCnt>0 ? Math.round((m.mpRev+m.mtRev)/stCnt/rankDays) : 0,
-    dailyTC: stCnt>0 ? Math.round((m.mpOrd+m.mtOrd)/stCnt/rankDays*10)/10 : 0,
-    storeCount: stCnt,
-  }});
+  }));
 
-  const st=mgmtSortState.market;
+  const st=mgmtSortState.marketBrand;
   const getVal=(r,k)=>{
-    if(k==='rev')return r.dailyRev;
-    if(k==='tc')return r.dailyTC;
     if(k==='cook')return r.avgCook;
     if(k==='score')return r.avgScore;
     if(k==='rating')return r.avgRating;
@@ -2962,104 +2957,32 @@ function renderMarketRank(){
   });
 
   const rc=i=>i<3?`rank-${i+1}`:'rank-n';
-  const fmtRev=v=>(v/10000).toFixed(1)+'万';
-  const fmtDaily=v=>'¥'+v.toLocaleString();
-
-  const t=document.getElementById('market-rank-container');
-  if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的市场数据</div>';return;}
+  const t=document.getElementById('market-brand-rank-container');
+  if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的数据</div>';return;}
 
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>市场</th><th class="sortable" width="72" onclick="onMgmtSortClick('market','cook')">出餐时间<span class="sort-arrow" id="mgmt-market-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','score')">店铺分<span class="sort-arrow" id="mgmt-market-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','rating')">体验分<span class="sort-arrow" id="mgmt-market-sort-rating"></span></th>
+        <th width="26">#</th><th>名称</th><th width="52">类型</th><th class="sortable" width="72" onclick="onMgmtSortClick('marketBrand','cook')">出餐时间<span class="sort-arrow" id="mgmt-marketBrand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','score')">店铺分<span class="sort-arrow" id="mgmt-marketBrand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','rating')">体验分<span class="sort-arrow" id="mgmt-marketBrand-sort-rating"></span></th>
       </tr></thead>
-      <tbody>${rows.map((r,i)=>`
-        <tr class="clickable" onclick="drillMarket('${r.market}')" title="点击查看${r.market}市场详情">
+      <tbody>${rows.map((r,i)=>{
+        var dotColor = r.type==='market' ? (mkColors[r.name]||'#999') : (brdColors[r.name]||'#999');
+        var typeTag = r.type==='market' 
+          ? '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#f0f7e6;color:#639922">市场</span>'
+          : '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#fff8ec;color:#C8873A">品牌</span>';
+        var onClick = r.type==='market' ? `onclick="drillMarket('${r.name}')"` : `onclick="drillBrand('${r.name}')"`;
+        var titleText = r.type==='market' ? '点击查看'+r.name+'市场详情' : '点击查看'+r.name+'品牌详情';
+        return `<tr class="clickable" ${onClick} title="${titleText}">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
-          <td><span class="mk-name"><span class="mk-dot" style="background:${mkColors[r.market]||'#999'}"></span>${r.market}</span></td>
+          <td><span class="mk-name"><span class="mk-dot" style="background:${dotColor}"></span>${r.name}</span></td>
+          <td>${typeTag}</td>
           <td class="dim">${r.avgCook}分</td>
-          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.market}','market')">${r.avgScore.toFixed(1)}</td>
+          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.name}','${r.type}')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
-        </tr>`).join('')}</tbody>
+        </tr>`;
+      }).join('')}</tbody>
     </table>`;
-  updateMgmtSortArrows('market');
-}
-
-function renderBrandRank(){
-  // 品牌排名：按品牌聚合所有渠道门店
-  const mpStores=filterStores(STORE_MP), mtStores=filterStores(STORE_MT);
-  const brdColors={'茶颜悦色':'#639922','鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜诗':'#E8321A','饼坊':'#C8873A'};
-  const kmap={};
-
-  // Calculate days from date filter
-  var rankDays = 7;
-  if(gfState.dateStart && gfState.dateEnd){
-    var d1 = new Date(gfState.dateStart), d2 = new Date(gfState.dateEnd);
-    rankDays = Math.max(1, Math.round((d2-d1)/86400000)+1);
-  }
-
-  mpStores.forEach(s=>{
-    const k=s.brand;
-    if(!kmap[k])kmap[k]={brand:s.brand,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    kmap[k].mpRev+=s.revenue; kmap[k].cookSum+=s.avg; kmap[k].cookCnt++; kmap[k].mpOrd+=(s.orders||0);
-    kmap[k].storeSet.add(s.name);
-  });
-  mtStores.forEach(s=>{
-    const k=s.brand;
-    if(!kmap[k])kmap[k]={brand:s.brand,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    kmap[k].mtRev+=s.revenue; kmap[k].scoreSum+=s.shop_score; kmap[k].scoreCnt++;
-    kmap[k].ratingSum+=(s.exp_score||0); kmap[k].ratingCnt++;
-    kmap[k].mtOrd+=(s.orders||0);
-    kmap[k].storeSet.add(s.name);
-  });
-
-  let rows=Object.values(kmap).map(m=>{
-    var stCnt = m.storeSet.size;
-    return {
-    ...m, totalRev:m.mpRev+m.mtRev, totalOrd:m.mpOrd+m.mtOrd,
-    avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
-    avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
-    avgRating:m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
-    dailyRev: stCnt>0 ? Math.round((m.mpRev+m.mtRev)/stCnt/rankDays) : 0,
-    dailyTC: stCnt>0 ? Math.round((m.mpOrd+m.mtOrd)/stCnt/rankDays*10)/10 : 0,
-    storeCount: stCnt,
-  }});
-
-  const st=mgmtSortState.brand;
-  const getVal=(r,k)=>{
-    if(k==='rev')return r.dailyRev;
-    if(k==='tc')return r.dailyTC;
-    if(k==='cook')return r.avgCook;
-    if(k==='score')return r.avgScore;
-    if(k==='rating')return r.avgRating;
-    return 0;
-  };
-  rows.sort((a,b)=>{
-    const va=getVal(a,st.key),vb=getVal(b,st.key);
-    return st.dir==='asc'?va-vb:vb-va;
-  });
-
-  const rc=i=>i<3?`rank-${i+1}`:'rank-n';
-  const fmtRev=v=>(v/10000).toFixed(1)+'万';
-
-  const t=document.getElementById('brand-rank-container');
-  if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的品牌数据</div>';return;}
-
-  t.innerHTML=`
-    <table class="mgmt-table">
-      <thead><tr>
-        <th width="26">#</th><th>品牌</th><th class="sortable" width="72" onclick="onMgmtSortClick('brand','cook')">出餐时间<span class="sort-arrow" id="mgmt-brand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','score')">店铺分<span class="sort-arrow" id="mgmt-brand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','rating')">体验分<span class="sort-arrow" id="mgmt-brand-sort-rating"></span></th>
-      </tr></thead>
-      <tbody>${rows.map((r,i)=>`
-        <tr class="clickable" onclick="drillBrand('${r.brand}')" title="点击查看${r.brand}品牌详情">
-          <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
-          <td><span class="mk-name"><span class="mk-dot" style="background:${brdColors[r.brand]||'#999'}"></span>${r.brand}</span></td>
-          <td class="dim">${r.avgCook}分</td>
-          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.brand}','brand')">${r.avgScore.toFixed(1)}</td>
-          <td class="num">${r.avgRating.toFixed(2)}</td>
-        </tr>`).join('')}</tbody>
-    </table>`;
-  updateMgmtSortArrows('brand');
+  updateMgmtSortArrows('marketBrand');
 }
 
 function renderRegionMgrRank(){
@@ -3307,6 +3230,7 @@ function drillScore(name, type){
   const mtStores=filterStores(STORE_MT);
   let filtered;
   if(type==='market') filtered=mtStores.filter(s=>s.market===name);
+  else if(type==='brand') filtered=mtStores.filter(s=>s.brand===name);
   else if(type==='region') filtered=mtStores.filter(s=>s.region_mgr===name);
   else filtered=mtStores.filter(s=>s.area_mgr===name);
 
@@ -3325,7 +3249,7 @@ function drillScore(name, type){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`📊 ${name} 店铺分详情`;
-  document.getElementById('drawerMeta').innerHTML=`${type==='market'?'市场':type==='region'?'大区':'区经理'}　|　${filtered.length}家门店　|　均分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`${type==='market'?'市场':type==='brand'?'品牌':type==='region'?'大区':'区经理'}　|　${filtered.length}家门店　|　均分 ${avgScore.toFixed(1)}`;
 
   let h=`
     <table class="rank-table" style="margin-bottom:16px">
@@ -3514,18 +3438,18 @@ function setPieDimension(dim){
 function normBrand(v){
   v = (v||'').trim();
   if(!v) return '';
-  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜诗','昼夜诗':'昼夜诗','饼坊':'饼坊','饼行':'饼坊'};
+  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜','饼坊':'饼坊','饼行':'饼坊'};
   if(exact[v]) return exact[v];
   if(v.indexOf('茶颜')>=0) return '茶颜悦色';
   if(v.indexOf('鸳央')>=0 || v.indexOf('鸯央')>=0) return '鸳央咖啡';
   if(v.indexOf('墨柠')>=0 || v.indexOf('古德')>=0) return '墨柠';
-  if(v.indexOf('昼夜')>=0) return '昼夜诗';
+  if(v.indexOf('昼夜')>=0) return '昼夜';
   if(v.indexOf('饼坊')>=0 || v.indexOf('饼行')>=0) return '饼坊';
   return v;
 }
 
 // ── 市场名统一归一化（JS端二次防护）──
-var BRAND_AS_MARKET = {'墨柠':1,'古德墨柠':1,'鸳央咖啡':1,'鸳央':1,'昼夜诗':1,'昼夜':1,'饼坊':1};
+var BRAND_AS_MARKET = {'墨柠':1,'古德墨柠':1,'鸳央咖啡':1,'鸳央':1,'昼夜':1,'饼坊':1};
 var MARKET_NORM = {
   '湖南':'湖南','湖南省':'湖南','湖南省市场':'湖南',
   '江苏':'江苏','江苏省':'江苏','江苏省市场':'江苏',
@@ -3930,7 +3854,7 @@ function renderDashboardSummary(){
 function renderMarketPieRow(marketData, marketNames, brandData, brandNames, totalTakeout, mpTakeout, mtTakeout, totalTC, mpTC, mtTC, totalStores, mpStores, mtStores, globalRev, globalMp, globalMt, globalTC, globalMpTC, globalMtTC, globalStores, globalMpStores, globalMtStores, totalRevenue, totalAllTCRef, totalAllStoresRef, active, dimension){
   var pies = [];
   
-  var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜诗':'昼夜','饼坊':'饼坊'};
+  var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜':'昼夜','饼坊':'饼坊'};
   function shortLabel(n){ return SHORT_LABEL[n] || n; }
   
   // 根据维度从 store-level 数据中取字段
@@ -4332,8 +4256,7 @@ function render(){
   }
 
   renderAlerts();
-  renderBrandRank();
-  renderMarketRank();
+  renderMarketBrandRank();
   renderRegionMgrRank();
   renderAreaMgrRank();
   renderUnifiedStoreRank();
@@ -4399,7 +4322,7 @@ function applyRealData(jsonData){
   const newMT = jsonData.mt_stores.map(s => ({
     code: s.code || '',
     name: s.name,
-    brand: s.brand,
+    brand: s.brand === '昼夜诗' ? '昼夜' : s.brand,
     market: s.market,
     city: s.city,
     region_mgr: s.region_mgr,
@@ -4438,7 +4361,7 @@ function applyRealData(jsonData){
   const newMP = jsonData.mp_stores.map(s => ({
     code: s.code || '',
     name: s.name,
-    brand: s.brand,
+    brand: s.brand === '昼夜诗' ? '昼夜' : s.brand,
     market: s.market,
     city: s.city,
     region_mgr: s.region_mgr,
