@@ -3,9 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-12T13:42:00+08:00">
-<meta name="version" content="v2.4.0">
+<meta name="build-time" content="2026-06-12T14:10:00+08:00">
+<meta name="version" content="v2.5.0">
+<!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
+<script>
+(function(){
+  var VER = "v2.5.0@20260612";
+  var K = "takeout-dashboard-version";
+  try {
+    var old = localStorage.getItem(K);
+    if (old && old !== VER) {
+      localStorage.setItem(K, VER);
+      location.reload(true);
+      return;
+    }
+    localStorage.setItem(K, VER);
+  } catch(e) {}
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -493,7 +512,7 @@
     <span class="dot"></span>
     <span>茶颜悦色</span>
     <span style="color:var(--text-secondary);font-weight:400">外卖业务运营看板</span>
-    <span style="font-size:9px;color:var(--text-muted);background:#f0ede8;padding:1px 5px;border-radius:3px;vertical-align:middle">v2.4.0</span>
+    <span style="font-size:10px;color:#fff;background:#639922;padding:1px 6px;border-radius:3px;vertical-align:middle;margin-left:6px;font-weight:700">v2.5.0</span>
   </div>
   <div class="header-right">
     <span id="headerUpdateDate" style="font-size:12px;color:var(--text-secondary);opacity:0.85;margin-right:8px;"></span>
