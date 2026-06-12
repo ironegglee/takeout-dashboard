@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.7.4">
+<meta name="version" content="v2.7.5">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.7.4@20260612";
+  var VER = "v2.7.5@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -2511,7 +2511,7 @@ function getStoreDiag(storeName){
       actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
       actions.push('② 优化备料流程：预制高频菜品半成品，高峰期直接组装而非现做');
       actions.push('③ 检查后厨动线：炉灶→打包台→出餐口的距离是否可缩短'); }
-    else if(mpStore.avg > 12) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于SLA标杆(15分钟)');
+    else if(mpStore.avg > 14) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，接近SLA标杆(15分钟)');
       actions.push('① 分析每日出餐耗时分布，锁定最慢的1-2个时段精准改善');
       actions.push('② 检查是否存在"单量激增→人手不足→出餐变慢"的恶性循环'); }
     else if(mpStore.avg > 8) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
@@ -2520,7 +2520,7 @@ function getStoreDiag(storeName){
       actions.push('① 排查超时订单集中在哪些时段/哪些菜品，针对性优化');
       actions.push('② 设置出餐倒计时提醒：接单后8分钟未出餐自动弹窗预警');
       actions.push('③ 对高频超时菜品考虑简化工艺或提前预制'); }
-    else if(mpStore.rate < 90) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
+    else if(mpStore.rate < 85) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
       if(mpStore.avg > 10) { actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
       else { actions.push('① 达标率偏低但平均出餐正常，关注极端超时个例（最长'+(mpStore.max||'--')+'分钟）'); } }
     if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如炖品/烤制）导致，可调整备货策略'); }
