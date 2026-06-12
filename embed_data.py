@@ -5,7 +5,7 @@
 import json, os
 
 DATA_JSON = os.path.join(os.path.dirname(__file__), 'dashboard', 'data.json')
-INDEX_HTML = os.path.join(os.path.dirname(__file__), 'dashboard', 'index.html')
+INDEX_HTML = os.path.join(os.path.dirname(__file__), 'index.html')
 
 # ═══════════════════════════════════════════
 # 1. 读取 data.json
