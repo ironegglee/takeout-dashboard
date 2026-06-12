@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.7.3">
+<meta name="version" content="v2.7.4">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.7.3@20260612";
+  var VER = "v2.7.4@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -1526,7 +1526,7 @@ function exportSnapshot(){
     var div = document.createElement('div');
     div.id = divId;
     div.innerHTML = md.html;
-    div.style.cssText = 'position:fixed;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none;max-height:100vh;overflow-y:auto';
+    div.style.cssText = 'position:absolute;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none';
     document.body.appendChild(div);
     tempDivs.push({el:div, id:divId});
     sections.push({id:divId, name:'门店诊断_' + md.market, isTemp:true});
@@ -1576,13 +1576,21 @@ function exportSnapshot(){
     
     btn.textContent = '导出中 '+idx+'/'+totalCount+' '+sec.name;
     
-    html2canvas(el, {
+    // 临时板块需要捕获完整高度，不截断
+    var opts = {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#F5F3EF',
       logging: false,
-    }).then(function(canvas){
+    };
+    if(sec.isTemp){
+      var scrollH = Math.max(el.scrollHeight, document.documentElement.clientHeight);
+      opts.height = Math.ceil(scrollH);
+      opts.windowHeight = Math.ceil(scrollH + 200);
+      opts.windowWidth = Math.ceil(el.scrollWidth + 200);
+    }
+    html2canvas(el, opts).then(function(canvas){
       done++;
       // 隐藏临时板块
       if(sec.isTemp && el){ el.style.display = 'none'; }
