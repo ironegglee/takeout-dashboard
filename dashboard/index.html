@@ -3292,7 +3292,7 @@ function renderDashboardSummary(){
   if(active === '大盘'){
     activeData = {mpRev: storeAllMp, mtRev: storeAllMt, mpTC: storeAllMpTC, mtTC: storeAllMtTC, 
                    totalRev: storeAllTakeout, totalTC: storeAllTC,
-                   mpStores: storeAllMpStores, mtStores: storeAllMtStores, totalStores: storeAllStores,
+                   mpStores: storeAllMpStores, mtStores: storeAllMtStores, totalStores: totalStores,
                    // 日级数据（用于大盘饼图/平台占比 → 与卡片数字对齐）
                    mpRevDaily: mpTakeout, mtRevDaily: mtTakeout, totalRevDaily: totalTakeout,
                    mpTCDaily: mpTC, mtTCDaily: mtTC, totalTCDaily: totalTC,
@@ -3347,9 +3347,9 @@ function renderDashboardSummary(){
       {v: fm(mtTC), tag: '美团', sub: '日均'+mtStoreDailyTC+'单', cls: '#FFB300'}
     ]},
     {label:'门店数', vals: [
-      {v: totalStores+'', tag: '外卖总', sub: '', cls: ''},
-      {v: mpStores+'', tag: '自配送', sub: '', cls: '#4CAF50'},
-      {v: mtStores+'', tag: '美团', sub: '', cls: '#FFB300'}
+      {v: totalStores+'', tag: '外卖总(去重)', sub: (totalOrderStores>0?'占大盘'+(totalStores/totalOrderStores*100).toFixed(1)+'%':''), cls: ''},
+      {v: mpStores+'', tag: '有自配门店', sub: '(含双平台)', cls: '#4CAF50'},
+      {v: mtStores+'', tag: '有美团门店', sub: '(含双平台)', cls: '#FFB300'}
     ]}
   ];
   
@@ -3417,8 +3417,13 @@ function renderMarketPieRow(marketData, marketNames, brandData, brandNames, tota
     var fmtFn = dim === '业绩' ? fm : (dim === 'TC' ? fm : function(v){return v+'';});
     if(total <= 0) return {key: key, label: label, segs: [], sub: '', total: 0, fmtTotal: '0', dim: dim};
     var segs = [];
-    if(mpR > 0) segs.push({pct: parseFloat((mpR/total*100).toFixed(1)), color: '#4CAF50', label: '自配'});
-    if(mtR > 0) segs.push({pct: parseFloat((mtR/total*100).toFixed(1)), color: '#FFB300', label: '美团'});
+    if(dim === '门店数'){
+      // 门店数维度不分拆MP/MT两段（门店在双平台重叠），单段展示总门店数
+      segs.push({pct: 100, color: '#639922', label: '外卖门店'});
+    } else {
+      if(mpR > 0) segs.push({pct: parseFloat((mpR/total*100).toFixed(1)), color: '#4CAF50', label: '自配'});
+      if(mtR > 0) segs.push({pct: parseFloat((mtR/total*100).toFixed(1)), color: '#FFB300', label: '美团'});
+    }
     var sub = pct_ref > 0 ? '占外卖 '+pct_ref+'%' : '';
     return {key: key, label: label, segs: segs, sub: sub, total: total, fmtTotal: fmtFn(total), dim: dim};
   }
@@ -3598,6 +3603,7 @@ function renderActiveDetail(ad, marketName, days, dimension){
   
   var mpPct = valTotal>0 ? (mpVal/valTotal*100).toFixed(1) : '0';
   var mtPct = valTotal>0 ? (mtVal/valTotal*100).toFixed(1) : '0';
+  var pctLabel = dim==='门店数' ? '覆盖外卖' : '占外卖';  // 门店有重叠，"覆盖"比"占"更准确
   
   var html = '<div style="background:#fff;border-radius:8px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column">';
   html += '<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-primary)">'+marketName+' 平台占比</div>';
@@ -3612,7 +3618,7 @@ function renderActiveDetail(ad, marketName, days, dimension){
   html += '<div style="color:#4CAF50;font-weight:600;margin-bottom:2px;font-size:10px">🟢 自配送</div>';
   html += '<div style="font-size:16px;font-weight:700;color:#4CAF50">'+mpFmt+'</div>';
   html += '<div style="color:var(--text-muted);font-size:9px;margin-top:1px">'+(dim==='门店数'?mpVal+'家 · '+fm(ad.mpTC||0)+'单': (dim==='TC'?mpS+'家 · '+mpVal+'单': mpS+'家 · '+fm(ad.mpTC||0)+'单'))+'</div>';
-  html += '<div style="font-size:9px;color:#4CAF50;margin-top:1px">占外卖 '+mpPct+'%</div>';
+  html += '<div style="font-size:9px;color:#4CAF50;margin-top:1px">'+pctLabel+' '+mpPct+'%</div>';
   html += '</div>';
   
   // 美团卡片
@@ -3620,7 +3626,7 @@ function renderActiveDetail(ad, marketName, days, dimension){
   html += '<div style="color:#FFB300;font-weight:600;margin-bottom:2px;font-size:10px">🟡 美团</div>';
   html += '<div style="font-size:16px;font-weight:700;color:#FFB300">'+mtFmt+'</div>';
   html += '<div style="color:var(--text-muted);font-size:9px;margin-top:1px">'+(dim==='门店数'?mtVal+'家 · '+fm(ad.mtTC||0)+'单': (dim==='TC'?mtS+'家 · '+mtVal+'单': mtS+'家 · '+fm(ad.mtTC||0)+'单'))+'</div>';
-  html += '<div style="font-size:9px;color:#FFB300;margin-top:1px">占外卖 '+mtPct+'%</div>';
+  html += '<div style="font-size:9px;color:#FFB300;margin-top:1px">'+pctLabel+' '+mtPct+'%</div>';
   html += '</div>';
   html += '</div>';
   
