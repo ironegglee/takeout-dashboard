@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.6.0">
+<meta name="build-time" content="2026-06-12T17:18:00+08:00">
+<meta name="version" content="v2.6.1">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.6.0@20260612";
+  var VER = "v2.6.1@20260612-2";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -2348,14 +2348,14 @@ function openStoreMerged(storeName){
   try {
   if(mpStore){
     // 小程序出餐诊断
-    if(mpStore.avg > 8) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA(8分钟)');
+    if(mpStore.avg > 15) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA标杆(15分钟)');
       actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
       actions.push('② 优化备料流程：预制高频菜品半成品，高峰期直接组装而非现做');
       actions.push('③ 检查后厨动线：炉灶→打包台→出餐口的距离是否可缩短'); }
-    else if(mpStore.avg > 6.5) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于行业均值');
+    else if(mpStore.avg > 12) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于SLA标杆(15分钟)');
       actions.push('① 分析每日出餐耗时分布，锁定最慢的1-2个时段精准改善');
       actions.push('② 检查是否存在"单量激增→人手不足→出餐变慢"的恶性循环'); }
-    else if(mpStore.avg > 5.5) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
+    else if(mpStore.avg > 8) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
     else { issues.push('出餐效率优秀('+mpStore.avg+'分钟)'); }
     if(mpStore.rate < 70) { status = 'bad'; issues.push('出餐达标率仅'+mpStore.rate+'%，近三分之一订单超15分钟');
       actions.push('① 排查超时订单集中在哪些时段/哪些菜品，针对性优化');
@@ -2543,10 +2543,10 @@ function openStoreMerged(storeName){
         charts['detailMtTrend'] = new Chart(canvas, {
           type: 'line', data: { labels: trend.days, datasets: [
             { label: '店铺分', data: trend.shop, borderColor: '#667eea', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y',
-              datalabels:{anchor:'end',align:'top',offset:2,color:'#667eea',font:{size:10,weight:'bold'},
+              datalabels:{anchor:'end',align:'end',offset:8,color:'#667eea',font:{size:10,weight:'bold'},
                 formatter:function(v){return v.toFixed(1);}}},
             { label: '体验分', data: trend.exp, borderColor: '#f093fb', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y1',
-              datalabels:{anchor:'end',align:'top',offset:2,color:'#f093fb',font:{size:10,weight:'bold'},
+              datalabels:{anchor:'end',align:'end',offset:8,color:'#f093fb',font:{size:10,weight:'bold'},
                 formatter:function(v){return v.toFixed(2);}}}
           ]},
           options: { responsive: true, maintainAspectRatio: false,
@@ -2617,7 +2617,7 @@ function renderMpDetail(store, body){
     charts['detailMpTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'出餐时长',data:trend.vals,borderColor:'#C8873A',backgroundColor:'rgba(200,135,58,0.08)',borderWidth:2,pointRadius:4,fill:true,tension:0.3,
-          datalabels:{anchor:'end',align:'top',offset:4,color:'#C8873A',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'end',align:'end',offset:10,color:'#C8873A',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(1)+'分';}}},
         {label:'SLA',data:Array(trend.days.length).fill(trend.sla),borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,
           datalabels:{display:false}},
@@ -2695,10 +2695,10 @@ function renderMtDetail(store, body){
     charts['detailMtTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'店铺分',data:trend.shop,borderColor:'#667eea',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y',
-          datalabels:{anchor:'end',align:'top',offset:2,color:'#667eea',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'end',align:'end',offset:8,color:'#667eea',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(1);}}},
         {label:'体验分',data:trend.exp,borderColor:'#f093fb',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y1',
-          datalabels:{anchor:'end',align:'top',offset:2,color:'#f093fb',font:{size:10,weight:'bold'},
+          datalabels:{anchor:'end',align:'end',offset:8,color:'#f093fb',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(2);}}},
       ]},
       options:{responsive:true,maintainAspectRatio:false,

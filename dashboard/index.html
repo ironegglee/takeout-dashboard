@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-12T14:10:00+08:00">
-<meta name="version" content="v2.5.0">
+<meta name="build-time" content="2026-06-12T14:30:00+08:00">
+<meta name="version" content="v2.6.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.5.0@20260612";
+  var VER = "v2.6.0@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -26,6 +26,7 @@
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -799,6 +800,8 @@
 </div>
 
 <script>
+// 注册 Chart.js datalabels 插件（用于趋势图节点数值常驻显示）
+if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
 /* ================================================================
    数据源定义
    组织架构：
@@ -2342,16 +2345,17 @@ function openStoreMerged(storeName){
 
   // ── 门店诊断总结（含具体改善动作）──
   var issues = [], actions = [], status = 'ok'; // ok / warn / bad
+  try {
   if(mpStore){
     // 小程序出餐诊断
-    if(mpStore.avg > 8) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA(8分钟)');
+    if(mpStore.avg > 15) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA标杆(15分钟)');
       actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
       actions.push('② 优化备料流程：预制高频菜品半成品，高峰期直接组装而非现做');
       actions.push('③ 检查后厨动线：炉灶→打包台→出餐口的距离是否可缩短'); }
-    else if(mpStore.avg > 6.5) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于行业均值');
+    else if(mpStore.avg > 12) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于SLA标杆(15分钟)');
       actions.push('① 分析每日出餐耗时分布，锁定最慢的1-2个时段精准改善');
       actions.push('② 检查是否存在"单量激增→人手不足→出餐变慢"的恶性循环'); }
-    else if(mpStore.avg > 5.5) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
+    else if(mpStore.avg > 8) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
     else { issues.push('出餐效率优秀('+mpStore.avg+'分钟)'); }
     if(mpStore.rate < 70) { status = 'bad'; issues.push('出餐达标率仅'+mpStore.rate+'%，近三分之一订单超15分钟');
       actions.push('① 排查超时订单集中在哪些时段/哪些菜品，针对性优化');
@@ -2362,7 +2366,7 @@ function openStoreMerged(storeName){
     if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如炖品/烤制）导致，可调整备货策略'); }
   }
   if(mtStore){
-    var sd = mtStore.shop_dims, ed = mtStore.exp_dims;
+    var sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
     if(mtStore.shop_score < 85) { status = 'bad'; issues.push('店铺分'+mtStore.shop_score+'分，严重低于标准(≥95)');
       actions.push('① 建议立即召开门店会议，逐项分析六维失分原因');
       actions.push('② 优先攻克"差评回复率"和"接单率"（权重最高、见效最快）'); }
@@ -2375,8 +2379,8 @@ function openStoreMerged(storeName){
       actions.push('① 分析体验分六维中最短板，集中资源改善最关键的一项'); }
     // 找出最差维度并给针对性建议
     var worstShop = '', worstShopVal = 100, worstExp = '', worstExpVal = 5;
-    var shopDims = [['差评回复率',sd.reply_rate],['商家评分',sd.merchant_rating],['高峰营业',sd.peak_hours],['接单率',sd.reject_rate],['基础营业',sd.base_hours],['出餐上报',sd.cook_report]];
-    var expDims = [['商品满意度',ed.product_sat],['包装满意度',ed.pack_sat],['复购率',ed.repurchase],['消息回复',ed.msg_reply],['服务反馈',ed.service_neg],['食安反馈',ed.food_safety]];
+    var shopDims = [['差评回复率',sd.reply_rate||0],['商家评分',sd.merchant_rating||0],['高峰营业',sd.peak_hours||0],['接单率',sd.reject_rate||0],['基础营业',sd.base_hours||0],['出餐上报',sd.cook_report||0]];
+    var expDims = [['商品满意度',ed.product_sat||0],['包装满意度',ed.pack_sat||0],['复购率',ed.repurchase||0],['消息回复',ed.msg_reply||0],['服务反馈',ed.service_neg||0],['食安反馈',ed.food_safety||0]];
     shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
     expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
     // 各维度针对性改善动作
@@ -2430,6 +2434,11 @@ function openStoreMerged(storeName){
   actions.forEach(function(a){ if(!seen[a]){ seen[a]=true; uniqueActions.push(a); } });
   actions = uniqueActions.slice(0, 5); // 最多展示5条改善动作
 
+  } catch(e) {
+    console.error('[诊断] 诊断总结生成异常:', e.message);
+    status = 'warn'; issues = ['诊断数据读取异常，请刷新重试'];
+  }
+
   // 诊断总结始终展示
   var summaryHTML = '';
   if(status === 'ok' && issues.length === 0 && actions.length === 0){
@@ -2451,6 +2460,13 @@ function openStoreMerged(storeName){
       + (actionLines ? '<div style="border-top:1px dashed rgba(0,0,0,0.1);margin-top:8px;padding-top:8px"><div style="font-weight:700;color:'+badgeColor+';margin-bottom:4px">🔧 建议改善动作</div>'+actionLines+'</div>' : '')
       + '</div>';
   }
+  // 兜底：确保无论如何都显示诊断信息
+  if(!summaryHTML){
+    summaryHTML = '<div class="drawer-summary" style="margin:0 0 16px;padding:14px 18px;background:linear-gradient(135deg,#fef9e7,#fefce8);border-radius:8px;border-left:4px solid #EF9F27;font-size:13px;line-height:1.7;color:#5D4E37">'
+      + '<div style="font-weight:700;font-size:14px;color:#EF9F27;margin-bottom:4px">📋 诊断总结</div>'
+      + '<div>当前门店诊断数据暂不可用，请稍后重试或联系管理员。</div>'
+      + '</div>';
+  }
 
   const body = document.getElementById('drawerBody');
   if (mpStore) {
@@ -2468,7 +2484,7 @@ function openStoreMerged(storeName){
     const mtSection = document.createElement('div');
     document.getElementById('drawerBody').appendChild(mtSection);
     // 简单追加美团核心指标
-    const sd = mtStore.shop_dims, ed = mtStore.exp_dims;
+    const sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
     const dimRow = (name, val, target, max, unit) => {
       if (val == null || isNaN(val)) val = 0;
       const pct = Math.min(100, Math.max(0, val / max * 100));
@@ -2518,23 +2534,24 @@ function openStoreMerged(storeName){
   }
 
   if (mtStore) {
-    // 评分趋势图: 用 setTimeout 等 DOM 渲染完
+    // 评分趋势图: 用真实 genStoreTrend 数据 + datalabels 常驻显示
     setTimeout(() => {
-      const now2 = new Date();
-      const dates = [];
-      for (let i = 6; i >= 0; i--) { const d = new Date(now2); d.setDate(d.getDate() - i); dates.push(`${d.getMonth() + 1}/${d.getDate()}`); }
-      const shopScores = dates.map(() => (mtStore.shop_score + (Math.random() - 0.5) * 0.4).toFixed(1));
-      const expScores = dates.map(() => (mtStore.exp_score + (Math.random() - 0.5) * 0.04).toFixed(2));
+      var trend = genStoreTrend(mtStore, true);
       const canvas = document.getElementById('detailMtTrendChart');
       if (canvas) {
         destroyChart('detailMtTrend');
         charts['detailMtTrend'] = new Chart(canvas, {
-          type: 'line', data: { labels: dates, datasets: [
-            { label: '店铺分', data: shopScores, borderColor: '#667eea', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y' },
-            { label: '体验分', data: expScores, borderColor: '#f093fb', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y1' }
+          type: 'line', data: { labels: trend.days, datasets: [
+            { label: '店铺分', data: trend.shop, borderColor: '#667eea', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y',
+              datalabels:{anchor:'end',align:'end',offset:8,color:'#667eea',font:{size:10,weight:'bold'},
+                formatter:function(v){return v.toFixed(1);}}},
+            { label: '体验分', data: trend.exp, borderColor: '#f093fb', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y1',
+              datalabels:{anchor:'end',align:'end',offset:8,color:'#f093fb',font:{size:10,weight:'bold'},
+                formatter:function(v){return v.toFixed(2);}}}
           ]},
           options: { responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: true, labels: { font: { size: 11 }, usePointStyle: true, boxWidth: 8 } } },
+            plugins: { legend: { display: true, labels: { font: { size: 11 }, usePointStyle: true, boxWidth: 8 } },
+                       datalabels: { display: true } },
             scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } },
                       y: { min: 80, max: 100, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, stepSize: 5, callback: v => v.toFixed(0) } },
                       y1: { position: 'right', min: 4, max: 5, grid: { drawOnChartArea: false }, ticks: { font: { size: 10 }, stepSize: 0.2, callback: v => v.toFixed(2) } } } }
@@ -2599,10 +2616,13 @@ function renderMpDetail(store, body){
     if(!canvas)return;
     charts['detailMpTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
-        {label:'出餐时长',data:trend.vals,borderColor:'#C8873A',backgroundColor:'rgba(200,135,58,0.08)',borderWidth:2,pointRadius:4,fill:true,tension:0.3},
-        {label:'SLA',data:Array(trend.days.length).fill(trend.sla),borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
+        {label:'出餐时长',data:trend.vals,borderColor:'#C8873A',backgroundColor:'rgba(200,135,58,0.08)',borderWidth:2,pointRadius:4,fill:true,tension:0.3,
+          datalabels:{anchor:'end',align:'end',offset:10,color:'#C8873A',font:{size:10,weight:'bold'},
+            formatter:function(v){return v.toFixed(1)+'分';}}},
+        {label:'SLA',data:Array(trend.days.length).fill(trend.sla),borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,
+          datalabels:{display:false}},
       ]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
                 y:{min:3,max:10,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'分'}}}}
     });
@@ -2610,7 +2630,7 @@ function renderMpDetail(store, body){
 }
 
 function renderMtDetail(store, body){
-  const sd=store.shop_dims, ed=store.exp_dims;
+  const sd=store.shop_dims || {}, ed=store.exp_dims || {};
   const trend=genStoreTrend(store,true);
 
   const dimRow=(name,val,target,max,unit)=>{
@@ -2674,11 +2694,15 @@ function renderMtDetail(store, body){
     if(!canvas)return;
     charts['detailMtTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
-        {label:'店铺分',data:trend.shop,borderColor:'#667eea',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y'},
-        {label:'体验分',data:trend.exp,borderColor:'#f093fb',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y1'},
+        {label:'店铺分',data:trend.shop,borderColor:'#667eea',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y',
+          datalabels:{anchor:'end',align:'end',offset:8,color:'#667eea',font:{size:10,weight:'bold'},
+            formatter:function(v){return v.toFixed(1);}}},
+        {label:'体验分',data:trend.exp,borderColor:'#f093fb',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y1',
+          datalabels:{anchor:'end',align:'end',offset:8,color:'#f093fb',font:{size:10,weight:'bold'},
+            formatter:function(v){return v.toFixed(2);}}},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:true,labels:{font:{size:11},usePointStyle:true,boxWidth:8}}},
+        plugins:{legend:{display:true,labels:{font:{size:11},usePointStyle:true,boxWidth:8}},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
                 y:{min:80,max:100,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},stepSize:5,callback:v=>v.toFixed(0)}},
                 y1:{position:'right',min:4,max:5,grid:{drawOnChartArea:false},ticks:{font:{size:10},stepSize:0.2,callback:v=>v.toFixed(2)}}}}
@@ -4216,16 +4240,16 @@ function applyRealData(jsonData){
     shop_score: s.shop_score || 0,
     exp_score: s.exp_score || 0,
     shop_dims: {
-      reply_rate: s.shop_dims.reply_rate || 0,
-      merchant_rating: s.shop_dims.merchant_rating || 0,
-      peak_hours: s.shop_dims.peak_hours || 0,
-      reject_rate: s.shop_dims.reject_rate || 0,
-      base_hours: s.shop_dims.base_hours || 0,
+      reply_rate: (s.shop_dims && s.shop_dims.reply_rate) || 0,
+      merchant_rating: (s.shop_dims && s.shop_dims.merchant_rating) || 0,
+      peak_hours: (s.shop_dims && s.shop_dims.peak_hours) || 0,
+      reject_rate: (s.shop_dims && s.shop_dims.reject_rate) || 0,
+      base_hours: (s.shop_dims && s.shop_dims.base_hours) || 0,
       cook_report: (s.shop_dims && s.shop_dims.cook_report != null) ? +s.shop_dims.cook_report.toFixed(1) : 0,
-      quality_rate: s.shop_dims.quality_rate || 0,
-      menu_rich: s.shop_dims.menu_rich || 0,
-      decor_rich: s.shop_dims.decor_rich || 0,
-      service_rich: s.shop_dims.service_rich || 0,
+      quality_rate: (s.shop_dims && s.shop_dims.quality_rate) || 0,
+      menu_rich: (s.shop_dims && s.shop_dims.menu_rich) || 0,
+      decor_rich: (s.shop_dims && s.shop_dims.decor_rich) || 0,
+      service_rich: (s.shop_dims && s.shop_dims.service_rich) || 0,
     },
     exp_dims: {
       product_sat: (s.exp_dims && s.exp_dims.product_sat) || 0,
