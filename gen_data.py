@@ -207,6 +207,7 @@ for _, row in mt_latest.iterrows():
     exp_score = safe_float(row.get('综合体验分'))
 
     mt_stores.append({
+        'code': code,
         'name': arch_info['arch_name'],
         'brand': arch_info['brand'], 'market': arch_info['market'],
         'city': arch_info['city'],
@@ -320,6 +321,7 @@ for _, row in agg.iterrows():
     rate = safe_float(row['出餐达标率'])
     
     mp_stores.append({
+        'code': code,
         'name': info['arch_name'],
         'brand': info['brand'], 'market': info['market'],
         'city': info['city'],
