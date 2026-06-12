@@ -358,6 +358,28 @@ perf['小程序外卖_val'] = pd.to_numeric(perf['小程序外卖订单总金额
 perf['美团_val'] = pd.to_numeric(perf['美团订单总金额'], errors='coerce').fillna(0)
 perf['大盘_val'] = pd.to_numeric(perf['订单总金额'], errors='coerce').fillna(0)  # 全渠道总业绩(含堂食)
 
+# 将业绩数据源中不在架构表的门店编码补入 arch_by_code（解决 store_daily.total 中约363家堂食门店无组织信息的问题）
+_perf_codes = perf[['门店编码','门店名称','品牌','市场/品牌','城市','大区','区经理','大店长']].drop_duplicates()
+_extended = 0
+for _, r in _perf_codes.iterrows():
+    code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
+    if not code or code in arch_by_code:
+        continue
+    name = str(r['门店名称']) if pd.notna(r['门店名称']) else ''
+    brand = normalize_brand(r['品牌'])
+    market = normalize_market(r['市场/品牌'], brand)
+    city = str(r['城市']) if pd.notna(r['城市']) and str(r['城市']) != 'nan' else ''
+    region = str(r['大区']) if pd.notna(r['大区']) else ''
+    area = str(r['区经理']) if pd.notna(r['区经理']) else ''
+    leader = str(r['大店长']) if pd.notna(r['大店长']) else ''
+    arch_by_code[code] = {
+        'brand': brand, 'market': market, 'city': city,
+        'region_mgr': region, 'area_mgr': area, 'leader': leader,
+        'store_code': code, 'arch_name': name
+    }
+    _extended += 1
+print(f'  arch_by_code 补全: +{_extended} (总计{len(arch_by_code)})')
+
 # 业绩每日汇总（分渠道）
 perf_daily = perf.groupby('日期_dt').agg(
     revenue=('外卖总_val', 'sum'),
