@@ -793,17 +793,36 @@ for date_str, grp in perf.groupby('日期_str'):
     codes_mp = grp[grp['小程序外卖_val'] > 0]['门店编码'].astype(str).unique().tolist()
     codes_mt = grp[grp['美团_val'] > 0]['门店编码'].astype(str).unique().tolist()
     codes_all = grp[grp['外卖总_val'] > 0]['门店编码'].astype(str).unique().tolist()
+    codes_total = grp[grp['大盘_val'] > 0]['门店编码'].astype(str).unique().tolist()  # 订单总金额>0=堂食营业
     store_daily[str(date_str)] = {
         'mp': codes_mp,
         'mt': codes_mt,
-        'all': codes_all
+        'all': codes_all,
+        'total': codes_total
     }
 print(f'store_daily: {len(store_daily)} 天')
+
+# TC-based store daily (from 订单数据源: 有效订单数>0)
+orders_df['日期_str'] = orders_df['日期_dt'].dt.strftime('%Y-%m-%d')
+for date_str, grp in orders_df.groupby('日期_str'):
+    if date_str not in store_daily:
+        continue
+    codes_mp_tc = grp[grp['小程序外卖_val'] > 0]['门店编码'].astype(str).unique().tolist()
+    codes_mt_tc = grp[grp['美团_val'] > 0]['门店编码'].astype(str).unique().tolist()
+    codes_all_tc = grp[grp['外卖总_val'] > 0]['门店编码'].astype(str).unique().tolist()
+    codes_total_tc = grp[grp['有效订单数_val'] > 0]['门店编码'].astype(str).unique().tolist()
+    store_daily[date_str].update({
+        'mp_tc': codes_mp_tc,
+        'mt_tc': codes_mt_tc,
+        'all_tc': codes_all_tc,
+        'total_tc': codes_total_tc
+    })
+
 # 示例：显示第一天各渠道门店数
 if store_daily:
     first_day = list(store_daily.keys())[0]
     sd = store_daily[first_day]
-    print(f'  {first_day}: 外卖总{len(sd["all"])}家, 自配送{len(sd["mp"])}家, 美团{len(sd["mt"])}家')
+    print(f'  {first_day}: 外卖总{len(sd["all"])}家(TC:{len(sd.get("all_tc",[]))}), 自配送{len(sd["mp"])}家(TC:{len(sd.get("mp_tc",[]))}), 美团{len(sd["mt"])}家(TC:{len(sd.get("mt_tc",[]))}), 大盘{len(sd["total"])}家(TC:{len(sd.get("total_tc",[]))})')
 
 # ═══════════════════════════════════════════
 # 9. 输出 JSON
