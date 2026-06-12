@@ -870,6 +870,7 @@ output = clean_nan({
     },
     'mt_stores': mt_stores,
     'mp_stores': mp_stores,
+    'store_arch': arch_by_code,
     'alerts': alerts,
     'match_summary': {
         'arch_total': len(arch),
