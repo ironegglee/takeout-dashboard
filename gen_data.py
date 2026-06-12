@@ -760,6 +760,13 @@ for r in perf_daily_list:
     r['mt_stores'] = int(r.get('mt_stores', 0))
 print(f'perf_daily: {len(perf_daily_list)} 天')
 
+# 全量日期范围（业绩数据覆盖5.1~最新）
+full_date_range = ''
+if perf_daily_list:
+    dates = sorted(r['date'] for r in perf_daily_list)
+    full_date_range = f'{dates[0]} ~ {dates[-1]}'
+    print(f'full_date_range: {full_date_range}')
+
 # 订单每日
 order_daily_list = order_daily[['date','orders','total_orders','mp_orders','mt_orders','store_count','mp_stores','mt_stores','total_stores']].to_dict('records')
 for r in order_daily_list:
@@ -820,6 +827,7 @@ for store_name, grp in df2_valid.groupby('门店名称'):
 output = clean_nan({
     'generated_at': str(latest),
     'meituan_date': str(latest),
+    'full_date_range': full_date_range,
     'mp_date_range': mp_date_range,
     'mp_daily': mp_daily,
     'mt_daily': mt_daily,
