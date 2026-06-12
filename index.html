@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.8.0">
+<meta name="version" content="v2.8.1">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.8.0@20260612";
+  var VER = "v2.8.1@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -2901,7 +2901,7 @@ function renderMarketBrandRank(){
   const mpStores=filterStores(STORE_MP);
   const mtStores=filterStores(STORE_MT);
   const mkColors={'湖南':'#639922','湖北':'#EF9F27','江苏':'#667eea','重庆':'#E8321A'};
-  const brdColors={'茶颜悦色':'#639922','鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A','饼坊':'#C8873A'};
+  const brdColors={'鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A','饼坊':'#C8873A'};
 
   // Calculate days from date filter
   var rankDays = 7;
@@ -2936,8 +2936,8 @@ function renderMarketBrandRank(){
     brdMap[k].scoreSum+=s.shop_score; brdMap[k].scoreCnt++; brdMap[k].ratingSum+=(s.exp_score||0); brdMap[k].ratingCnt++; brdMap[k].storeSet.add(s.name);
   });
 
-  // ── 合并所有行 ──
-  let rows=[...Object.values(mkMap),...Object.values(brdMap)].map(m=>({
+  // ── 合并所有行（不含茶颜悦色品牌，数据已分摊至各市场）──
+  let rows=[...Object.values(mkMap),...Object.values(brdMap).filter(m=>m.name!=='茶颜悦色')].map(m=>({
     type:m.type, name:m.name, storeCount:m.storeSet.size,
     avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
     avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
