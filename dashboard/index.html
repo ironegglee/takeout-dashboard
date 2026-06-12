@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.6.0">
+<meta name="version" content="v2.7.3">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.6.0@20260612";
+  var VER = "v2.7.3@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -1399,9 +1399,9 @@ function getFilterLabel(){
   return parts.length > 0 ? parts.join('_') : '全部门店';
 }
 
-// ── 获取门店诊断汇总 HTML（用于临时添加到 DOM 后截图）──
-function buildStoreDiagHTML(){
-  // 收集当前筛选范围内的门店（取并集去重，复用 filterStores）
+// ── 获取门店诊断汇总 HTML，按市场分组（每个市场一张图）──
+function buildMarketDiagHTMLs(){
+  // 收集当前筛选范围内的门店（取并集去重）
   var allStores = [];
   var seenName = {};
   STORE_MP.forEach(function(s){
@@ -1412,54 +1412,69 @@ function buildStoreDiagHTML(){
   });
   
   var filtered = filterStores(allStores);
-  if(filtered.length === 0) return '';
+  if(filtered.length === 0) return [];
   
-  // 诊断分类统计
-  var badList = [], warnList = [], okList = [];
+  // 按市场分组
+  var marketGroups = {};
   filtered.forEach(function(s){
-    var d = getStoreDiag(s.name);
-    if(d.status === 'bad') badList.push({name:s.name, diag:d});
-    else if(d.status === 'warn') warnList.push({name:s.name, diag:d});
-    else okList.push({name:s.name, diag:d});
+    var mkt = s.market || '其他';
+    if(!marketGroups[mkt]) marketGroups[mkt] = [];
+    marketGroups[mkt].push(s);
   });
   
-  var h = '<div id="export-store-diag" style="background:#fff;padding:24px;border-radius:12px;margin:20px 0;font-family:system-ui,-apple-system,sans-serif">';
-  h += '<div style="font-size:18px;font-weight:700;color:#333;margin-bottom:4px">📋 门店诊断汇总</div>';
-  h += '<div style="font-size:12px;color:#999;margin-bottom:16px">筛选条件：'+getFilterLabel()+'　|　共'+filtered.length+'家　🔴异常'+badList.length+'　🟡关注'+warnList.length+'　🟢正常'+okList.length+'</div>';
-  
-  // 异常门店
-  if(badList.length > 0){
-    h += '<div style="margin-bottom:20px">';
-    h += '<div style="font-size:14px;font-weight:600;color:#A32D2D;margin-bottom:10px;border-bottom:2px solid #A32D2D;padding-bottom:4px">🔴 异常门店（'+badList.length+'家）</div>';
-    badList.forEach(function(item){
-      h += buildOneStoreDiagCard(item.name, item.diag);
+  var result = [];
+  var marketNames = Object.keys(marketGroups).sort();
+  marketNames.forEach(function(mkt){
+    var stores = marketGroups[mkt];
+    // 诊断分类统计
+    var badList = [], warnList = [], okList = [];
+    stores.forEach(function(s){
+      var d = getStoreDiag(s.name);
+      if(d.status === 'bad') badList.push({name:s.name, diag:d});
+      else if(d.status === 'warn') warnList.push({name:s.name, diag:d});
+      else okList.push({name:s.name, diag:d});
     });
+    
+    var h = '<div style="background:#fff;padding:24px;border-radius:12px;font-family:system-ui,-apple-system,sans-serif">';
+    h += '<div style="font-size:18px;font-weight:700;color:#333;margin-bottom:4px">📋 ' + mkt + ' · 门店诊断汇总</div>';
+    h += '<div style="font-size:12px;color:#999;margin-bottom:16px">筛选条件：'+getFilterLabel()+'　|　共'+stores.length+'家　🔴异常'+badList.length+'　🟡关注'+warnList.length+'　🟢正常'+okList.length+'</div>';
+    
+    // 异常门店
+    if(badList.length > 0){
+      h += '<div style="margin-bottom:20px">';
+      h += '<div style="font-size:14px;font-weight:600;color:#A32D2D;margin-bottom:10px;border-bottom:2px solid #A32D2D;padding-bottom:4px">🔴 异常门店（'+badList.length+'家）</div>';
+      badList.forEach(function(item){
+        h += buildOneStoreDiagCard(item.name, item.diag);
+      });
+      h += '</div>';
+    }
+    
+    // 关注门店
+    if(warnList.length > 0){
+      h += '<div style="margin-bottom:20px">';
+      h += '<div style="font-size:14px;font-weight:600;color:#854F0B;margin-bottom:10px;border-bottom:2px solid #854F0B;padding-bottom:4px">🟡 需关注门店（'+warnList.length+'家）</div>';
+      warnList.forEach(function(item){
+        h += buildOneStoreDiagCard(item.name, item.diag);
+      });
+      h += '</div>';
+    }
+    
+    // 正常门店（精简列出）
+    if(okList.length > 0){
+      h += '<div>';
+      h += '<div style="font-size:14px;font-weight:600;color:#3B6D11;margin-bottom:8px;border-bottom:2px solid #3B6D11;padding-bottom:4px">🟢 正常门店（'+okList.length+'家）</div>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      okList.forEach(function(item){
+        h += '<span style="font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px">'+item.name+'</span>';
+      });
+      h += '</div></div>';
+    }
+    
     h += '</div>';
-  }
+    result.push({market: mkt, html: h});
+  });
   
-  // 关注门店
-  if(warnList.length > 0){
-    h += '<div style="margin-bottom:20px">';
-    h += '<div style="font-size:14px;font-weight:600;color:#854F0B;margin-bottom:10px;border-bottom:2px solid #854F0B;padding-bottom:4px">🟡 需关注门店（'+warnList.length+'家）</div>';
-    warnList.forEach(function(item){
-      h += buildOneStoreDiagCard(item.name, item.diag);
-    });
-    h += '</div>';
-  }
-  
-  // 正常门店（精简列出）
-  if(okList.length > 0){
-    h += '<div>';
-    h += '<div style="font-size:14px;font-weight:600;color:#3B6D11;margin-bottom:8px;border-bottom:2px solid #3B6D11;padding-bottom:4px">🟢 正常门店（'+okList.length+'家）</div>';
-    h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-    okList.forEach(function(item){
-      h += '<span style="font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px">'+item.name+'</span>';
-    });
-    h += '</div></div>';
-  }
-  
-  h += '</div>';
-  return h;
+  return result;
 }
 
 function buildOneStoreDiagCard(name, diag){
@@ -1503,16 +1518,19 @@ function exportSnapshot(){
   // ── 动态构建导出板块列表 ──
   var sections = EXPORT_SECTIONS.slice(); // 复制基础板块
   
-  // 构建门店诊断板块（临时添加到 DOM，导出时切换显示）
-  var diagHTML = buildStoreDiagHTML();
-  var diagDiv = null;
-  if(diagHTML){
-    diagDiv = document.createElement('div');
-    diagDiv.innerHTML = diagHTML;
-    diagDiv.style.cssText = 'position:fixed;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none;max-height:100vh;overflow-y:auto';
-    document.body.appendChild(diagDiv);
-    sections.push({id:'export-store-diag', name:'门店诊断汇总', isTemp:true});
-  }
+  // 构建门店诊断板块 — 按市场分组，每个市场一个临时 DOM
+  var marketDiags = buildMarketDiagHTMLs();
+  var tempDivs = []; // 所有临时 div，统一管理
+  marketDiags.forEach(function(md){
+    var divId = 'export-store-diag-' + md.market.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-');
+    var div = document.createElement('div');
+    div.id = divId;
+    div.innerHTML = md.html;
+    div.style.cssText = 'position:fixed;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none;max-height:100vh;overflow-y:auto';
+    document.body.appendChild(div);
+    tempDivs.push({el:div, id:divId});
+    sections.push({id:divId, name:'门店诊断_' + md.market, isTemp:true});
+  });
   
   var totalCount = sections.length;
   btn.textContent = '导出中 0/'+totalCount;
@@ -1527,8 +1545,13 @@ function exportSnapshot(){
   
   function captureNext(){
     if(idx >= sections.length){
-      // 清理临时 DOM
-      if(diagDiv && diagDiv.parentNode){ diagDiv.style.display = 'none'; diagDiv.parentNode.removeChild(diagDiv); }
+      // 清理所有临时 DOM
+      tempDivs.forEach(function(td){
+        if(td.el && td.el.parentNode){
+          td.el.style.display = 'none';
+          td.el.parentNode.removeChild(td.el);
+        }
+      });
       btn.textContent = '✓ 已导出 '+done+' 张';
       btn.style.pointerEvents = '';
       btn.style.opacity = '';
