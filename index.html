@@ -644,7 +644,7 @@
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#EF9F27"/><text x="9" y="13" text-anchor="middle" font-size="10" fill="white" font-family="sans-serif">小</text></svg>
           小程序自配送 <span class="channel-tag tag-mp">品牌自营</span>
         </div>
-        <span style="font-size:11px;color:var(--amber)">核心指标：出餐时效 · 营业额</span>
+        <span style="font-size:11px;color:var(--amber)">核心指标：出餐时效</span>
       </div>
       <div class="channel-body">
         <div class="metrics-row cols5" id="mp-metrics"></div>
@@ -1154,7 +1154,7 @@ const DATA = {
 let charts={};
 const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all'};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
-const mgmtSortState={market:{key:'rev',dir:'desc'},brand:{key:'rev',dir:'desc'},region:{key:'rev',dir:'desc'},area:{key:'rev',dir:'desc'}};
+const mgmtSortState={market:{key:'score',dir:'desc'},brand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
 let rankSortKey = 'score';   // 榜单排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
 let rankSortDir = 'desc';    // 标杆榜单方向 (预警自动反向)
 
@@ -1274,7 +1274,6 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
     { w: null, label: '出餐均值', sort: 'avg' },
     { w: null, label: '店铺分', sort: 'shop_score' },
     { w: null, label: '综合体验分', sort: 'exp_score' },
-    { w: null, label: '营业额', sort: 'revenue' },
   ];
 
   let h = `<table class="rank-table"><thead><tr>`;
@@ -1293,7 +1292,6 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
     const shopCell = s.mt_shop_score != null ? s.mt_shop_score.toFixed(1) : ``;
     const mrtCell = s.mt_merchant_rating != null ? s.mt_merchant_rating.toFixed(1) : ``;
     const totalRev = (s.mp_revenue || 0) + (s.mt_revenue || 0);
-    const revCell = `${totalRev}元`;
 
     let platformTag = '';
     if (s.has_mp && s.has_mt) platformTag = `<span class="channel-tag tag-mp" style="font-size:10px;padding:1px 5px;margin-right:3px">小程序</span><span class="channel-tag tag-mt" style="font-size:10px;padding:1px 5px">美团</span>`;
@@ -1304,7 +1302,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
       <td><span class="rank-badge ${i < 3 ? 'rank-' + (i + 1) : 'rank-n'}">${i + 1}</span></td>
       <td>${s.name}</td><td>${platformTag}</td><td class="dim">${s.city}</td>
       <td style="font-weight:500">${avgCell}</td><td style="font-weight:500">${shopCell}</td>
-      <td style="font-weight:500">${mrtCell}</td><td>${revCell}</td></tr>`;
+      <td style="font-weight:500">${mrtCell}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;
@@ -2942,14 +2940,12 @@ function renderMarketRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>市场</th><th class="sortable" width="88" onclick="onMgmtSortClick('market','rev')">店日均业绩<span class="sort-arrow" id="mgmt-market-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('market','tc')">店日均TC<span class="sort-arrow" id="mgmt-market-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('market','cook')">出餐时间<span class="sort-arrow" id="mgmt-market-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','score')">店铺分<span class="sort-arrow" id="mgmt-market-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','rating')">体验分<span class="sort-arrow" id="mgmt-market-sort-rating"></span></th>
+        <th width="26">#</th><th>市场</th><th class="sortable" width="72" onclick="onMgmtSortClick('market','cook')">出餐时间<span class="sort-arrow" id="mgmt-market-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','score')">店铺分<span class="sort-arrow" id="mgmt-market-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','rating')">体验分<span class="sort-arrow" id="mgmt-market-sort-rating"></span></th>
       </tr></thead>
       <tbody>${rows.map((r,i)=>`
         <tr class="clickable" onclick="drillMarket('${r.market}')" title="点击查看${r.market}市场详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="mk-name"><span class="mk-dot" style="background:${mkColors[r.market]||'#999'}"></span>${r.market}</span></td>
-          <td class="num hi" title="${r.storeCount}家门店 · 日均${fmtDaily(r.dailyRev)}">${fmtRev(r.dailyRev)}</td>
-          <td class="dim" title="${r.storeCount}家门店 · 日均${r.dailyTC}单">${r.dailyTC}单</td>
           <td class="dim">${r.avgCook}分</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.market}','market')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
@@ -3021,14 +3017,12 @@ function renderBrandRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>品牌</th><th class="sortable" width="88" onclick="onMgmtSortClick('brand','rev')">店日均业绩<span class="sort-arrow" id="mgmt-brand-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('brand','tc')">店日均TC<span class="sort-arrow" id="mgmt-brand-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('brand','cook')">出餐时间<span class="sort-arrow" id="mgmt-brand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','score')">店铺分<span class="sort-arrow" id="mgmt-brand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','rating')">体验分<span class="sort-arrow" id="mgmt-brand-sort-rating"></span></th>
+        <th width="26">#</th><th>品牌</th><th class="sortable" width="72" onclick="onMgmtSortClick('brand','cook')">出餐时间<span class="sort-arrow" id="mgmt-brand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','score')">店铺分<span class="sort-arrow" id="mgmt-brand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','rating')">体验分<span class="sort-arrow" id="mgmt-brand-sort-rating"></span></th>
       </tr></thead>
       <tbody>${rows.map((r,i)=>`
         <tr class="clickable" onclick="drillBrand('${r.brand}')" title="点击查看${r.brand}品牌详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="mk-name"><span class="mk-dot" style="background:${brdColors[r.brand]||'#999'}"></span>${r.brand}</span></td>
-          <td class="num hi">${fmtRev(r.dailyRev)}</td>
-          <td class="dim">${r.dailyTC}单</td>
           <td class="dim">${r.avgCook}分</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.brand}','brand')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
@@ -3097,14 +3091,12 @@ function renderRegionMgrRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>大区</th><th class="sortable" width="88" onclick="onMgmtSortClick('region','rev')">店日均业绩<span class="sort-arrow" id="mgmt-region-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('region','tc')">店日均TC<span class="sort-arrow" id="mgmt-region-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('region','cook')">出餐时间<span class="sort-arrow" id="mgmt-region-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','score')">店铺分<span class="sort-arrow" id="mgmt-region-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','rating')">体验分<span class="sort-arrow" id="mgmt-region-sort-rating"></span></th>
+        <th width="26">#</th><th>大区</th><th class="sortable" width="72" onclick="onMgmtSortClick('region','cook')">出餐时间<span class="sort-arrow" id="mgmt-region-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','score')">店铺分<span class="sort-arrow" id="mgmt-region-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','rating')">体验分<span class="sort-arrow" id="mgmt-region-sort-rating"></span></th>
       </tr></thead>
       <tbody>${rows.map((r,i)=>`
         <tr class="clickable" onclick="drillRegionMgr('${r.regionMgr}')" title="点击查看${r.regionMgr}大区详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="num">${r.regionMgr}</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px">${r.market}</span></td>
-          <td class="num hi">${fmtRev(r.dailyRev)}</td>
-          <td class="dim">${r.dailyTC}单</td>
           <td class="dim">${r.avgCook}分</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.regionMgr}','region')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
@@ -3174,14 +3166,12 @@ function renderAreaMgrRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>区经理</th><th class="sortable" width="88" onclick="onMgmtSortClick('area','rev')">店日均业绩<span class="sort-arrow" id="mgmt-area-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('area','tc')">店日均TC<span class="sort-arrow" id="mgmt-area-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('area','cook')">出餐时间<span class="sort-arrow" id="mgmt-area-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','score')">店铺分<span class="sort-arrow" id="mgmt-area-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','rating')">体验分<span class="sort-arrow" id="mgmt-area-sort-rating"></span></th>
+        <th width="26">#</th><th>区经理</th><th class="sortable" width="72" onclick="onMgmtSortClick('area','cook')">出餐时间<span class="sort-arrow" id="mgmt-area-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','score')">店铺分<span class="sort-arrow" id="mgmt-area-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','rating')">体验分<span class="sort-arrow" id="mgmt-area-sort-rating"></span></th>
       </tr></thead>
       <tbody>${list.map((m,i)=>`
         <tr class="clickable" onclick="drillAreaMgr('${m.areaMgr}','${m.market}')" title="点击查看${m.areaMgr}区经理详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="num">${m.areaMgr}</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px">${m.market}·${m.regionMgr}</span></td>
-          <td class="num hi">${fmtRev(m.dailyRev)}</td>
-          <td class="dim">${m.dailyTC}单</td>
           <td class="dim">${m.avgCook||'-'}${m.avgCook?'分':''}</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${m.areaMgr}','area')">${m.avgScore.toFixed(1)}</td>
           <td class="num">${m.avgRating.toFixed(2)}</td>
@@ -3203,7 +3193,7 @@ function drillMarket(market){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`<span class="mk-dot" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#639922;vertical-align:middle;margin-right:6px"></span>${market} 市场详情`;
-  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
   document.getElementById('drawerBody').innerHTML=renderUnifiedDrillTable('market',mpStores,mtStores);
   dOverlay.classList.add('open');
 }
@@ -3218,7 +3208,7 @@ function drillBrand(brand){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`<span class="mk-dot" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#C8873A;vertical-align:middle;margin-right:6px"></span>${brand} 品牌详情`;
-  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
   document.getElementById('drawerBody').innerHTML=renderUnifiedDrillTable('brand',mpStores,mtStores);
   dOverlay.classList.add('open');
 }
@@ -3234,7 +3224,7 @@ function drillRegionMgr(regionMgr){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`👤 ${regionMgr} <span class="dim" style="font-size:12px;font-weight:400">大区经理</span>`;
-  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
   document.getElementById('drawerBody').innerHTML=renderUnifiedDrillTable('region',mpStores,mtStores);
   dOverlay.classList.add('open');
 }
@@ -3247,7 +3237,7 @@ function drillAreaMgr(areaMgr, market){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`👤 ${areaMgr} <span class="dim" style="font-size:12px;font-weight:400">区经理</span>`;
-  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万`;
+  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家`;
 
   const dBody=document.getElementById('drawerBody');
   let h='';
