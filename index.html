@@ -151,6 +151,7 @@
   .chart-wrap { position: relative; width: 100%; }
   .chart-wrap.h160 { height: 160px; }
   .chart-wrap.h180 { height: 180px; }
+  .chart-wrap.h200 { height: 200px; }
   .chart-wrap.h220 { height: 220px; }
 
   .prog-block { margin-bottom: 12px; }
@@ -438,6 +439,7 @@
     /* 图表缩减 */
     .chart-wrap.h160 { height: 140px; }
     .chart-wrap.h180 { height: 150px; }
+    .chart-wrap.h200 { height: 170px; }
     .chart-wrap.h220 { height: 180px; }
 
     .card { padding: 12px 14px; }
@@ -1328,7 +1330,7 @@ function genStoreTrend(store, isMT){
     return {days, shop:days.map((_,i)=>Math.round((baseS+(Math.random()-0.5)*0.6)*10)/10), exp:days.map((_,i)=>Math.round((baseE+(Math.random()-0.5)*0.04)*100)/100)};
   }else{
     const baseA=store.avg||6.5;
-    return {days, vals:days.map((_,i)=>Math.round((baseA+(Math.random()-0.5)*1.2)*10)/10), sla:8};
+    return {days, vals:days.map((_,i)=>Math.round((baseA+(Math.random()-0.5)*1.2)*10)/10), sla:15};
   }
 }
 
@@ -2753,7 +2755,7 @@ function heatColor2(v,sl){if(v<=5.5)return'#3B6D11';if(v<=6.5)return'#639922';if
 
 function renderMpDetail(store, body){
   const hData=MP_HOURLY[store.name]||{hours:['8时','9时','10时','11时','12时','13时','14时','15时','16时','17时'],vals:[5,5.5,6,7,8,7.5,6.5,6,6.2,6.5]};
-  const sla=8, trend=genStoreTrend(store,false);
+  const trend=genStoreTrend(store,false);
 
   const heatHtml=hData.hours.map((h,i)=>{
     const v=hData.vals[i];
@@ -2786,9 +2788,9 @@ function renderMpDetail(store, body){
       <div class="drawer-section-title">近7日出餐趋势</div>
       <div class="legend-row">
         <span><span class="leg-dot" style="background:#C8873A"></span>平均出餐(分)</span>
-        <span><span class="leg-dot" style="background:#B4B2A9"></span>SLA 8分</span>
+        <span><span class="leg-dot" style="background:#B4B2A9"></span>SLA 15分</span>
       </div>
-      <div class="chart-wrap h160"><canvas id="detailMpTrendChart"></canvas></div>
+      <div class="chart-wrap h200"><canvas id="detailMpTrendChart"></canvas></div>
     </div>`;
 
   destroyChart('detailMpTrend');
@@ -2808,7 +2810,7 @@ function renderMpDetail(store, body){
         layout:{padding:{top:18,right:10}},
         plugins:{legend:{display:false},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
-                y:{min:3,max:10,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'分'}}}}
+                y:{min:Math.floor(Math.min(...trend.vals))-2,max:Math.ceil(Math.max(Math.max(...trend.vals),trend.sla))+3,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'分'}}}}
     });
   },200);
 }
