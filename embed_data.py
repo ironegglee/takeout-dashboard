@@ -1,8 +1,10 @@
 """将 data.json 嵌入 index.html，解决 file:// 协议下 fetch() 被浏览器 CORS 拦截问题。
 幂等版本：可重复运行，不会重复嵌入。
+每次运行自动更新 build-time 和 VER 缓存版本。
 运行：python embed_data.py
 """
 import json, os
+from datetime import datetime
 
 DATA_JSON = os.path.join(os.path.dirname(__file__), 'dashboard', 'data.json')
 INDEX_HTML = os.path.join(os.path.dirname(__file__), 'index.html')
@@ -14,6 +16,18 @@ with open(DATA_JSON, 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 print(f'data.json: {len(data.get("mt_stores",[]))}MT + {len(data.get("mp_stores",[]))}MP')
+
+# ═══════════════════════════════════════════
+# 1a. 读取 dashboard/index.html 提取当前版本号
+# ═══════════════════════════════════════════
+SRC_HTML = os.path.join(os.path.dirname(__file__), 'dashboard', 'index.html')
+with open(SRC_HTML, 'r', encoding='utf-8') as f:
+    src_html = f.read()
+
+import re
+ver_match = re.search(r'<meta name="version" content="([^"]+)"', src_html)
+CURRENT_VERSION = ver_match.group(1) if ver_match else 'v2.9.0'
+print(f'当前版本: {CURRENT_VERSION}')
 
 # 提取日期范围
 full_date = data.get('full_date_range', data.get('mp_date_range', ''))
@@ -136,7 +150,19 @@ if old_date_init in html:
     print('已替换日期初始值 → EMBEDDED_DATE')
 
 # ═══════════════════════════════════════════
-# 5. 写入
+# 5. 更新 build-time 和 VER（每次运行自动更新）
+# ═══════════════════════════════════════════
+now = datetime.now()
+build_time = now.strftime('%Y-%m-%dT%H:%M:%S+08:00')
+ver_str = f'{CURRENT_VERSION}@{now.strftime("%Y%m%d")}'
+
+html = html.replace('__BUILD_TIME__', build_time)
+html = html.replace('__VER__', ver_str)
+print(f'build-time: {build_time}')
+print(f'VER: {ver_str}')
+
+# ═══════════════════════════════════════════
+# 6. 写入
 # ═══════════════════════════════════════════
 with open(INDEX_HTML, 'w', encoding='utf-8') as f:
     f.write(html)
