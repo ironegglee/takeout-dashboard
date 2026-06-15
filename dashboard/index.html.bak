@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-12T14:30:00+08:00">
-<meta name="version" content="v2.9.0">
+<meta name="build-time" content="2026-06-12T14:10:00+08:00">
+<meta name="version" content="v2.5.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.9.0@20260615";
+  var VER = "v2.5.0@20260612";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -543,7 +543,7 @@
     <span class="dot"></span>
     <span>茶颜悦色</span>
     <span style="color:var(--text-secondary);font-weight:400">外卖业务运营看板</span>
-    <span style="font-size:10px;color:#fff;background:#639922;padding:1px 6px;border-radius:3px;vertical-align:middle;margin-left:6px;font-weight:700">v2.9.0</span>
+    <span style="font-size:10px;color:#fff;background:#639922;padding:1px 6px;border-radius:3px;vertical-align:middle;margin-left:6px;font-weight:700">v2.5.0</span>
   </div>
   <div class="header-right">
     <span id="headerUpdateDate" style="font-size:12px;color:var(--text-secondary);opacity:0.85;margin-right:8px;"></span>
@@ -626,7 +626,7 @@
 <main class="main">
 
   <!-- ═══ 大盘业绩概览 ═══ -->
-  <div class="dashboard-summary" id="dashboard-summary-card" style="display:none">
+  <div class="dashboard-summary" id="dashboard-summary-card">
     <div class="summary-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border-radius:10px 10px 0 0;font-size:14px;font-weight:600">
       <span>📊 大盘业绩概览（近7日汇总）<span style="font-size:11px;font-weight:400;opacity:0.7;margin-left:8px" id="summary-days"></span></span>
       <button onclick="toggleSummaryDetail()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:3px 12px;border-radius:4px;cursor:pointer;font-size:11px" id="summary-toggle-btn">指标说明 ▸</button>
@@ -644,7 +644,7 @@
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#EF9F27"/><text x="9" y="13" text-anchor="middle" font-size="10" fill="white" font-family="sans-serif">小</text></svg>
           小程序自配送 <span class="channel-tag tag-mp">品牌自营</span>
         </div>
-        <span style="font-size:11px;color:var(--amber)">核心指标：出餐时效</span>
+        <span style="font-size:11px;color:var(--amber)">核心指标：出餐时效 · 营业额</span>
       </div>
       <div class="channel-body">
         <div class="metrics-row cols5" id="mp-metrics"></div>
@@ -691,11 +691,19 @@
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="mgmt-card">
         <div class="mgmt-card-header">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#639922"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">总</text></svg>
-          市场/品牌排名
-          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看详情</span>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#C8873A"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">牌</text></svg>
+          品牌排名
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看品牌详情</span>
         </div>
-        <div class="mgmt-card-body" id="market-brand-rank-container"></div>
+        <div class="mgmt-card-body" id="brand-rank-container"></div>
+      </div>
+      <div class="mgmt-card">
+        <div class="mgmt-card-header">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect width="18" height="18" rx="4" fill="#639922"/><text x="9" y="13" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">市</text></svg>
+          市场排名
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400">点击行下钻查看市场详情</span>
+        </div>
+        <div class="mgmt-card-body" id="market-rank-container"></div>
       </div>
       <div class="mgmt-card">
         <div class="mgmt-card-header">
@@ -798,7 +806,7 @@ if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
    数据源定义
    组织架构：
      市场 = 纯地理区域（湖南/湖北/江苏/重庆 — 不含子品牌）
-     品牌 = 茶颜悦色/鸳央咖啡/墨柠/昼夜
+     品牌 = 茶颜悦色/鸳央咖啡/墨柠/昼夜诗
      大区经理 = 真实负责人姓名（陈坤/陈琦…10人 — 不含品牌名）
      区经理 = 隶属于大区经理（31人）
      城市 = 随市场联动（39城）
@@ -847,7 +855,7 @@ const STORE_MP = [
   { market:'湖南',brand:'鸳央咖啡',region_mgr:'周薇',area_mgr:'张娇',city:'长沙',name:'鸳央德思勤店',avg:5.7,max:10,rate:96.5,revenue:7200},
   { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'李曦',city:'长沙',name:'古德墨柠裕园店',avg:4.8,max:8,rate:98.5,revenue:5200},
   { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'林阳阳',city:'长沙',name:'古德墨柠荷花路店',avg:5.2,max:9,rate:97.0,revenue:4800},
-  { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
+  { market:'湖南',brand:'昼夜诗',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜诗文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
 ];
 
 const STORE_MT = [
@@ -931,7 +939,7 @@ const STORE_MT = [
     shop_dims:{reply_rate:97.8,merchant_rating:4.90,peak_hours:11.2,reject_rate:0.9,base_hours:13.8,cook_report:98.7},
     exp_dims:{product_sat:4.90,pack_sat:4.88,msg_reply:97.2,service_neg:0.12,food_neg:0.03},
     revenue:10200},
-  { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',
+  { market:'湖南',brand:'昼夜诗',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜诗文艺店',
     shop_score:93.6,exp_score:4.85,
     shop_dims:{reply_rate:98.6,merchant_rating:4.93,peak_hours:11.6,reject_rate:0.6,base_hours:14.1,cook_report:99.2},
     exp_dims:{product_sat:4.94,pack_sat:4.91,msg_reply:98.0,service_neg:0.07,food_neg:0.02},
@@ -1146,7 +1154,7 @@ const DATA = {
 let charts={};
 const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all'};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
-const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
+const mgmtSortState={market:{key:'rev',dir:'desc'},brand:{key:'rev',dir:'desc'},region:{key:'rev',dir:'desc'},area:{key:'rev',dir:'desc'}};
 let rankSortKey = 'score';   // 榜单排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
 let rankSortDir = 'desc';    // 标杆榜单方向 (预警自动反向)
 
@@ -1164,7 +1172,8 @@ function onMgmtSortClick(table, key){
   const st=mgmtSortState[table];
   if(st.key===key){st.dir=st.dir==='asc'?'desc':'asc';}
   else{st.key=key;st.dir='desc';}
-  if(table==='marketBrand')renderMarketBrandRank();
+  if(table==='brand')renderBrandRank();
+  else if(table==='market')renderMarketRank();
   else if(table==='region')renderRegionMgrRank();
   else renderAreaMgrRank();
 }
@@ -1265,6 +1274,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
     { w: null, label: '出餐均值', sort: 'avg' },
     { w: null, label: '店铺分', sort: 'shop_score' },
     { w: null, label: '综合体验分', sort: 'exp_score' },
+    { w: null, label: '营业额', sort: 'revenue' },
   ];
 
   let h = `<table class="rank-table"><thead><tr>`;
@@ -1283,6 +1293,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
     const shopCell = s.mt_shop_score != null ? s.mt_shop_score.toFixed(1) : ``;
     const mrtCell = s.mt_merchant_rating != null ? s.mt_merchant_rating.toFixed(1) : ``;
     const totalRev = (s.mp_revenue || 0) + (s.mt_revenue || 0);
+    const revCell = `${totalRev}元`;
 
     let platformTag = '';
     if (s.has_mp && s.has_mt) platformTag = `<span class="channel-tag tag-mp" style="font-size:10px;padding:1px 5px;margin-right:3px">小程序</span><span class="channel-tag tag-mt" style="font-size:10px;padding:1px 5px">美团</span>`;
@@ -1293,7 +1304,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
       <td><span class="rank-badge ${i < 3 ? 'rank-' + (i + 1) : 'rank-n'}">${i + 1}</span></td>
       <td>${s.name}</td><td>${platformTag}</td><td class="dim">${s.city}</td>
       <td style="font-weight:500">${avgCell}</td><td style="font-weight:500">${shopCell}</td>
-      <td style="font-weight:500">${mrtCell}</td></tr>`;
+      <td style="font-weight:500">${mrtCell}</td><td>${revCell}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;
@@ -1356,146 +1367,15 @@ function fallbackCopy(text){
   setTimeout(()=>{ btn.textContent='复制链接'; }, 2000);
 }
 
-// ── 导出快照（html2canvas 分片区导出，含筛选感知 + 门店诊断）──
+// ── 导出快照（html2canvas 分片区导出）──
 var EXPORT_SECTIONS = [
   {id:'dashboard-summary-card', name:'大盘业绩概览'},
   {id:'mp-section', name:'小程序自配送'},
   {id:'mt-section', name:'美团外卖'},
-  {id:'mgmt-grid-wrap', name:'管理层排名（市场·品牌/大区/区经理）'},
+  {id:'mgmt-grid-wrap', name:'管理层排名（品牌/市场/大区/区经理）'},
   {id:'alert-section', name:'预警中心'},
   {id:'store-rank-section', name:'门店排名'},
 ];
-
-// ── 获取筛选条件可读文本 ──
-function getFilterLabel(){
-  var parts = [];
-  var mb = gfState.marketBrand;
-  if(mb !== 'all'){
-    if(mb.startsWith('mkt:')) parts.push(mb.slice(4));
-    else if(mb.startsWith('brd:')) parts.push(mb.slice(4));
-    else parts.push(mb);
-  }
-  if(gfState.regionMgr !== 'all') parts.push(gfState.regionMgr);
-  if(gfState.areaMgr !== 'all') parts.push(gfState.areaMgr);
-  if(gfState.city !== 'all') parts.push(gfState.city);
-  // 日期范围
-  var ds = document.getElementById('gf-date-start');
-  var de = document.getElementById('gf-date-end');
-  if(ds && de){
-    var s = ds.value || '', e = de.value || '';
-    if(s && e) parts.push(s + '~' + e);
-    else if(s) parts.push(s + '~');
-    else if(e) parts.push('~' + e);
-  }
-  return parts.length > 0 ? parts.join('_') : '全部门店';
-}
-
-// ── 获取门店诊断汇总 HTML，按市场分组（每个市场一张图）──
-function buildMarketDiagHTMLs(){
-  // 收集当前筛选范围内的门店（取并集去重）
-  var allStores = [];
-  var seenName = {};
-  STORE_MP.forEach(function(s){
-    if(!seenName[s.name]){ seenName[s.name]=1; allStores.push(s); }
-  });
-  STORE_MT.forEach(function(s){
-    if(!seenName[s.name]){ seenName[s.name]=1; allStores.push(s); }
-  });
-  
-  var filtered = filterStores(allStores);
-  if(filtered.length === 0) return [];
-  
-  // 按市场分组
-  var marketGroups = {};
-  filtered.forEach(function(s){
-    var mkt = s.market || '其他';
-    if(!marketGroups[mkt]) marketGroups[mkt] = [];
-    marketGroups[mkt].push(s);
-  });
-  
-  var result = [];
-  var marketNames = Object.keys(marketGroups).sort();
-  marketNames.forEach(function(mkt){
-    var stores = marketGroups[mkt];
-    // 诊断分类统计
-    var badList = [], warnList = [], okList = [];
-    stores.forEach(function(s){
-      var d = getStoreDiag(s.name);
-      if(d.status === 'bad') badList.push({name:s.name, diag:d});
-      else if(d.status === 'warn') warnList.push({name:s.name, diag:d});
-      else okList.push({name:s.name, diag:d});
-    });
-    
-    var h = '<div style="background:#fff;padding:24px;border-radius:12px;font-family:system-ui,-apple-system,sans-serif">';
-    h += '<div style="font-size:18px;font-weight:700;color:#333;margin-bottom:4px">📋 ' + mkt + ' · 门店诊断汇总</div>';
-    h += '<div style="font-size:12px;color:#999;margin-bottom:16px">筛选条件：'+getFilterLabel()+'　|　共'+stores.length+'家　🔴异常'+badList.length+'　🟡关注'+warnList.length+'　🟢正常'+okList.length+'</div>';
-    
-    // 异常门店
-    if(badList.length > 0){
-      h += '<div style="margin-bottom:20px">';
-      h += '<div style="font-size:14px;font-weight:600;color:#A32D2D;margin-bottom:10px;border-bottom:2px solid #A32D2D;padding-bottom:4px">🔴 异常门店（'+badList.length+'家）</div>';
-      badList.forEach(function(item){
-        h += buildOneStoreDiagCard(item.name, item.diag);
-      });
-      h += '</div>';
-    }
-    
-    // 关注门店
-    if(warnList.length > 0){
-      h += '<div style="margin-bottom:20px">';
-      h += '<div style="font-size:14px;font-weight:600;color:#854F0B;margin-bottom:10px;border-bottom:2px solid #854F0B;padding-bottom:4px">🟡 需关注门店（'+warnList.length+'家）</div>';
-      warnList.forEach(function(item){
-        h += buildOneStoreDiagCard(item.name, item.diag);
-      });
-      h += '</div>';
-    }
-    
-    // 正常门店（精简列出）
-    if(okList.length > 0){
-      h += '<div>';
-      h += '<div style="font-size:14px;font-weight:600;color:#3B6D11;margin-bottom:8px;border-bottom:2px solid #3B6D11;padding-bottom:4px">🟢 正常门店（'+okList.length+'家）</div>';
-      h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-      okList.forEach(function(item){
-        h += '<span style="font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px">'+item.name+'</span>';
-      });
-      h += '</div></div>';
-    }
-    
-    h += '</div>';
-    result.push({market: mkt, html: h});
-  });
-  
-  return result;
-}
-
-function buildOneStoreDiagCard(name, diag){
-  var statusColor = diag.status==='bad'?'#A32D2D':(diag.status==='warn'?'#854F0B':'#3B6D11');
-  var statusBg = diag.status==='bad'?'#fff0f0':(diag.status==='warn'?'#fff8ec':'#f0f7e6');
-  var h = '<div style="background:'+statusBg+';border-left:4px solid '+statusColor+';border-radius:4px;padding:12px 14px;margin-bottom:10px;font-size:12px">';
-  h += '<div style="font-weight:700;font-size:13px;color:'+statusColor+';margin-bottom:6px">'+name;
-  // 关键指标
-  var km = diag.keyMetrics;
-  if(km.mp_avg != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">出餐'+km.mp_avg.toFixed(1)+'min</span>';
-  if(km.mp_rate != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">达标率'+km.mp_rate.toFixed(1)+'%</span>';
-  if(km.mt_shop != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">店铺分'+km.mt_shop.toFixed(1)+'</span>';
-  if(km.mt_exp != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">体验分'+km.mt_exp.toFixed(2)+'</span>';
-  h += '</div>';
-  // 问题
-  if(diag.issues.length > 0){
-    h += '<div style="margin-bottom:4px;color:#555">';
-    diag.issues.forEach(function(iss){ h += '<div>· '+iss+'</div>'; });
-    h += '</div>';
-  }
-  // 改善动作
-  if(diag.actions.length > 0){
-    h += '<div style="color:#555;padding-top:4px;border-top:1px dashed #ddd">';
-    h += '<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:2px">🔧 改善建议</div>';
-    diag.actions.forEach(function(act){ h += '<div style="margin-left:4px">'+act+'</div>'; });
-    h += '</div>';
-  }
-  h += '</div>';
-  return h;
-}
 
 function exportSnapshot(){
   var btn = document.getElementById('exportBtn');
@@ -1506,43 +1386,17 @@ function exportSnapshot(){
     return;
   }
   
-  // ── 动态构建导出板块列表 ──
-  var sections = EXPORT_SECTIONS.slice(); // 复制基础板块
-  
-  // 构建门店诊断板块 — 按市场分组，每个市场一个临时 DOM
-  var marketDiags = buildMarketDiagHTMLs();
-  var tempDivs = []; // 所有临时 div，统一管理
-  marketDiags.forEach(function(md){
-    var divId = 'export-store-diag-' + md.market.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-');
-    var div = document.createElement('div');
-    div.id = divId;
-    div.innerHTML = md.html;
-    div.style.cssText = 'position:absolute;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none';
-    document.body.appendChild(div);
-    tempDivs.push({el:div, id:divId});
-    sections.push({id:divId, name:'门店诊断_' + md.market, isTemp:true});
-  });
-  
-  var totalCount = sections.length;
-  btn.textContent = '导出中 0/'+totalCount;
+  btn.textContent = '导出中 0/'+EXPORT_SECTIONS.length;
   btn.style.pointerEvents = 'none';
   btn.style.opacity = '0.7';
   var badge = document.querySelector('.live-badge');
   if(badge) badge.style.display = 'none';
   
   var dateStr = new Date().toISOString().slice(0,10);
-  var filterLabel = getFilterLabel();
   var idx = 0, done = 0;
   
   function captureNext(){
-    if(idx >= sections.length){
-      // 清理所有临时 DOM
-      tempDivs.forEach(function(td){
-        if(td.el && td.el.parentNode){
-          td.el.style.display = 'none';
-          td.el.parentNode.removeChild(td.el);
-        }
-      });
+    if(idx >= EXPORT_SECTIONS.length){
       btn.textContent = '✓ 已导出 '+done+' 张';
       btn.style.pointerEvents = '';
       btn.style.opacity = '';
@@ -1551,13 +1405,8 @@ function exportSnapshot(){
       return;
     }
     
-    var sec = sections[idx];
+    var sec = EXPORT_SECTIONS[idx];
     var el = document.getElementById(sec.id);
-    
-    // 临时板块：显示后再截图
-    if(sec.isTemp && el){
-      el.style.display = 'block';
-    }
     idx++;
     
     if(!el){
@@ -1565,33 +1414,22 @@ function exportSnapshot(){
       return;
     }
     
-    btn.textContent = '导出中 '+idx+'/'+totalCount+' '+sec.name;
+    btn.textContent = '导出中 '+(idx)+'/'+EXPORT_SECTIONS.length+' '+sec.name;
     
-    // 临时板块需要捕获完整高度，不截断
-    var opts = {
+    html2canvas(el, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#F5F3EF',
       logging: false,
-    };
-    if(sec.isTemp){
-      var scrollH = Math.max(el.scrollHeight, document.documentElement.clientHeight);
-      opts.height = Math.ceil(scrollH);
-      opts.windowHeight = Math.ceil(scrollH + 200);
-      opts.windowWidth = Math.ceil(el.scrollWidth + 200);
-    }
-    html2canvas(el, opts).then(function(canvas){
+    }).then(function(canvas){
       done++;
-      // 隐藏临时板块
-      if(sec.isTemp && el){ el.style.display = 'none'; }
       var link = document.createElement('a');
-      link.download = '外卖看板_' + filterLabel + '_' + sec.name + '_' + dateStr + '.png';
+      link.download = '外卖看板_' + sec.name + '_' + dateStr + '.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
       setTimeout(captureNext, 400);
     }).catch(function(err){
-      if(sec.isTemp && el){ el.style.display = 'none'; }
       console.warn('导出失败:', sec.name, err);
       captureNext();
     });
@@ -1788,18 +1626,18 @@ function renderMtScoreTree(shopB,expB){
 
 // ═══ 指标释义库 + 维度下钻 ═══
 var DIM_META = {
-  '差评回复率得分': {cat:'shop',field:'reply_rate',def:'衡量商家对用户差评的回复及时性和质量。回复率越高、回复越及时，得分越高。',calc:'近30日至前日差评回复数/近30日至前日差评总数',source:'美团商家后台—店铺分—差评回复率',tips:['每日设定班次定时查看差评并及时回复建议为早班值班主管，下班提前5分钟检查，24小时内完成','回复内容要诚恳、具体，针对用户反馈给出解决方案','设置差评提醒通知（闹钟等），定时进行提醒，避免遗漏','值班本新增平台维护相关信息，如差评回复、菜单检查、平台开关等'],target:95,max:100},
-  '商家评分得分': {cat:'shop',field:'merchant_rating',def:'用户对商家的综合评分，包含商品质量、服务态度、配送体验等维度的主观评价。',calc:'近30日商家评分均值（剔除已删除评价）；近60日未删除美团外卖评价不足5条，或评价数为2-4条但平均评分低于4分，则无商家评分',source:'美团用户评价系统—店铺分—商家评分',tips:['重视顾客诉求，及时处理满足，并在门店内复盘，针对性进行改善','鼓励满意用户留下好评（合规引导，不得刷单）','定期分析评价内容，优化出品和服务','不合理、内容不实差评及时申诉，消除影响'],target:95,max:100},
-  '高峰营业时长得分': {cat:'shop',field:'peak_hours',def:'考核商家在午餐和晚餐高峰时段的在线营业时长，保障用户下单体验。',calc:'当前高峰营业时段：10:00-21:00 ，在高峰时段中近30天的日均营业时长达到8.0小时，可得满分',source:'美团商家后台—店铺分—高峰营业时长',tips:['确保午餐和晚餐高峰时段保持在线营业','提前备料、合理排班，避免高峰临时关店'],target:95,max:100},
-  '商家不接单率': {cat:'shop',field:'reject_rate',def:'衡量商家在收到订单后拒绝接单或超时未接单的比例。拒单率越低得分越高。',calc:'已接订单数÷总订单数×100。满分100分，拒单率越低得分越高。',source:'美团商家后台—店铺分—接单率',tips:['收到订单立即确认接单（现大盘门店已设置自动接单）','定期核实菜单及库存情况，平台营业时间随线下营业时间随时调整（提前打烊则同步关闭平台），尽可能不因超卖和打烊导致顾客退款','如因门店原因退款，尽可能与顾客沟通退款原因选择"我不想要了"'],target:95,max:100},
-  '基础营业时长得分': {cat:'shop',field:'base_hours',def:'考核商家每日基础营业时长是否达到平台标准，营业时间越长、覆盖时段越合理，得分越高。',calc:'实际营业时长÷平台建议营业时长×100，满分100分。',source:'美团商家后台—店铺分—基础营业时长',tips:['按平台建议设置至少8小时/天的营业时间','每日打烊后及开早前主动检查平台，避免因临时停单未检查，导致整日未营业','如门店需临时闭店，必须设置歇业保护'],target:95,max:100},
-  '出餐上报/准时率得分': {cat:'shop',field:'cook_report',def:'考核商家出餐速度的准确上报和准时出餐率。出餐越快、上报越准确，得分越高。',calc:'自然周出餐完成上报率 * 系数 *100，自然周出餐完成上报率>=90%，且出餐真实上报率>=90%，可获得满分，骑手到店点击已取餐后门店出餐上报无效',source:'美团商家后台—店铺分—出餐上报率',tips:['出餐完成后及时在系统中点击出餐完成','如遇骑手提前到店，订单必须点击出餐再呈递给骑手','高峰期提前备餐，减少用户等待'],target:95,max:100},
-  '商品满意度': {cat:'exp',field:'product_sat',def:'用户对商品本身的满意程度，包括口味、分量、品质等方面。权重最高（30%）。',calc:'（1×一星评价数+2×二星评价数+3×三星评价数+4×四星评价数+5×五星评价数）÷ 总评价数，计算周期60天',source:'美团用户评价—综合体验分—商品满意度',tips:['关注顾客备注，尽可能满足，如无法满足需提前沟通','打包安排熟练伙伴，不错餐不漏餐','收集用户反馈，针对性改进'],target:4.6,max:5},
-  '包装满意度': {cat:'exp',field:'pack_sat',def:'用户对外卖包装质量、密封性、保温性等方面的满意程度。权重10%。',calc:'（1×一星评价数+2×二星评价数+3×三星评价数+4×四星评价数+5×五星评价数）÷ 总评价数，计算周期60天',source:'美团用户评价—综合体验分—包装满意度',tips:['饮品加盖后检查是否扣合密闭（加盖完成抓盖提拉两下测试）','防漏杯盖热饮必须在杯盖气孔张贴易撕贴，非防漏杯盖按标准加防油纸/易撕贴','外包装保持整洁美观，不可使用损坏的保温袋、底座，保温袋及辅料分装袋、周边袋均需在封口处按标准张贴安心贴'],target:4.6,max:5},
-  '复购率得分': {cat:'exp',field:'repurchase',def:'老用户再次下单的比例，是新评分体系中最关键的指标之一。权重20%。',calc:'近30天内复购用户数÷总下单用户数×转化系数，满分5分。',source:'美团平台数据—综合体验分—复购率',tips:['设置订单完成自动回复，话术内容包含活动及新品介绍，吸引顾客复购','保持菜单完整，应上尽上，避免出现顾客"再来一单"时菜单售罄','提供随单小礼品（明信片、贴纸等），提升情绪价值'],target:4.6,max:5},
-  '消息回复率得分': {cat:'exp',field:'msg_reply',def:'商家对用户在线消息的回复比例和及时性。权重10%。',calc:'已回复消息数÷总收到消息数×转化系数，满分5分，计算周期30天',source:'美团商家后台—综合体验分—消息回复率',tips:['开启消息通知并及时回复用户咨询','设置常见问题自动回复（营业时间、配送范围等）','店机日常跟随值班主管/打包岗，便于接收平台信息提醒'],target:4.6,max:5},
-  '服务负反馈率得分': {cat:'exp',field:'service_neg',def:'用户对服务质量的反馈分数。服务负反馈率越低（漏送、错送、态度差等情况越少），得分越高。权重10%。',calc:'基于服务负反馈率反向计算，满分5分。负反馈率越低得分越高，计算周期30天',source:'美团用户评价—综合体验分—服务负反馈率',tips:['出餐时仔细核对订单，避免漏装错装','培训员工服务态度，遇到问题主动联系用户解决','减少漏送、错送、延迟等情况','立即介入顾客在任意渠道反馈的服务问题，并在线解决诉求，取得谅解，计分后提供沟通过程至平台申诉'],target:4.6,max:5},
-  '食安负反馈率得分': {cat:'exp',field:'food_safety',def:'食品安全相关的用户反馈评分，反映食品卫生和安全水平。权重20%。',calc:'（各渠道各场景反馈订单量 × 对应渠道权重 × 对应场景权重）的总和 ÷ 总订单量 × 10000，计算周期30天',source:'美团用户评价—综合体验分—食安负反馈率',tips:['确保证照齐全且在有效期内','后厨卫生达标，操作间执行食材存储规范','使用食品安全封签','及时处理食安相关投诉，避免升级，争取在线取得顾客谅解，计分后提供沟通过程至平台申诉'],target:4.6,max:5}
+  '差评回复率得分': {cat:'shop',field:'reply_rate',def:'衡量商家对用户差评的回复及时性和质量。回复率越高、回复越及时，得分越高。',calc:'基于美团平台差评回复率和回复时效综合计算，满分100分。',source:'美团商家后台—店铺分—差评回复率',tips:['每日定时查看差评并及时回复（24小时内完成）','回复内容要诚恳、具体，针对用户反馈给出解决方案','设置差评提醒通知，避免遗漏'],target:95,max:100},
+  '商家评分得分': {cat:'shop',field:'merchant_rating',def:'用户对商家的综合评分，包含商品质量、服务态度、配送体验等维度的主观评价。',calc:'基于用户评价星级综合计算，满分100分。',source:'美团用户评价系统—店铺分—商家评分',tips:['关注用户评价趋势，对低分项及时改进','鼓励满意用户留下好评（合规引导，不得刷单）','定期分析评价内容，优化出品和服务'],target:95,max:100},
+  '高峰营业时长得分': {cat:'shop',field:'peak_hours',def:'考核商家在午餐和晚餐高峰时段的在线营业时长，保障用户下单体验。',calc:'高峰时段实际营业时长÷平台建议高峰时段总时长×100，满分100分。',source:'美团商家后台—店铺分—高峰营业时长',tips:['确保午餐和晚餐高峰时段保持在线营业','提前备料、合理排班，避免高峰临时关店','节假日和天气变化时也保持稳定营业'],target:95,max:100},
+  '商家接单率得分': {cat:'shop',field:'reject_rate',def:'衡量商家在收到订单后及时接单的比例。拒绝接单或超时未接单会降低得分。',calc:'已接订单数÷总订单数×100。满分100分，拒单率越低得分越高。',source:'美团商家后台—店铺分—接单率',tips:['收到订单立即确认接单（建议设置自动接单）','避免高峰期因忙乱而漏单','确保网络稳定，接单设备正常运行'],target:95,max:100},
+  '基础营业时长得分': {cat:'shop',field:'base_hours',def:'考核商家每日基础营业时长是否达到平台标准，营业时间越长、覆盖时段越合理，得分越高。',calc:'实际营业时长÷平台建议营业时长×100，满分100分。',source:'美团商家后台—店铺分—基础营业时长',tips:['按平台建议设置至少8小时/天的营业时间','覆盖午餐和晚餐两个核心时段','根据门店实际情况合理调整，确保可持续'],target:95,max:100},
+  '出餐上报/准时率得分': {cat:'shop',field:'cook_report',def:'考核商家出餐速度的准确上报和准时出餐率。出餐越快、上报越准确，得分越高。',calc:'基于出餐上报准确率和准时出餐订单占比综合计算，满分100分。',source:'美团商家后台—店铺分—出餐上报率',tips:['出餐完成后及时在系统中点击出餐完成','优化后厨动线，缩短出餐时间','高峰期提前备餐，减少用户等待'],target:95,max:100},
+  '商品满意度': {cat:'exp',field:'product_sat',def:'用户对商品本身的满意程度，包括口味、分量、品质等方面。权重最高（30%）。',calc:'用户打分加权平均，满分5分。美团新评分体系中权重占30%。',source:'美团用户评价—综合体验分—商品满意度',tips:['严格把控食材新鲜度和出品品质','保证口味标准化，每份出品分量一致','定期优化菜单，淘汰差评多的单品','收集用户反馈，针对性改进'],target:4.6,max:5},
+  '包装满意度': {cat:'exp',field:'pack_sat',def:'用户对外卖包装质量、密封性、保温性等方面的满意程度。权重10%。',calc:'用户打分加权平均，满分5分。',source:'美团用户评价—综合体验分—包装满意度',tips:['选用防洒漏、保温性好的包装材料','饮品使用防漏盖+封口膜双重保护','外包装保持整洁美观，可添加品牌标识'],target:4.6,max:5},
+  '复购率得分': {cat:'exp',field:'repurchase',def:'老用户再次下单的比例，是新评分体系中最关键的指标之一。权重20%。',calc:'近30天内复购用户数÷总下单用户数×转化系数，满分5分。',source:'美团平台数据—综合体验分—复购率',tips:['向老客户定向发放梯度满减券（如10-1, 20-2）','针对昨日下单未支付的用户发券挽留','使用精准营销工具定时自动发券','提升出餐品质和服务，让用户愿意再次选择'],target:4.6,max:5},
+  '消息回复率得分': {cat:'exp',field:'msg_reply',def:'商家对用户在线消息的回复比例和及时性。权重10%。',calc:'已回复消息数÷总收到消息数×转化系数，满分5分。',source:'美团商家后台—综合体验分—消息回复率',tips:['开启消息通知并及时回复用户咨询','设置常见问题自动回复（营业时间、配送范围等）','安排专人负责在线客服，高峰时段保持响应'],target:4.6,max:5},
+  '服务反馈得分': {cat:'exp',field:'service_neg',def:'用户对服务质量的反馈分数。服务负反馈率越低（漏送、错送、态度差等情况越少），得分越高。权重10%。',calc:'基于服务负反馈率反向计算，满分5分。负反馈率越低得分越高。',source:'美团用户评价—综合体验分—服务反馈',tips:['出餐时仔细核对订单，避免漏装错装','培训员工服务态度，遇到问题主动联系用户解决','减少漏送、错送、延迟等情况'],target:4.6,max:5},
+  '食安反馈得分': {cat:'exp',field:'food_safety',def:'食品安全相关的用户反馈评分，反映食品卫生和安全水平。权重20%。',calc:'基于食安负反馈率反向计算，满分5分。食安投诉率越低得分越高。',source:'美团用户评价—综合体验分—食安反馈',tips:['确保证照齐全且在有效期内','后厨卫生达标，严格执行食材存储规范','使用食品安全封签','及时处理食安相关投诉，避免升级'],target:4.6,max:5}
 };
 
 function drillDim(dimName, category){
@@ -2489,83 +2327,6 @@ function renderUnifiedStoreRank(){
 /* ================================================================
    单店详情抽屉
 ================================================================ */
-function getStoreDiag(storeName){
-  const mpStore = STORE_MP.find(s => s.name === storeName);
-  const mtStore = STORE_MT.find(s => s.name === storeName);
-  var issues = [], actions = [], status = 'ok'; // ok / warn / bad
-  var keyMetrics = {}; // 关键指标汇总
-  
-  try {
-  if(mpStore){
-    keyMetrics.mp_avg = mpStore.avg; keyMetrics.mp_rate = mpStore.rate; keyMetrics.mp_max = mpStore.max;
-    if(mpStore.avg > 15) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA标杆(15分钟)');
-      actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
-      actions.push('② 优化备料流程：预制高频饮品基料（茶汤/奶盖/小料），高峰期直接组装而非现做');
-      actions.push('③ 检查后厨动线：炉灶→打包台→出餐口的距离是否可缩短'); }
-    else if(mpStore.avg > 8) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
-    else { issues.push('出餐效率优秀('+mpStore.avg+'分钟)'); }
-    if(mpStore.rate < 70) { status = 'bad'; issues.push('出餐达标率仅'+mpStore.rate+'%，近三分之一订单超15分钟');
-      actions.push('① 排查超时订单集中在哪些时段/哪些饮品，针对性优化');
-      actions.push('② 对高频超时饮品考虑简化工艺或提前预制（如预调茶底、预分装小料）'); }
-    else if(mpStore.rate < 85) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
-      actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
-    if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如鲜果现切/奶盖手打）导致，可优化预制流程'); }
-  }
-  if(mtStore){
-    keyMetrics.mt_shop = mtStore.shop_score; keyMetrics.mt_exp = mtStore.exp_score;
-    var sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
-    if(mtStore.shop_score < 85) { status = 'bad'; issues.push('店铺分'+mtStore.shop_score+'分，严重低于标准(≥95)');
-      actions.push('① 建议立即召开门店会议，逐项分析六维失分原因');
-      actions.push('② 优先攻克"差评回复率"和"商家不接单率"（权重最高、见效最快）'); }
-    else if(mtStore.shop_score < 95) { status = (status==='ok'?'warn':status); issues.push('店铺分'+mtStore.shop_score+'分，距达标(≥95)差'+(95-mtStore.shop_score)+'分');
-      actions.push('① 对照六维得分逐项排查，找到最低维度优先提升'); }
-    if(mtStore.exp_score < 4.0) { status = 'bad'; issues.push('综合体验分'+mtStore.exp_score+'，远低于预警线(4.6)');
-      actions.push('① 重点提升复购率：设置老客专属优惠券、会员日福利、积分兑换');
-      actions.push('② 优化服务反馈差评率：每条差评24小时内回复，针对共性问题出整改方案'); }
-    else if(mtStore.exp_score < 4.6) { status = (status==='ok'?'warn':status); issues.push('综合体验分'+mtStore.exp_score+'，低于预警线(4.6)');
-      actions.push('① 分析体验分六维中最短板，集中资源改善最关键的一项'); }
-    // 找出最差维度并给针对性建议
-    var worstShop = '', worstShopVal = 100, worstExp = '', worstExpVal = 5;
-    var shopDims = [['差评回复率',sd.reply_rate||0],['商家评分',sd.merchant_rating||0],['高峰营业',sd.peak_hours||0],['商家不接单率',sd.reject_rate||0],['基础营业',sd.base_hours||0],['出餐上报',sd.cook_report||0]];
-    var expDims = [['商品满意度',ed.product_sat||0],['包装满意度',ed.pack_sat||0],['复购率',ed.repurchase||0],['消息回复',ed.msg_reply||0],['服务负反馈',ed.service_neg||0],['食安负反馈',ed.food_safety||0]];
-    shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
-    expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
-    var dimActions = {
-      '差评回复率': ['① 每日设定班次定时查看差评并及时回复，早班值班主管下班前5分钟检查，24小时内完成','② 回复内容要诚恳、具体，针对用户反馈给出解决方案','③ 设置差评提醒通知（闹钟等），定时进行提醒，避免遗漏','④ 值班本新增平台维护：差评回复、菜单检查、平台开关等'],
-      '商家评分':['① 重视顾客诉求，及时处理满足，并在门店内复盘，针对性进行改善','② 不合理、内容不实差评及时申诉，消除影响'],
-      '高峰营业':['① 检查平台设置的高峰营业时段与实际是否一致','② 节假日/恶劣天气提前调整营业状态，避免非营业时间接单'],
-      '商家不接单率':['① 收到订单立即确认接单（现大盘门店已设置自动接单）','② 定期核实菜单及库存情况，平台营业时间随线下营业时间随时调整'],
-      '基础营业':['① 确保每日营业时长覆盖平台要求的核心时段','② 每日打烊后及开早前主动检查平台，避免因临时停单未检查','③ 如门店需临时闭店，必须设置歇业保护'],
-      '出餐上报':['① 每次出餐后第一时间在平台点击"已出餐"','② 如遇骑手提前到店，订单必须点击出餐再呈递给骑手'],
-      '商品满意度':['① 关注顾客备注，尽可能满足，如无法满足需提前沟通','② 打包安排熟练伙伴，不错餐不漏餐'],
-      '包装满意度':['① 饮品加盖后检查是否扣合密闭（加盖完成抓盖提拉两下测试）','② 防漏杯盖热饮必须在杯盖气孔张贴易撕贴','③ 外包装保持整洁美观，不可使用损坏的保温袋、底座'],
-      '复购率':['① 设置订单完成自动回复，话术内容包含活动及新品介绍，吸引顾客复购','② 保持菜单完整，应上尽上，避免出现顾客"再来一单"时菜单售罄','③ 提供随单小礼品（明信片、贴纸等），提升情绪价值'],
-      '消息回复':['① 开启自动回复话术库(常见问题预设答案)','② 设置消息提醒音效，确保顾客咨询5分钟内响应','③ 店机日常跟随值班主管/打包岗，便于接收平台信息提醒'],
-      '服务负反馈':['① 每单随餐附\"如有问题请联系我们\"卡片，引导私了而非差评','② 出餐前二次核对订单内容与饮品，减少漏装/错装','③ 建立\"差评溯源→问题认领→整改复查\"闭环机制','④ 立即介入顾客在任意渠道反馈的服务问题，并在线解决诉求，取得谅解，计分后提供沟通过程至平台申诉'],
-      '食安负反馈':['① 每日营业前拍照记录后厨卫生状况','② 后厨卫生达标，操作间执行食材存储规范','③ 员工持健康证上岗，每月食品安全培训一次','④ 及时处理食安相关投诉，避免升级，争取在线取得顾客谅解，计分后提供沟通过程至平台申诉']
-    };
-    if(worstShopVal < 95){
-      var wsa = dimActions[worstShop] || [];
-      if(wsa.length) actions = actions.concat(wsa.slice(0,2));
-      else actions.push('① 店铺分最低维度：'+worstShop+'('+worstShopVal.toFixed(1)+')，建议重点突破');
-    }
-    if(worstExpVal < 4.6){
-      var wea = dimActions[worstExp] || [];
-      if(wea.length && actions.length < 3) actions = actions.concat(wea.slice(0,2));
-      else if(!wea.length) actions.push('① 体验分最短板：'+worstExp+'('+worstExpVal.toFixed(2)+')，优先改善');
-    }
-  }
-  if(!mpStore && !mtStore) { issues.push('暂无经营数据'); status = 'warn'; }
-  
-  // 去重 actions
-  var seen = {}, uniqueActions = [];
-  actions.forEach(function(a){ if(!seen[a]){ seen[a]=true; uniqueActions.push(a); } });
-  actions = uniqueActions.slice(0, 5);
-  } catch(e) { status = 'warn'; issues = ['诊断数据读取异常']; }
-  
-  return {issues: issues, actions: actions, status: status, keyMetrics: keyMetrics};
-}
-
 function openStoreMerged(storeName){
   const mpStore = STORE_MP.find(s => s.name === storeName);
   const mtStore = STORE_MT.find(s => s.name === storeName);
@@ -2583,8 +2344,100 @@ function openStoreMerged(storeName){
     `${store.market} · ${store.city} · ${store.brand}　|　大区：${store.region_mgr}　区经理：${store.area_mgr}`;
 
   // ── 门店诊断总结（含具体改善动作）──
-  var diag = getStoreDiag(storeName);
-  var issues = diag.issues, actions = diag.actions, status = diag.status;
+  var issues = [], actions = [], status = 'ok'; // ok / warn / bad
+  try {
+  if(mpStore){
+    // 小程序出餐诊断
+    if(mpStore.avg > 8) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA(8分钟)');
+      actions.push('① 高峰时段（11:30-13:00 / 17:30-19:00）增加1名后厨人手，专盯外卖单');
+      actions.push('② 优化备料流程：预制高频菜品半成品，高峰期直接组装而非现做');
+      actions.push('③ 检查后厨动线：炉灶→打包台→出餐口的距离是否可缩短'); }
+    else if(mpStore.avg > 6.5) { status = (status==='ok'?'warn':status); issues.push('平均出餐'+mpStore.avg+'分钟，略高于行业均值');
+      actions.push('① 分析每日出餐耗时分布，锁定最慢的1-2个时段精准改善');
+      actions.push('② 检查是否存在"单量激增→人手不足→出餐变慢"的恶性循环'); }
+    else if(mpStore.avg > 5.5) { issues.push('出餐效率良好('+mpStore.avg+'分钟)'); }
+    else { issues.push('出餐效率优秀('+mpStore.avg+'分钟)'); }
+    if(mpStore.rate < 70) { status = 'bad'; issues.push('出餐达标率仅'+mpStore.rate+'%，近三分之一订单超15分钟');
+      actions.push('① 排查超时订单集中在哪些时段/哪些菜品，针对性优化');
+      actions.push('② 设置出餐倒计时提醒：接单后8分钟未出餐自动弹窗预警');
+      actions.push('③ 对高频超时菜品考虑简化工艺或提前预制'); }
+    else if(mpStore.rate < 90) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
+      actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
+    if(mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如炖品/烤制）导致，可调整备货策略'); }
+  }
+  if(mtStore){
+    var sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
+    if(mtStore.shop_score < 85) { status = 'bad'; issues.push('店铺分'+mtStore.shop_score+'分，严重低于标准(≥95)');
+      actions.push('① 建议立即召开门店会议，逐项分析六维失分原因');
+      actions.push('② 优先攻克"差评回复率"和"接单率"（权重最高、见效最快）'); }
+    else if(mtStore.shop_score < 95) { status = (status==='ok'?'warn':status); issues.push('店铺分'+mtStore.shop_score+'分，距达标(≥95)差'+(95-mtStore.shop_score)+'分');
+      actions.push('① 对照六维得分逐项排查，找到最低维度优先提升'); }
+    if(mtStore.exp_score < 4.0) { status = 'bad'; issues.push('综合体验分'+mtStore.exp_score+'，远低于预警线(4.6)');
+      actions.push('① 重点提升复购率：设置老客专属优惠券、会员日福利、积分兑换');
+      actions.push('② 优化服务反馈差评率：每条差评24小时内回复，针对共性问题出整改方案'); }
+    else if(mtStore.exp_score < 4.6) { status = (status==='ok'?'warn':status); issues.push('综合体验分'+mtStore.exp_score+'，低于预警线(4.6)');
+      actions.push('① 分析体验分六维中最短板，集中资源改善最关键的一项'); }
+    // 找出最差维度并给针对性建议
+    var worstShop = '', worstShopVal = 100, worstExp = '', worstExpVal = 5;
+    var shopDims = [['差评回复率',sd.reply_rate||0],['商家评分',sd.merchant_rating||0],['高峰营业',sd.peak_hours||0],['接单率',sd.reject_rate||0],['基础营业',sd.base_hours||0],['出餐上报',sd.cook_report||0]];
+    var expDims = [['商品满意度',ed.product_sat||0],['包装满意度',ed.pack_sat||0],['复购率',ed.repurchase||0],['消息回复',ed.msg_reply||0],['服务反馈',ed.service_neg||0],['食安反馈',ed.food_safety||0]];
+    shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
+    expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
+    // 各维度针对性改善动作
+    var dimActions = {
+      '差评回复率': ['① 安排专人每日定时查看差评，24小时内完成回复',
+                     '② 回复模板：致歉+问题解释+补偿方案（优惠券/退款）',
+                     '③ 每周汇总差评高频词，找到共性问题根源'],
+      '商家评分':   ['① 引导好评：随餐附评分引导卡，好评晒图送小礼品',
+                     '② 重点关注商品描述真实度，避免"图片与实物不符"差评'],
+      '高峰营业':   ['① 检查平台设置的高峰营业时段与实际是否一致',
+                     '② 节假日/恶劣天气提前调整营业状态，避免非营业时间接单'],
+      '接单率':     ['① 设置自动接单功能，避免人工漏接',
+                     '② 高峰期安排专人盯屏，确保每单15秒内响应'],
+      '基础营业':   ['① 确保每日营业时长覆盖平台要求的核心时段',
+                     '② 如需临时关店，提前在平台设置休息状态'],
+      '出餐上报':   ['① 每次出餐后第一时间在平台点击"已出餐"',
+                     '② 培养后厨"出餐=上报"的肌肉记忆，纳入绩效考核'],
+      '商品满意度': ['① 抽检高频差评菜品，对比竞品定价和品质',
+                     '② 在商品描述中标注克重/份量，降低期望落差',
+                     '③ 每款新品上线前进行内部试吃打分(≥4.5分才上架)'],
+      '包装满意度': ['① 汤汁类菜品换用防洒封口杯/密封碗',
+                     '② 冬季换用保温袋，夏季冷饮加冰袋',
+                     '③ 附赠湿巾/吸管/手套等小物提升开箱体验'],
+      '复购率':     ['① 设置\"下单满X次送饮品\"\"集章卡\"等复购激励',
+                     '② 每周推送会员专属优惠，精准触达30天未回购用户',
+                     '③ 优化爆款SKU稳定性和口味一致性，让顾客愿意回头'],
+      '消息回复':   ['① 开启自动回复话术库(常见问题预设答案)',
+                     '② 设置消息提醒音效，确保顾客咨询5分钟内响应'],
+      '服务反馈':   ['① 每单随餐附\"如有问题请联系我们\"卡片，引导私了而非差评',
+                     '② 出餐前二次核对订单内容与菜品，减少漏装/错装',
+                     '③ 建立\"差评溯源→问题认领→整改复查\"闭环机制'],
+      '食安反馈':   ['① 每日营业前拍照记录后厨卫生状况',
+                     '② 食材进货索证索票，定期更新台账',
+                     '③ 员工持健康证上岗，每月食品安全培训一次']
+    };
+    if(worstShopVal < 95){
+      var wsa = dimActions[worstShop] || [];
+      if(wsa.length) actions = actions.concat(wsa.slice(0,2));
+      else actions.push('① 店铺分最低维度：'+worstShop+'('+worstShopVal.toFixed(1)+')，建议重点突破');
+    }
+    if(worstExpVal < 4.6){
+      var wea = dimActions[worstExp] || [];
+      if(wea.length && actions.length < 3) actions = actions.concat(wea.slice(0,2));
+      else if(!wea.length) actions.push('① 体验分最短板：'+worstExp+'('+worstExpVal.toFixed(2)+')，优先改善');
+    }
+  }
+  if(!mpStore && !mtStore) { issues.push('暂无经营数据'); status = 'warn'; }
+  
+  // 去重 actions（保留顺序，去除完全相同的条目）
+  var seen = {}, uniqueActions = [];
+  actions.forEach(function(a){ if(!seen[a]){ seen[a]=true; uniqueActions.push(a); } });
+  actions = uniqueActions.slice(0, 5); // 最多展示5条改善动作
+
+  } catch(e) {
+    console.error('[诊断] 诊断总结生成异常:', e.message);
+    status = 'warn'; issues = ['诊断数据读取异常，请刷新重试'];
+  }
 
   // 诊断总结始终展示
   var summaryHTML = '';
@@ -2656,7 +2509,7 @@ function openStoreMerged(storeName){
           ${dimRow('差评回复率得分', sd.reply_rate, 95, 100, '分')}
           ${dimRow('商家评分得分', sd.merchant_rating, 95, 100, '分')}
           ${dimRow('高峰营业时长得分', sd.peak_hours, 95, 100, '分')}
-          ${dimRow('商家不接单率', sd.reject_rate, 95, 100, '分')}
+          ${dimRow('商家接单率得分', sd.reject_rate, 95, 100, '分')}
           ${dimRow('基础营业时长得分', sd.base_hours, 95, 100, '分')}
           ${dimRow('出餐上报/准时率得分', sd.cook_report, 95, 100, '分')}
         </div>
@@ -2668,8 +2521,8 @@ function openStoreMerged(storeName){
           ${dimRow('包装满意度', ed.pack_sat, 4.6, 5, '')}
           ${dimRow('复购率得分', ed.repurchase, 4.6, 5, '分')}
           ${dimRow('消息回复率得分', ed.msg_reply, 4.6, 5, '分')}
-          ${dimRow('服务负反馈率得分', ed.service_neg, 4.6, 5, '分')}
-          ${dimRow('食安负反馈率得分', ed.food_safety, 4.6, 5, '分')}
+          ${dimRow('服务反馈得分', ed.service_neg, 4.6, 5, '分')}
+          ${dimRow('食安反馈得分', ed.food_safety, 4.6, 5, '分')}
         </div>
       </div>
       <div class="drawer-section">
@@ -2690,16 +2543,13 @@ function openStoreMerged(storeName){
         charts['detailMtTrend'] = new Chart(canvas, {
           type: 'line', data: { labels: trend.days, datasets: [
             { label: '店铺分', data: trend.shop, borderColor: '#667eea', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y',
-              datalabels:{anchor:'center',align:270,offset:8,color:'#667eea',font:{size:9,weight:'bold'},
-                backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
+              datalabels:{anchor:'end',align:'top',offset:2,color:'#667eea',font:{size:10,weight:'bold'},
                 formatter:function(v){return v.toFixed(1);}}},
             { label: '体验分', data: trend.exp, borderColor: '#f093fb', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, yAxisID: 'y1',
-              datalabels:{anchor:'center',align:90,offset:8,color:'#f093fb',font:{size:9,weight:'bold'},
-                backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
+              datalabels:{anchor:'end',align:'top',offset:2,color:'#f093fb',font:{size:10,weight:'bold'},
                 formatter:function(v){return v.toFixed(2);}}}
           ]},
           options: { responsive: true, maintainAspectRatio: false,
-            layout: { padding: { top: 18, right: 10 } },
             plugins: { legend: { display: true, labels: { font: { size: 11 }, usePointStyle: true, boxWidth: 8 } },
                        datalabels: { display: true } },
             scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } },
@@ -2726,7 +2576,7 @@ function renderMpDetail(store, body){
 
   const heatHtml=hData.hours.map((h,i)=>{
     const v=hData.vals[i];
-    return`<div class="detail-heat-cell" style="background:${heatColor(v,0,15)}"><strong>${v.toFixed(1)}</strong><span class="dh-time">${h}</span></div>`;
+    return`<div class="detail-heat-cell" style="background:${heatColor2(v,sla)}"><strong>${v.toFixed(1)}</strong><span class="dh-time">${h}</span></div>`;
   }).join('');
 
   body.innerHTML=`
@@ -2738,17 +2588,17 @@ function renderMpDetail(store, body){
         <div class="drawer-stat"><div class="drawer-stat-label">出餐达标率</div><div class="drawer-stat-val" style="color:${store.rate>=95?'#3B6D11':store.rate>=90?'#854F0B':'#A32D2D'}">${store.rate}<span style="font-size:11px;font-weight:400">%</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">预估订单量</div><div class="drawer-stat-val">${Math.round(store.revenue/28)}<span style="font-size:11px;font-weight:400"> 单</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">今日营业额</div><div class="drawer-stat-val" style="color:#C8873A">${(store.revenue/10000).toFixed(2)}<span style="font-size:11px;font-weight:400"> 万</span></div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">超 SLA</div><div class="drawer-stat-val" style="color:${store.avg>15?'#A32D2D':'#3B6D11'}">${store.avg>15?'超时':'正常'}</div></div>
+        <div class="drawer-stat"><div class="drawer-stat-label">超 SLA</div><div class="drawer-stat-val" style="color:${store.avg>8?'#A32D2D':'#3B6D11'}">${store.avg>8?'超时':'正常'}</div></div>
       </div>
     </div>
     <div class="drawer-section">
       <div class="drawer-section-title">今日逐时出餐详情（分钟）</div>
       <div class="detail-heat-row">${heatHtml}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">
-        <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤6 优质</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#639922;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤12.75 良好</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#EF9F27;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤15 预警</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:2px;vertical-align:middle;margin-right:3px"></span>&gt;15 超时</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤5.5 优质</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#639922;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤6.5 良好</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#EF9F27;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤SLA(8) 预警</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:2px;vertical-align:middle;margin-right:3px"></span>&gt;SLA 超时</span>
       </div>
     </div>
     <div class="drawer-section">
@@ -2767,15 +2617,12 @@ function renderMpDetail(store, body){
     charts['detailMpTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'出餐时长',data:trend.vals,borderColor:'#C8873A',backgroundColor:'rgba(200,135,58,0.08)',borderWidth:2,pointRadius:4,fill:true,tension:0.3,
-          datalabels:{anchor:'center',align:270,offset:6,color:'#C8873A',font:{size:9,weight:'bold'},
-            backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
+          datalabels:{anchor:'end',align:'top',offset:4,color:'#C8873A',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(1)+'分';}}},
         {label:'SLA',data:Array(trend.days.length).fill(trend.sla),borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,
           datalabels:{display:false}},
       ]},
-      options:{responsive:true,maintainAspectRatio:false,
-        layout:{padding:{top:18,right:10}},
-        plugins:{legend:{display:false},datalabels:{display:true}},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
                 y:{min:3,max:10,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},callback:v=>v+'分'}}}}
     });
@@ -2818,7 +2665,7 @@ function renderMtDetail(store, body){
         ${dimRow('差评回复率得分',sd.reply_rate,95,100,'分')}
         ${dimRow('商家评分得分',sd.merchant_rating,95,100,'分')}
         ${dimRow('高峰营业时长得分',sd.peak_hours,95,100,'分')}
-        ${dimRow('商家不接单率',sd.reject_rate,95,100,'分')}
+        ${dimRow('商家接单率得分',sd.reject_rate,95,100,'分')}
         ${dimRow('基础营业时长得分',sd.base_hours,95,100,'分')}
         ${dimRow('出餐上报/准时率得分',sd.cook_report,95,100,'分')}
       </div>
@@ -2830,8 +2677,8 @@ function renderMtDetail(store, body){
         ${dimRow('包装满意度',ed.pack_sat,4.6,5,'')}
         ${dimRow('复购率得分',ed.repurchase,4.6,5,'分')}
         ${dimRow('消息回复率得分',ed.msg_reply,4.6,5,'分')}
-        ${dimRow('服务负反馈率得分',ed.service_neg,4.6,5,'分')}
-        ${dimRow('食安负反馈率得分',ed.food_safety,4.6,5,'分')}
+        ${dimRow('服务反馈得分',ed.service_neg,4.6,5,'分')}
+        ${dimRow('食安反馈得分',ed.food_safety,4.6,5,'分')}
       </div>
     </div>
     <div class="drawer-section">
@@ -2848,16 +2695,13 @@ function renderMtDetail(store, body){
     charts['detailMtTrend']=new Chart(canvas,{
       type:'line',data:{labels:trend.days,datasets:[
         {label:'店铺分',data:trend.shop,borderColor:'#667eea',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y',
-          datalabels:{anchor:'center',align:270,offset:8,color:'#667eea',font:{size:9,weight:'bold'},
-            backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
+          datalabels:{anchor:'end',align:'top',offset:2,color:'#667eea',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(1);}}},
         {label:'体验分',data:trend.exp,borderColor:'#f093fb',borderWidth:2,pointRadius:3,fill:false,tension:0.3,yAxisID:'y1',
-          datalabels:{anchor:'center',align:90,offset:8,color:'#f093fb',font:{size:9,weight:'bold'},
-            backgroundColor:'rgba(255,255,255,0.88)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},
+          datalabels:{anchor:'end',align:'top',offset:2,color:'#f093fb',font:{size:10,weight:'bold'},
             formatter:function(v){return v.toFixed(2);}}},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        layout:{padding:{top:18,right:10}},
         plugins:{legend:{display:true,labels:{font:{size:11},usePointStyle:true,boxWidth:8}},datalabels:{display:true}},
         scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
                 y:{min:80,max:100,grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10},stepSize:5,callback:v=>v.toFixed(0)}},
@@ -2874,28 +2718,29 @@ function renderMtHourlyCook(store){
       <div style="font-size:11px;color:var(--text-muted);padding:12px 0">该门店暂无出餐时长数据（美团渠道不记录出餐耗时）</div>
     </div>`;
   }
+  const sla = 10;
   const heatHtml = hData.hours.map((h,i)=>{
     const v = hData.vals[i];
-    return `<div class="detail-heat-cell" style="background:${heatColor(v,0,15)}"><strong>${v.toFixed(1)}</strong><span class="dh-time">${h}</span></div>`;
+    return `<div class="detail-heat-cell" style="background:${heatColor2(v,sla)}"><strong>${v.toFixed(1)}</strong><span class="dh-time">${h}</span></div>`;
   }).join('');
   return `<div class="drawer-section">
     <div class="drawer-section-title">时段出餐时长（分钟·小程序自配送数据）</div>
     <div class="detail-heat-row">${heatHtml}</div>
     <div style="font-size:10px;color:var(--text-muted);margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤6 优质</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#639922;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤12.75 良好</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#EF9F27;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤15 预警</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:2px;vertical-align:middle;margin-right:3px"></span>&gt;15 超时</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤5.5 优质</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#639922;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤6.5 良好</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#EF9F27;border-radius:2px;vertical-align:middle;margin-right:3px"></span>≤SLA(10) 预警</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:2px;vertical-align:middle;margin-right:3px"></span>&gt;SLA 超时</span>
     </div>
   </div>`;
 }
 
-function renderMarketBrandRank(){
-  // 市场+品牌合并排名：聚合并展示所有市场和品牌
+function renderMarketRank(){
+  // 市场排名：统计所有品牌，不再限定茶颜悦色
   const mpStores=filterStores(STORE_MP);
   const mtStores=filterStores(STORE_MT);
   const mkColors={'湖南':'#639922','湖北':'#EF9F27','江苏':'#667eea','重庆':'#E8321A'};
-  const brdColors={'鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A','饼坊':'#C8873A'};
+  const kmap={};
 
   // Calculate days from date filter
   var rankDays = 7;
@@ -2904,42 +2749,38 @@ function renderMarketBrandRank(){
     rankDays = Math.max(1, Math.round((d2-d1)/86400000)+1);
   }
 
-  // ── 按市场聚合 ──
-  const mkMap={};
   mpStores.forEach(s=>{
     const k=s.market;
-    if(!mkMap[k])mkMap[k]={type:'market',name:s.market,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    mkMap[k].cookSum+=s.avg; mkMap[k].cookCnt++; mkMap[k].storeSet.add(s.name);
+    if(!kmap[k])kmap[k]={market:s.market,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    kmap[k].mpRev+=s.revenue; kmap[k].cookSum+=s.avg; kmap[k].cookCnt++; kmap[k].mpOrd+=(s.orders||0);
+    kmap[k].storeSet.add(s.name);
   });
   mtStores.forEach(s=>{
     const k=s.market;
-    if(!mkMap[k])mkMap[k]={type:'market',name:s.market,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    mkMap[k].scoreSum+=s.shop_score; mkMap[k].scoreCnt++; mkMap[k].ratingSum+=(s.exp_score||0); mkMap[k].ratingCnt++; mkMap[k].storeSet.add(s.name);
+    if(!kmap[k])kmap[k]={market:s.market,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    kmap[k].mtRev+=s.revenue; kmap[k].scoreSum+=s.shop_score; kmap[k].scoreCnt++;
+    kmap[k].ratingSum+=(s.exp_score||0); kmap[k].ratingCnt++;
+    kmap[k].mtOrd+=(s.orders||0);
+    kmap[k].storeSet.add(s.name);
   });
 
-  // ── 按品牌聚合 ──
-  const brdMap={};
-  mpStores.forEach(s=>{
-    const k=s.brand;
-    if(!brdMap[k])brdMap[k]={type:'brand',name:s.brand,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    brdMap[k].cookSum+=s.avg; brdMap[k].cookCnt++; brdMap[k].storeSet.add(s.name);
-  });
-  mtStores.forEach(s=>{
-    const k=s.brand;
-    if(!brdMap[k])brdMap[k]={type:'brand',name:s.brand,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    brdMap[k].scoreSum+=s.shop_score; brdMap[k].scoreCnt++; brdMap[k].ratingSum+=(s.exp_score||0); brdMap[k].ratingCnt++; brdMap[k].storeSet.add(s.name);
-  });
-
-  // ── 合并所有行（不含茶颜悦色品牌，数据已分摊至各市场）──
-  let rows=[...Object.values(mkMap),...Object.values(brdMap).filter(m=>m.name!=='茶颜悦色')].map(m=>({
-    type:m.type, name:m.name, storeCount:m.storeSet.size,
+  let rows=Object.values(kmap).map(m=>{
+    var stCnt = m.storeSet.size;
+    return {
+    ...m,
+    totalRev:m.mpRev+m.mtRev, totalOrd:m.mpOrd+m.mtOrd,
     avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
     avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
     avgRating:m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
-  }));
+    dailyRev: stCnt>0 ? Math.round((m.mpRev+m.mtRev)/stCnt/rankDays) : 0,
+    dailyTC: stCnt>0 ? Math.round((m.mpOrd+m.mtOrd)/stCnt/rankDays*10)/10 : 0,
+    storeCount: stCnt,
+  }});
 
-  const st=mgmtSortState.marketBrand;
+  const st=mgmtSortState.market;
   const getVal=(r,k)=>{
+    if(k==='rev')return r.dailyRev;
+    if(k==='tc')return r.dailyTC;
     if(k==='cook')return r.avgCook;
     if(k==='score')return r.avgScore;
     if(k==='rating')return r.avgRating;
@@ -2951,32 +2792,108 @@ function renderMarketBrandRank(){
   });
 
   const rc=i=>i<3?`rank-${i+1}`:'rank-n';
-  const t=document.getElementById('market-brand-rank-container');
-  if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的数据</div>';return;}
+  const fmtRev=v=>(v/10000).toFixed(1)+'万';
+  const fmtDaily=v=>'¥'+v.toLocaleString();
+
+  const t=document.getElementById('market-rank-container');
+  if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的市场数据</div>';return;}
 
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>名称</th><th width="52">类型</th><th class="sortable" width="72" onclick="onMgmtSortClick('marketBrand','cook')">出餐时间<span class="sort-arrow" id="mgmt-marketBrand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','score')">店铺分<span class="sort-arrow" id="mgmt-marketBrand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','rating')">体验分<span class="sort-arrow" id="mgmt-marketBrand-sort-rating"></span></th>
+        <th width="26">#</th><th>市场</th><th class="sortable" width="88" onclick="onMgmtSortClick('market','rev')">店日均业绩<span class="sort-arrow" id="mgmt-market-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('market','tc')">店日均TC<span class="sort-arrow" id="mgmt-market-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('market','cook')">出餐时间<span class="sort-arrow" id="mgmt-market-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','score')">店铺分<span class="sort-arrow" id="mgmt-market-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('market','rating')">体验分<span class="sort-arrow" id="mgmt-market-sort-rating"></span></th>
       </tr></thead>
-      <tbody>${rows.map((r,i)=>{
-        var dotColor = r.type==='market' ? (mkColors[r.name]||'#999') : (brdColors[r.name]||'#999');
-        var typeTag = r.type==='market' 
-          ? '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#f0f7e6;color:#639922">市场</span>'
-          : '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#fff8ec;color:#C8873A">品牌</span>';
-        var onClick = r.type==='market' ? `onclick="drillMarket('${r.name}')"` : `onclick="drillBrand('${r.name}')"`;
-        var titleText = r.type==='market' ? '点击查看'+r.name+'市场详情' : '点击查看'+r.name+'品牌详情';
-        return `<tr class="clickable" ${onClick} title="${titleText}">
+      <tbody>${rows.map((r,i)=>`
+        <tr class="clickable" onclick="drillMarket('${r.market}')" title="点击查看${r.market}市场详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
-          <td><span class="mk-name"><span class="mk-dot" style="background:${dotColor}"></span>${r.name}</span></td>
-          <td>${typeTag}</td>
+          <td><span class="mk-name"><span class="mk-dot" style="background:${mkColors[r.market]||'#999'}"></span>${r.market}</span></td>
+          <td class="num hi" title="${r.storeCount}家门店 · 日均${fmtDaily(r.dailyRev)}">${fmtRev(r.dailyRev)}</td>
+          <td class="dim" title="${r.storeCount}家门店 · 日均${r.dailyTC}单">${r.dailyTC}单</td>
           <td class="dim">${r.avgCook}分</td>
-          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.name}','${r.type}')">${r.avgScore.toFixed(1)}</td>
+          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.market}','market')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
-        </tr>`;
-      }).join('')}</tbody>
+        </tr>`).join('')}</tbody>
     </table>`;
-  updateMgmtSortArrows('marketBrand');
+  updateMgmtSortArrows('market');
+}
+
+function renderBrandRank(){
+  // 品牌排名：按品牌聚合所有渠道门店
+  const mpStores=filterStores(STORE_MP), mtStores=filterStores(STORE_MT);
+  const brdColors={'茶颜悦色':'#639922','鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜诗':'#E8321A','饼坊':'#C8873A'};
+  const kmap={};
+
+  // Calculate days from date filter
+  var rankDays = 7;
+  if(gfState.dateStart && gfState.dateEnd){
+    var d1 = new Date(gfState.dateStart), d2 = new Date(gfState.dateEnd);
+    rankDays = Math.max(1, Math.round((d2-d1)/86400000)+1);
+  }
+
+  mpStores.forEach(s=>{
+    const k=s.brand;
+    if(!kmap[k])kmap[k]={brand:s.brand,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    kmap[k].mpRev+=s.revenue; kmap[k].cookSum+=s.avg; kmap[k].cookCnt++; kmap[k].mpOrd+=(s.orders||0);
+    kmap[k].storeSet.add(s.name);
+  });
+  mtStores.forEach(s=>{
+    const k=s.brand;
+    if(!kmap[k])kmap[k]={brand:s.brand,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
+    kmap[k].mtRev+=s.revenue; kmap[k].scoreSum+=s.shop_score; kmap[k].scoreCnt++;
+    kmap[k].ratingSum+=(s.exp_score||0); kmap[k].ratingCnt++;
+    kmap[k].mtOrd+=(s.orders||0);
+    kmap[k].storeSet.add(s.name);
+  });
+
+  let rows=Object.values(kmap).map(m=>{
+    var stCnt = m.storeSet.size;
+    return {
+    ...m, totalRev:m.mpRev+m.mtRev, totalOrd:m.mpOrd+m.mtOrd,
+    avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
+    avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
+    avgRating:m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
+    dailyRev: stCnt>0 ? Math.round((m.mpRev+m.mtRev)/stCnt/rankDays) : 0,
+    dailyTC: stCnt>0 ? Math.round((m.mpOrd+m.mtOrd)/stCnt/rankDays*10)/10 : 0,
+    storeCount: stCnt,
+  }});
+
+  const st=mgmtSortState.brand;
+  const getVal=(r,k)=>{
+    if(k==='rev')return r.dailyRev;
+    if(k==='tc')return r.dailyTC;
+    if(k==='cook')return r.avgCook;
+    if(k==='score')return r.avgScore;
+    if(k==='rating')return r.avgRating;
+    return 0;
+  };
+  rows.sort((a,b)=>{
+    const va=getVal(a,st.key),vb=getVal(b,st.key);
+    return st.dir==='asc'?va-vb:vb-va;
+  });
+
+  const rc=i=>i<3?`rank-${i+1}`:'rank-n';
+  const fmtRev=v=>(v/10000).toFixed(1)+'万';
+
+  const t=document.getElementById('brand-rank-container');
+  if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的品牌数据</div>';return;}
+
+  t.innerHTML=`
+    <table class="mgmt-table">
+      <thead><tr>
+        <th width="26">#</th><th>品牌</th><th class="sortable" width="88" onclick="onMgmtSortClick('brand','rev')">店日均业绩<span class="sort-arrow" id="mgmt-brand-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('brand','tc')">店日均TC<span class="sort-arrow" id="mgmt-brand-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('brand','cook')">出餐时间<span class="sort-arrow" id="mgmt-brand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','score')">店铺分<span class="sort-arrow" id="mgmt-brand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('brand','rating')">体验分<span class="sort-arrow" id="mgmt-brand-sort-rating"></span></th>
+      </tr></thead>
+      <tbody>${rows.map((r,i)=>`
+        <tr class="clickable" onclick="drillBrand('${r.brand}')" title="点击查看${r.brand}品牌详情">
+          <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
+          <td><span class="mk-name"><span class="mk-dot" style="background:${brdColors[r.brand]||'#999'}"></span>${r.brand}</span></td>
+          <td class="num hi">${fmtRev(r.dailyRev)}</td>
+          <td class="dim">${r.dailyTC}单</td>
+          <td class="dim">${r.avgCook}分</td>
+          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.brand}','brand')">${r.avgScore.toFixed(1)}</td>
+          <td class="num">${r.avgRating.toFixed(2)}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+  updateMgmtSortArrows('brand');
 }
 
 function renderRegionMgrRank(){
@@ -3039,12 +2956,14 @@ function renderRegionMgrRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>大区</th><th class="sortable" width="72" onclick="onMgmtSortClick('region','cook')">出餐时间<span class="sort-arrow" id="mgmt-region-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','score')">店铺分<span class="sort-arrow" id="mgmt-region-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','rating')">体验分<span class="sort-arrow" id="mgmt-region-sort-rating"></span></th>
+        <th width="26">#</th><th>大区</th><th class="sortable" width="88" onclick="onMgmtSortClick('region','rev')">店日均业绩<span class="sort-arrow" id="mgmt-region-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('region','tc')">店日均TC<span class="sort-arrow" id="mgmt-region-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('region','cook')">出餐时间<span class="sort-arrow" id="mgmt-region-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','score')">店铺分<span class="sort-arrow" id="mgmt-region-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('region','rating')">体验分<span class="sort-arrow" id="mgmt-region-sort-rating"></span></th>
       </tr></thead>
       <tbody>${rows.map((r,i)=>`
         <tr class="clickable" onclick="drillRegionMgr('${r.regionMgr}')" title="点击查看${r.regionMgr}大区详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="num">${r.regionMgr}</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px">${r.market}</span></td>
+          <td class="num hi">${fmtRev(r.dailyRev)}</td>
+          <td class="dim">${r.dailyTC}单</td>
           <td class="dim">${r.avgCook}分</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.regionMgr}','region')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
@@ -3114,12 +3033,14 @@ function renderAreaMgrRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>区经理</th><th class="sortable" width="72" onclick="onMgmtSortClick('area','cook')">出餐时间<span class="sort-arrow" id="mgmt-area-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','score')">店铺分<span class="sort-arrow" id="mgmt-area-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','rating')">体验分<span class="sort-arrow" id="mgmt-area-sort-rating"></span></th>
+        <th width="26">#</th><th>区经理</th><th class="sortable" width="88" onclick="onMgmtSortClick('area','rev')">店日均业绩<span class="sort-arrow" id="mgmt-area-sort-rev"></span></th><th class="sortable" width="70" onclick="onMgmtSortClick('area','tc')">店日均TC<span class="sort-arrow" id="mgmt-area-sort-tc"></span></th><th class="sortable" width="72" onclick="onMgmtSortClick('area','cook')">出餐时间<span class="sort-arrow" id="mgmt-area-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','score')">店铺分<span class="sort-arrow" id="mgmt-area-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('area','rating')">体验分<span class="sort-arrow" id="mgmt-area-sort-rating"></span></th>
       </tr></thead>
       <tbody>${list.map((m,i)=>`
         <tr class="clickable" onclick="drillAreaMgr('${m.areaMgr}','${m.market}')" title="点击查看${m.areaMgr}区经理详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="num">${m.areaMgr}</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px">${m.market}·${m.regionMgr}</span></td>
+          <td class="num hi">${fmtRev(m.dailyRev)}</td>
+          <td class="dim">${m.dailyTC}单</td>
           <td class="dim">${m.avgCook||'-'}${m.avgCook?'分':''}</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${m.areaMgr}','area')">${m.avgScore.toFixed(1)}</td>
           <td class="num">${m.avgRating.toFixed(2)}</td>
@@ -3141,7 +3062,7 @@ function drillMarket(market){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`<span class="mk-dot" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#639922;vertical-align:middle;margin-right:6px"></span>${market} 市场详情`;
-  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
   document.getElementById('drawerBody').innerHTML=renderUnifiedDrillTable('market',mpStores,mtStores);
   dOverlay.classList.add('open');
 }
@@ -3156,7 +3077,7 @@ function drillBrand(brand){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`<span class="mk-dot" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#C8873A;vertical-align:middle;margin-right:6px"></span>${brand} 品牌详情`;
-  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
   document.getElementById('drawerBody').innerHTML=renderUnifiedDrillTable('brand',mpStores,mtStores);
   dOverlay.classList.add('open');
 }
@@ -3172,7 +3093,7 @@ function drillRegionMgr(regionMgr){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`👤 ${regionMgr} <span class="dim" style="font-size:12px;font-weight:400">大区经理</span>`;
-  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万　|　均出餐 ${avgCook}分　|　均店铺分 ${avgScore.toFixed(1)}`;
   document.getElementById('drawerBody').innerHTML=renderUnifiedDrillTable('region',mpStores,mtStores);
   dOverlay.classList.add('open');
 }
@@ -3185,7 +3106,7 @@ function drillAreaMgr(areaMgr, market){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`👤 ${areaMgr} <span class="dim" style="font-size:12px;font-weight:400">区经理</span>`;
-  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家`;
+  document.getElementById('drawerMeta').innerHTML=`所属市场 ${market}　|　小程序${mpStores.length}家 · 美团${mtStores.length}家　|　总业绩 ${(totalRev/10000).toFixed(1)}万`;
 
   const dBody=document.getElementById('drawerBody');
   let h='';
@@ -3224,7 +3145,6 @@ function drillScore(name, type){
   const mtStores=filterStores(STORE_MT);
   let filtered;
   if(type==='market') filtered=mtStores.filter(s=>s.market===name);
-  else if(type==='brand') filtered=mtStores.filter(s=>s.brand===name);
   else if(type==='region') filtered=mtStores.filter(s=>s.region_mgr===name);
   else filtered=mtStores.filter(s=>s.area_mgr===name);
 
@@ -3243,7 +3163,7 @@ function drillScore(name, type){
 
   const dOverlay=document.getElementById('drawerOverlay');
   document.getElementById('drawerTitle').innerHTML=`📊 ${name} 店铺分详情`;
-  document.getElementById('drawerMeta').innerHTML=`${type==='market'?'市场':type==='brand'?'品牌':type==='region'?'大区':'区经理'}　|　${filtered.length}家门店　|　均分 ${avgScore.toFixed(1)}`;
+  document.getElementById('drawerMeta').innerHTML=`${type==='market'?'市场':type==='region'?'大区':'区经理'}　|　${filtered.length}家门店　|　均分 ${avgScore.toFixed(1)}`;
 
   let h=`
     <table class="rank-table" style="margin-bottom:16px">
@@ -3380,7 +3300,7 @@ function calcRealMetrics(){
       {name:'差评回复率得分',   val:+(mt.reduce((a,s)=>a+(s.shop_dims.reply_rate||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
       {name:'商家评分得分',     val:+(mt.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
       {name:'高峰营业时长得分', val:+(mt.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'商家不接单率',   val:+(mt.reduce((a,s)=>a+(s.shop_dims.reject_rate||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'商家接单率得分',   val:+(mt.reduce((a,s)=>a+(s.shop_dims.reject_rate||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
       {name:'基础营业时长得分', val:+(mt.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
       {name:'出餐上报/准时率得分', val:+(mt.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
     ]
@@ -3397,8 +3317,8 @@ function calcRealMetrics(){
       {name:'包装满意度',           val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.pack_sat)||0),0)/(mt.length||1)).toFixed(2), unit:'',   target:4.6,  max:5,   status:'ok'},
       {name:'复购率得分',           val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.repurchase)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,  max:5,   status:'ok'},
       {name:'消息回复率得分',       val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.msg_reply)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,  max:5,   status:'ok'},
-      {name:'服务负反馈率得分',         val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.service_neg)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
-      {name:'食安负反馈率得分',         val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.food_safety)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
+      {name:'服务反馈得分',         val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.service_neg)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
+      {name:'食安反馈得分',         val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.food_safety)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
     ]
   };
   mtExpBlock.dims.forEach(d=>{
@@ -3432,18 +3352,18 @@ function setPieDimension(dim){
 function normBrand(v){
   v = (v||'').trim();
   if(!v) return '';
-  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜','饼坊':'饼坊','饼行':'饼坊'};
+  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜诗','昼夜诗':'昼夜诗','饼坊':'饼坊','饼行':'饼坊'};
   if(exact[v]) return exact[v];
   if(v.indexOf('茶颜')>=0) return '茶颜悦色';
   if(v.indexOf('鸳央')>=0 || v.indexOf('鸯央')>=0) return '鸳央咖啡';
   if(v.indexOf('墨柠')>=0 || v.indexOf('古德')>=0) return '墨柠';
-  if(v.indexOf('昼夜')>=0) return '昼夜';
+  if(v.indexOf('昼夜')>=0) return '昼夜诗';
   if(v.indexOf('饼坊')>=0 || v.indexOf('饼行')>=0) return '饼坊';
   return v;
 }
 
 // ── 市场名统一归一化（JS端二次防护）──
-var BRAND_AS_MARKET = {'墨柠':1,'古德墨柠':1,'鸳央咖啡':1,'鸳央':1,'昼夜':1,'饼坊':1};
+var BRAND_AS_MARKET = {'墨柠':1,'古德墨柠':1,'鸳央咖啡':1,'鸳央':1,'昼夜诗':1,'昼夜':1,'饼坊':1};
 var MARKET_NORM = {
   '湖南':'湖南','湖南省':'湖南','湖南省市场':'湖南',
   '江苏':'江苏','江苏省':'江苏','江苏省市场':'江苏',
@@ -3848,7 +3768,7 @@ function renderDashboardSummary(){
 function renderMarketPieRow(marketData, marketNames, brandData, brandNames, totalTakeout, mpTakeout, mtTakeout, totalTC, mpTC, mtTC, totalStores, mpStores, mtStores, globalRev, globalMp, globalMt, globalTC, globalMpTC, globalMtTC, globalStores, globalMpStores, globalMtStores, totalRevenue, totalAllTCRef, totalAllStoresRef, active, dimension){
   var pies = [];
   
-  var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜':'昼夜','饼坊':'饼坊'};
+  var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜诗':'昼夜','饼坊':'饼坊'};
   function shortLabel(n){ return SHORT_LABEL[n] || n; }
   
   // 根据维度从 store-level 数据中取字段
@@ -3961,7 +3881,7 @@ function renderDonutRing(segs, isActive, dimension){
     if(totalPct <= 0){
     return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:72px;height:72px"><circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#e0ddd7" stroke-width="'+strokeW+'"/></svg>';
   }
-  var cum = -90; // start at top (12 o'clock)
+  var cum = -90; // start at top
   var paths = '';
   for(var i=0;i<segs.length;i++){
     var angle = segs[i].pct / totalPct * 360;
@@ -3977,26 +3897,17 @@ function renderDonutRing(segs, isActive, dimension){
     paths += '<path d="M'+x1+','+y1+' A'+midR+','+midR+' 0 '+largeArc+',1 '+x2+','+y2+'" fill="none" stroke="'+segs[i].color+'" stroke-width="'+strokeW+'" stroke-linecap="butt"/>';
     cum += angle;
   }
-  // ── 按每段中点角度放置标签（cos>0→右侧，cos<0→左侧）──
-  var labelTexts = '';
-  if(segs.length === 2){
-    var cum2 = -90;
-    for(var j=0;j<2;j++){
-      var a = segs[j].pct / totalPct * 360;
-      var midDeg = cum2 + a/2;
-      cum2 += a;
-      var onRight = Math.cos(midDeg * Math.PI/180) > 0;
-      var lx = onRight ? 60 : 8;
-      var ta = onRight ? 'start' : 'end';
-      labelTexts += '<text x="'+lx+'" y="'+(cy+5)+'" text-anchor="'+ta+'" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[j].color+'" class="donut-pct">'+segs[j].pct.toFixed(0)+'%</text>';
-    }
-  } else if(segs.length===1 && dimension !== '门店数'){
-    labelTexts = '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'" class="donut-pct">'+segs[0].pct.toFixed(0)+'%</text>';
-  }
   return '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:72px;height:72px;overflow:visible">'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(innerR+strokeW/2)+'" fill="none" stroke="#f0edeb" stroke-width="'+strokeW+'"/>'
     + paths
-    + labelTexts
+    // 百分比标签（外圈一左一右，overflow:visible 防止 viewBox 裁剪）
+    // 2段=左右两百分比；单段门店数不显示(无拆分意义)
+    + (segs.length===2
+      ? '<text x="8" y="'+(cy+5)+'" text-anchor="end" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'" class="donut-pct">'+segs[0].pct.toFixed(0)+'%</text>'
+       + '<text x="60" y="'+(cy+5)+'" text-anchor="start" font-size="16" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[1].color+'" class="donut-pct">'+segs[1].pct.toFixed(0)+'%</text>'
+      : (segs.length===1 && dimension !== '门店数'
+        ? '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="17" font-weight="700" font-family="system-ui,-apple-system,sans-serif" fill="'+segs[0].color+'" class="donut-pct">'+segs[0].pct.toFixed(0)+'%</text>'
+        : ''))
     + '</svg>';
 }
 
@@ -4250,7 +4161,8 @@ function render(){
   }
 
   renderAlerts();
-  renderMarketBrandRank();
+  renderBrandRank();
+  renderMarketRank();
   renderRegionMgrRank();
   renderAreaMgrRank();
   renderUnifiedStoreRank();
@@ -4316,7 +4228,7 @@ function applyRealData(jsonData){
   const newMT = jsonData.mt_stores.map(s => ({
     code: s.code || '',
     name: s.name,
-    brand: s.brand === '昼夜诗' ? '昼夜' : s.brand,
+    brand: s.brand,
     market: s.market,
     city: s.city,
     region_mgr: s.region_mgr,
@@ -4355,7 +4267,7 @@ function applyRealData(jsonData){
   const newMP = jsonData.mp_stores.map(s => ({
     code: s.code || '',
     name: s.name,
-    brand: s.brand === '昼夜诗' ? '昼夜' : s.brand,
+    brand: s.brand,
     market: s.market,
     city: s.city,
     region_mgr: s.region_mgr,
