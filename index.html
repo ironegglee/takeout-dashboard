@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-15T16:56:23+08:00">
-<meta name="version" content="v2.9.11">
+<meta name="build-time" content="2026-06-15T17:29:35+08:00">
+<meta name="version" content="v2.9.12">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.9.11@20260615";
+  var VER = "v2.9.12@20260615";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -4434,6 +4434,7 @@ function render(){
 
   // 出餐耗时分布 & 分段占比：真实数据优先
   // 热力图/分段占比为全周期统计数据，无日级维度；日期筛选时提示
+  const ds2 = gfState.dateStart, de2 = gfState.dateEnd;
   if(REAL_MP_HEAT) renderHeat(REAL_MP_HEAT);
   if(REAL_MP_BREAKDOWN) renderBreakdown({breakdown: REAL_MP_BREAKDOWN});
   else renderBreakdown(DATA.today.mp);
@@ -4444,7 +4445,6 @@ function render(){
   }
 
   // ── 趋势图：显示所选日期范围内最近7天数据 ──
-  const ds2 = gfState.dateStart, de2 = gfState.dateEnd;
   let trend_mp = MP_DAILY.filter(d => !!d.date && (!ds2 || !de2 || (d.date >= ds2 && d.date <= de2)));
   trend_mp.sort((a,b) => a.date.localeCompare(b.date));
   // 如果范围超过7天，只显示最后7天；否则显示全部
