@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="__BUILD_TIME__">
-<meta name="version" content="v2.9.10">
+<meta name="version" content="v2.9.11">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
@@ -684,6 +684,7 @@
       <div class="channel-body">
         <div class="section-label">出餐耗时分布（今日各时段，分钟）</div>
         <div class="heat-row" id="mp-heat"></div>
+        <div id="mp-bd-note" style="display:none;font-size:10px;color:#854F0B;margin:2px 0 6px 0;text-align:center">⚠ 出餐耗时分布 / 分段占比为全周期统计数据，不受日期筛选影响</div>
         <div class="section-label">近7日平均出餐时间趋势</div>
         <div class="legend-row">
           <span><span class="leg-dot" style="background:#C8873A"></span>平均出餐(分钟)</span>
@@ -779,10 +780,10 @@
         <thead><tr>
           <th width="26">#</th>
           <th>门店</th>
-          <th width="64" class="sortable" onclick="toggleRankSort('avg')">出餐均值<span class="sort-arrow" id="rank-sort-avg"></span></th>
-          <th width="56" class="sortable" onclick="toggleRankSort('rate')">达标率<span class="sort-arrow" id="rank-sort-rate"></span></th>
-          <th width="56" class="sortable" onclick="toggleRankSort('shop_score')">店铺分<span class="sort-arrow" id="rank-sort-shop_score"></span></th>
-          <th width="56" class="sortable" onclick="toggleRankSort('exp_score')">体验分<span class="sort-arrow" id="rank-sort-exp_score"></span></th>
+          <th width="64" class="sortable" onclick="toggleBenchSort('avg')">出餐均值<span class="sort-arrow" id="rank-sort-avg"></span></th>
+          <th width="56" class="sortable" onclick="toggleBenchSort('rate')">达标率<span class="sort-arrow" id="rank-sort-rate"></span></th>
+          <th width="56" class="sortable" onclick="toggleBenchSort('shop_score')">店铺分<span class="sort-arrow" id="rank-sort-shop_score"></span></th>
+          <th width="56" class="sortable" onclick="toggleBenchSort('exp_score')">体验分<span class="sort-arrow" id="rank-sort-exp_score"></span></th>
         </tr></thead>
         <tbody id="best-rank-tbody"></tbody>
       </table>
@@ -798,10 +799,10 @@
         <thead><tr>
           <th width="26">#</th>
           <th>门店</th>
-          <th width="64" class="sortable" onclick="toggleRankSort('avg')">出餐均值<span class="sort-arrow" id="rank-sort-avg2"></span></th>
-          <th width="56" class="sortable" onclick="toggleRankSort('rate')">达标率<span class="sort-arrow" id="rank-sort-rate2"></span></th>
-          <th width="56" class="sortable" onclick="toggleRankSort('shop_score')">店铺分<span class="sort-arrow" id="rank-sort-shop_score2"></span></th>
-          <th width="56" class="sortable" onclick="toggleRankSort('exp_score')">体验分<span class="sort-arrow" id="rank-sort-exp_score2"></span></th>
+          <th width="64" class="sortable" onclick="toggleWorstSort('avg')">出餐均值<span class="sort-arrow" id="rank-sort-avg2"></span></th>
+          <th width="56" class="sortable" onclick="toggleWorstSort('rate')">达标率<span class="sort-arrow" id="rank-sort-rate2"></span></th>
+          <th width="56" class="sortable" onclick="toggleWorstSort('shop_score')">店铺分<span class="sort-arrow" id="rank-sort-shop_score2"></span></th>
+          <th width="56" class="sortable" onclick="toggleWorstSort('exp_score')">体验分<span class="sort-arrow" id="rank-sort-exp_score2"></span></th>
         </tr></thead>
         <tbody id="worst-rank-tbody"></tbody>
       </table>
@@ -1180,8 +1181,10 @@ let charts={};
 const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all'};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
 const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
-let rankSortKey = 'score';   // 榜单排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
-let rankSortDir = 'desc';    // 标杆榜单方向 (预警自动反向)
+let rankSortKey = 'score';   // 预警门店排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
+let rankSortDir = 'desc';    // 预警门店排序方向
+let benchSortKey = 'score';  // 标杆门店排序列（独立于预警门店）
+let benchSortDir = 'desc';   // 标杆门店排序方向（独立于预警门店）
 
 /* 下钻抽屉排序状态 */
 const DRILL_SORT={
@@ -2425,20 +2428,63 @@ function toggleStoreGroup(ch){
 }
 
 function toggleRankSort(key){
+  // 预警门店（右侧）排序列切换
   if(rankSortKey === key){
     rankSortDir = rankSortDir === 'asc' ? 'desc' : 'asc';
   } else {
     rankSortKey = key;
-    // Default direction: avg lower=better→asc, others higher=better→desc
     rankSortDir = (key === 'avg') ? 'asc' : 'desc';
   }
-  updateRankSortArrows();
+  updateWorstSortArrows();
+  renderUnifiedStoreRank();
+}
+
+function toggleBenchSort(key){
+  // 标杆门店（左侧）排序列切换
+  if(benchSortKey === key){
+    benchSortDir = benchSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    benchSortKey = key;
+    benchSortDir = (key === 'avg') ? 'asc' : 'desc';
+  }
+  updateBenchSortArrows();
+  renderUnifiedStoreRank();
+}
+
+function toggleWorstSort(key){
+  // 预警门店（右侧）排序列切换
+  if(rankSortKey === key){
+    rankSortDir = rankSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    rankSortKey = key;
+    rankSortDir = (key === 'avg') ? 'asc' : 'desc';
+  }
+  updateWorstSortArrows();
   renderUnifiedStoreRank();
 }
 
 function updateRankSortArrows(){
+  // 标杆门店箭头
   ['avg','rate','shop_score','exp_score'].forEach(function(k){
-    var els = document.querySelectorAll('#rank-sort-'+k+', #rank-sort-'+k+'2');
+    var els = document.querySelectorAll('#rank-sort-'+k);
+    for(var i=0;i<els.length;i++){
+      els[i].className = 'sort-arrow ' + (benchSortKey === k ? 'active '+benchSortDir : 'none');
+    }
+  });
+}
+
+function updateBenchSortArrows(){
+  ['avg','rate','shop_score','exp_score'].forEach(function(k){
+    var els = document.querySelectorAll('#rank-sort-'+k);
+    for(var i=0;i<els.length;i++){
+      els[i].className = 'sort-arrow ' + (benchSortKey === k ? 'active '+benchSortDir : 'none');
+    }
+  });
+}
+
+function updateWorstSortArrows(){
+  ['avg','rate','shop_score','exp_score'].forEach(function(k){
+    var els = document.querySelectorAll('#rank-sort-'+k+'2');
     for(var i=0;i<els.length;i++){
       els[i].className = 'sort-arrow ' + (rankSortKey === k ? 'active '+rankSortDir : 'none');
     }
@@ -2470,17 +2516,39 @@ function renderUnifiedStoreRank(){
     return 0;
   };
 
+  // 判断门店在某列是否有有效数据
+  const hasVal = (s, key) => {
+    if(key === 'score') return true;
+    if(key === 'avg') return s.mp_avg != null;
+    if(key === 'rate') return s.mp_rate != null;
+    if(key === 'shop_score') return s.mt_shop_score != null;
+    if(key === 'exp_score') return s.mt_exp_score != null;
+    return false;
+  };
+
   // ── 左面板：标杆门店 ──
-  const bestDir = rankSortDir;
-  const bestList = [...merged].sort((a, b) => {
-    var va = getSortVal(a, rankSortKey), vb = getSortVal(b, rankSortKey);
+  // 标杆条件：出餐≤15min AND 店铺分≥95 AND 综合体验分≥4.6
+  const benchFiltered = merged.filter(s => {
+    // 必须同时满足三个条件（有完整数据）
+    if(s.mp_avg == null || s.mp_avg > 15) return false;
+    if(s.mt_shop_score == null || s.mt_shop_score < 95) return false;
+    if(s.mt_exp_score == null || s.mt_exp_score < 4.6) return false;
+    return true;
+  });
+
+  // 标杆门店按独立排序列排序，默认综合分降序（最高→最低）
+  const bestDir = benchSortKey === 'avg' ? 'asc' : 'desc';
+  const bestList = [...benchFiltered].sort((a, b) => {
+    var va = getSortVal(a, benchSortKey), vb = getSortVal(b, benchSortKey);
     return bestDir === 'desc' ? vb - va : va - vb;
   });
+  
   const bestTbody = document.getElementById('best-rank-tbody');
   const bestCnt = document.getElementById('best-rank-count');
-  if (bestCnt) bestCnt.textContent = `${bestList.length} 家`;
+  const allMergedCnt = merged.length;
+  if (bestCnt) bestCnt.textContent = `${bestList.length} 家 / ${allMergedCnt} 家`;
   if (!bestList.length) {
-    bestTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">暂无数据</div></td></tr>`;
+    bestTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">暂无满足标杆条件的门店<br><span style="font-size:10px;color:var(--text-muted)">条件：出餐≤15min · 店铺分≥95 · 体验分≥4.6</span></div></td></tr>`;
   } else {
     bestTbody.innerHTML = bestList.map((s, i) => {
       const rate = s.mp_rate;
@@ -2496,17 +2564,21 @@ function renderUnifiedStoreRank(){
     }).join('');
   }
 
-  // ── 右面板：预警门店（与标杆反向） ──
-  const worstDir = rankSortDir === 'desc' ? 'asc' : 'desc';
-  const worstList = [...merged].sort((a, b) => {
+  // ── 右面板：预警门店（与标杆独立）──
+  // 排除当前排序列无数据的门店（默认忽视空白数据门店）
+  const worstFiltered = merged.filter(s => hasVal(s, rankSortKey));
+
+  const worstDir = rankSortKey === 'avg' ? 'asc' : 'desc';
+  const worstList = [...worstFiltered].sort((a, b) => {
     var va = getSortVal(a, rankSortKey), vb = getSortVal(b, rankSortKey);
     return worstDir === 'desc' ? vb - va : va - vb;
   });
+  
   const worstTbody = document.getElementById('worst-rank-tbody');
   const worstCnt = document.getElementById('worst-rank-count');
-  if (worstCnt) worstCnt.textContent = `${worstList.length} 家`;
+  if (worstCnt) worstCnt.textContent = `${worstList.length} 家 / ${allMergedCnt} 家`;
   if (!worstList.length) {
-    worstTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">暂无数据</div></td></tr>`;
+    worstTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">暂无预警门店</div></td></tr>`;
   } else {
     worstTbody.innerHTML = worstList.map((s, i) => {
       const rate = s.mp_rate;
@@ -2521,7 +2593,10 @@ function renderUnifiedStoreRank(){
       </tr>`;
     }).join('');
   }
-  updateRankSortArrows();
+  
+  // 更新两个面板的排序箭头
+  updateBenchSortArrows();
+  updateWorstSortArrows();
 }
 
 /* ================================================================
@@ -3459,15 +3534,30 @@ function calcRealMetrics(){
   ];
 
   // 动态 shopBlock / expBlock
+  // 日期筛选时，用 STORE_DAILY 过滤门店集合（仅计算维度时使用，确保分项数据与日期范围对齐）
+  let mtForDims = mt;
+  if(mtDayFiltered.length > 0 && STORE_DAILY && Object.keys(STORE_DAILY).length > 0){
+    var dateCodes = new Set();
+    var dates = Object.keys(STORE_DAILY).sort();
+    for(var di=0; di<dates.length; di++){
+      if(dates[di] < ds || dates[di] > de) continue;
+      var sd = STORE_DAILY[dates[di]];
+      if(sd && sd.mt) for(var ci=0; ci<sd.mt.length; ci++) dateCodes.add(sd.mt[ci]);
+    }
+    if(dateCodes.size > 0){
+      mtForDims = mt.filter(function(s){ return dateCodes.has(s.code); });
+    }
+  }
+  var mtDimCount = mtForDims.length || 1;
   const mtShopBlock = {
     score: +mtAvgScore.toFixed(1), target:95, max:100,
     dims: [
-      {name:'差评回复率得分',   val:+(mt.reduce((a,s)=>a+(s.shop_dims.reply_rate||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'商家评分得分',     val:+(mt.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'高峰营业时长得分', val:+(mt.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'商家不接单率',   val:+(mt.reduce((a,s)=>a+(s.shop_dims.reject_rate||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'基础营业时长得分', val:+(mt.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'出餐上报/准时率得分', val:+(mt.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/(mt.length||1)).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'差评回复率得分',   val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.reply_rate||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'商家评分得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'高峰营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'商家不接单率',   val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.reject_rate||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'基础营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'出餐上报/准时率得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
     ]
   };
   mtShopBlock.dims.forEach(d=>{
@@ -3478,12 +3568,12 @@ function calcRealMetrics(){
   const mtExpBlock = {
     score: +mtAvgExp.toFixed(2), target:4.6, max:5,
     dims: [
-      {name:'商品满意度',           val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.product_sat)||0),0)/(mt.length||1)).toFixed(2), unit:'',   target:4.6,  max:5,   status:'ok'},
-      {name:'包装满意度',           val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.pack_sat)||0),0)/(mt.length||1)).toFixed(2), unit:'',   target:4.6,  max:5,   status:'ok'},
-      {name:'复购率得分',           val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.repurchase)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,  max:5,   status:'ok'},
-      {name:'消息回复率得分',       val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.msg_reply)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,  max:5,   status:'ok'},
-      {name:'服务负反馈率得分',         val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.service_neg)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
-      {name:'食安负反馈率得分',         val:+(mt.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.food_safety)||0),0)/(mt.length||1)).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
+      {name:'商品满意度',           val:+(mtForDims.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.product_sat)||0),0)/mtDimCount).toFixed(2), unit:'',   target:4.6,  max:5,   status:'ok'},
+      {name:'包装满意度',           val:+(mtForDims.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.pack_sat)||0),0)/mtDimCount).toFixed(2), unit:'',   target:4.6,  max:5,   status:'ok'},
+      {name:'复购率得分',           val:+(mtForDims.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.repurchase)||0),0)/mtDimCount).toFixed(2), unit:'分', target:4.6,  max:5,   status:'ok'},
+      {name:'消息回复率得分',       val:+(mtForDims.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.msg_reply)||0),0)/mtDimCount).toFixed(2), unit:'分', target:4.6,  max:5,   status:'ok'},
+      {name:'服务负反馈率得分',         val:+(mtForDims.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.service_neg)||0),0)/mtDimCount).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
+      {name:'食安负反馈率得分',         val:+(mtForDims.reduce((a,s)=>a+((s.exp_dims&&s.exp_dims.food_safety)||0),0)/mtDimCount).toFixed(2), unit:'分', target:4.6,    max:5,   status:'ok'},
     ]
   };
   mtExpBlock.dims.forEach(d=>{
@@ -4343,28 +4433,40 @@ function render(){
     </div>`;
 
   // 出餐耗时分布 & 分段占比：真实数据优先
+  // 热力图/分段占比为全周期统计数据，无日级维度；日期筛选时提示
   if(REAL_MP_HEAT) renderHeat(REAL_MP_HEAT);
   if(REAL_MP_BREAKDOWN) renderBreakdown({breakdown: REAL_MP_BREAKDOWN});
   else renderBreakdown(DATA.today.mp);
+  // 日期筛选时添加提示
+  var mpBdNote = document.getElementById('mp-bd-note');
+  if(mpBdNote){
+    mpBdNote.style.display = (ds2 && de2 && (ds2 !== EMBEDDED_DATE_START || de2 !== EMBEDDED_DATE_END)) ? 'block' : 'none';
+  }
 
-  // ── 趋势图：始终显示近7日数据，不受日期筛选影响 ──
-  const trend7d_mp = MP_DAILY.filter(d=>!!d.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(-7);
-  if(trend7d_mp.length > 0){
+  // ── 趋势图：显示所选日期范围内最近7天数据 ──
+  const ds2 = gfState.dateStart, de2 = gfState.dateEnd;
+  let trend_mp = MP_DAILY.filter(d => !!d.date && (!ds2 || !de2 || (d.date >= ds2 && d.date <= de2)));
+  trend_mp.sort((a,b) => a.date.localeCompare(b.date));
+  // 如果范围超过7天，只显示最后7天；否则显示全部
+  trend_mp = trend_mp.slice(-7);
+  if(trend_mp.length > 0){
     renderMpTrendChart({
-      days: trend7d_mp.map(d=>d.date.slice(5)),
-      vals: trend7d_mp.map(d=>d.avg_cook),
+      days: trend_mp.map(d=>d.date.slice(5)),
+      vals: trend_mp.map(d=>d.avg_cook),
       sla: 10
     });
   } else {
     renderMpTrendChart({days:[], vals:[], sla:10});
   }
 
-  const trend7d_mt = MT_DAILY.filter(d=>!!d.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(-7);
-  if(trend7d_mt.length > 0){
+  let trend_mt = MT_DAILY.filter(d => !!d.date && (!ds2 || !de2 || (d.date >= ds2 && d.date <= de2)));
+  trend_mt.sort((a,b) => a.date.localeCompare(b.date));
+  trend_mt = trend_mt.slice(-7);
+  if(trend_mt.length > 0){
     renderMtScoreChart({
-      days: trend7d_mt.map(d=>d.date.slice(5)),
-      shop: trend7d_mt.map(d=>d.avg_shop_score),
-      exp: trend7d_mt.map(d=>d.avg_exp_score),
+      days: trend_mt.map(d=>d.date.slice(5)),
+      shop: trend_mt.map(d=>d.avg_shop_score),
+      exp: trend_mt.map(d=>d.avg_exp_score),
     });
   } else {
     renderMtScoreChart({days:[], shop:[], exp:[]});
