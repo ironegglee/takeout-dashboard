@@ -1637,7 +1637,8 @@ function rebuildMarketBrandSelect(){
   const s=document.getElementById('gf-market-brand');
   const cur=s.value;
   s.innerHTML='<option value="all">全部市场/品牌</option>'
-    +'<optgroup label="── 市场 ──">'+markets.map(m=>`<option value="mkt:${m}">${m}</option>`).join('')+'</optgroup>';
+    +'<optgroup label="── 市场 ──">'+markets.map(m=>`<option value="mkt:${m}">${m}</option>`).join('')+'</optgroup>'
+    +'<optgroup label="── 品牌 ──">'+brands.map(b=>`<option value="brd:${b}">${b}</option>`).join('')+'</optgroup>';
   s.value=cur;
 }
 
