@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-15T17:40:07+08:00">
+<meta name="build-time" content="2026-06-15T18:13:01+08:00">
 <meta name="version" content="v2.9.13">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -1966,6 +1966,37 @@ function applyOrgFilter(alerts){
   return filtered;
 }
 
+// ── 维度改善建议（按维度名称映射，供预警弹窗和门店详情共用）──
+function getDimImproveTips(dimName){
+  var map = {
+    '差评回复率得分':    {why:'饮品/周边卖完了没有及时操作售罄，顾客下单后导致退款', tip:'日常维护需在1-2天内完成，建议加入值班本/打烊日志每天反馈'},
+    '商家评分得分':      {why:'顾客投诉或差评未及时处理，拉低评分', tip:'重视顾客诉求，及时处理满足，并在门店内复盘针对性改善'},
+    '高峰营业时长得分':  {why:'高峰时段未开启平台营业，错失订单', tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业'},
+    '商家不接单率得分':  {why:'商家主动"拒单"或"超时不接单"造成的取消订单', tip:'定闹钟定时检查菜单，断货及时售罄'},
+    '商家不接单率':      {why:'商家主动"拒单"或"超时不接单"造成的取消订单', tip:'定闹钟定时检查菜单，断货及时售罄'},
+    '基础营业时长得分':  {why:'平台营业时长不足，影响曝光和下单转化', tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业'},
+    '出餐上报/准时率得分':{why:'美团默认餐前调度，未在骑手取餐前点击出餐完成会影响上报率', tip:'每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成'},
+    '出餐上报/配送准时率得分':{why:'美团默认餐前调度，未在骑手取餐前点击出餐完成会影响上报率', tip:'每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成'},
+    '优质商品率得分':    {why:'部分商品断货或品质不稳定，影响商品率', tip:'及时维护商品库存，确保在售商品品质达标'},
+    '菜单丰富度得分':    {why:'菜单内容不够丰富，曝光转化受影响', tip:'定期更新菜单，丰富品类展示，提高吸引力'},
+    '装修丰富度得分':    {why:'店铺装修不够精致，影响顾客进店率', tip:'优化店铺头图、轮播图，完善店铺装修素材'},
+    '服务功能丰富度得分':{why:'店铺服务功能不足（如发票/售后）', tip:'开启平台提供的服务功能，完善顾客售后体验'},
+    '商品质量分':        {why:'评价中反映商品/口味问题较多', tip:'加强出品标准化检查，确保每杯饮品口感一致'},
+    '服务体验分':        {why:'顾客反映服务态度或响应问题', tip:'加强伙伴服务意识培训，高峰时段增派人手'},
+    '商品满意度':        {why:'打包错漏餐或出品不一致', tip:'打包增加检查动作，安排熟练伙伴，尽可能不错餐漏餐'},
+    '包装满意度':        {why:'外卖包装密封不严导致洒漏', tip:'打包加盖确认扣合，减少洒餐概率'},
+    '复购率指标':        {why:'顾客回头率偏低，粘性不足', tip:'及时回复评价（好评+差评），增加顾客粘性'},
+    '复购率得分':        {why:'顾客回头率偏低，粘性不足', tip:'及时回复评价（好评+差评），增加顾客粘性'},
+    '消息回复率':        {why:'顾客消息未及时回复，影响体验分', tip:'开启机器人自动回复，处理顾客日常询问'},
+    '消息回复率得分':    {why:'顾客消息未及时回复，影响体验分', tip:'开启机器人自动回复，处理顾客日常询问'},
+    '服务负反馈率':      {why:'差评/投诉中服务态度类占比较高', tip:'每单随餐附"如有问题请联系我们"卡片，引导私了而非差评'},
+    '服务负反馈率得分':  {why:'差评/投诉中服务态度类占比较高', tip:'每单随餐附"如有问题请联系我们"卡片，引导私了而非差评'},
+    '食品安全负反馈率':  {why:'顾客投诉涉及食安问题（异物/卫生等）', tip:'伙伴着装穿戴规范、饮品制作场景规范，避免食安风险'},
+    '食安负反馈率得分':  {why:'顾客投诉涉及食安问题（异物/卫生等）', tip:'伙伴着装穿戴规范、饮品制作场景规范，避免食安风险'},
+  };
+  return map[dimName] || null;
+}
+
 function openAlertDetail(alert){
   if(alertDetailModal){ try{document.body.removeChild(alertDetailModal);}catch(e){} }
   var typeLabelMap = {cook:'出餐超15分钟', shop:'店铺分低于95分', rating:'综合体验分低于4.6'};
@@ -1981,6 +2012,7 @@ function openAlertDetail(alert){
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:1100;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s';
   
   // Parse detail dimensions (semicolon-separated "name+score" pairs)
+  // rating 类型维度是 1~5 分制，shop 类型是 0~100 百分制，需区分量纲避免柱状图比例失调
   var detailItems = [];
   var dimThreshold = alert.type === 'rating' ? 4.6 : 80;
   if(alert.detail){
@@ -1991,9 +2023,14 @@ function openAlertDetail(alert){
       var m = seg.match(/^(.+?)(\d+(?:\.\d+)?)\s*分/);
       var m2 = seg.match(/^(.+?)(\d+(?:\.\d+)?)\s*分（百分制）/);
       if(m2){
-        detailItems.push({name: m2[1].trim(), val: parseFloat(m2[2]), warn: seg.indexOf('⚠')>=0 || (m2[2] && parseFloat(m2[2])<80)});
+        // 「百分制」标记：显式 0~100 量纲，柱状图直接映射
+        detailItems.push({name: m2[1].trim(), val: parseFloat(m2[2]), maxVal: 100, warn: seg.indexOf('⚠')>=0 || (m2[2] && parseFloat(m2[2])<80)});
       } else if(m){
-        detailItems.push({name: m[1].trim(), val: parseFloat(m[2]), warn: seg.indexOf('⚠')>=0 || (m[2] && parseFloat(m[2])<dimThreshold)});
+        // 根据预警类型推断量纲：rating=5分制，shop=百分制
+        var dv = parseFloat(m[2]);
+        var mv = alert.type === 'rating' ? 5 : 100;
+        var dw = seg.indexOf('⚠')>=0 || (alert.type === 'rating' ? dv < 4.2 : dv < 80);
+        detailItems.push({name: m[1].trim(), val: dv, maxVal: mv, warn: dw});
       }
     }
   }
@@ -2045,14 +2082,17 @@ function openAlertDetail(alert){
     cardHtml += '<div style="margin:0 24px 16px">';
     cardHtml += '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">各维度得分</div>';
     detailItems.forEach(function(di){
-      var pct = Math.min(100, Math.max(0, di.val));
+      var mv = di.maxVal || 100;
+      var pct = Math.min(100, Math.max(0, di.val / mv * 100));
       var barColor = di.warn ? color : '#4CAF50';
       var bgColor = di.warn ? color+'14' : '#E8F5E9';
+      // 5分制维度显示一位小数，百分制显示整数
+      var showVal = mv === 5 ? di.val.toFixed(1) : di.val;
       cardHtml += '<div style="display:flex;align-items:center;margin-bottom:6px;gap:8px">';
       cardHtml += '<div style="width:90px;font-size:11px;color:var(--text-secondary);text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(di.name)+'">'+esc(di.name)+'</div>';
       cardHtml += '<div style="flex:1;height:16px;border-radius:8px;background:#f0eeea;overflow:hidden">';
       cardHtml += '<div style="height:100%;width:'+pct+'%;border-radius:8px;background:'+barColor+';transition:width 0.3s"></div></div>';
-      cardHtml += '<div style="width:36px;font-size:11px;font-weight:600;color:'+(di.warn?color:'#333')+';text-align:left;flex-shrink:0">'+di.val+'</div>';
+      cardHtml += '<div style="width:36px;font-size:11px;font-weight:600;color:'+(di.warn?color:'#333')+';text-align:left;flex-shrink:0">'+showVal+'</div>';
       cardHtml += '</div>';
     });
     cardHtml += '</div>';
@@ -2065,6 +2105,37 @@ function openAlertDetail(alert){
     for(var di=0;di<alert.low_dims.length;di++){
       var d = alert.low_dims[di];
       cardHtml += '<div style="display:inline-block;margin:2px 4px;padding:3px 10px;border-radius:12px;background:#FEF0EE;border:1px solid '+color+'30;font-size:11px;color:'+color+';font-weight:500">'+esc(d.name)+' <b>'+d.val+'</b></div>';
+    }
+    cardHtml += '</div>';
+  }
+  
+  // ── 改善建议（针对预警维度逐项给出）──
+  var improvableItems = [];
+  // 优先使用 low_dims（gen_data.py 已筛选），没有则从 detailItems 取被标记 warn 的项
+  if(alert.low_dims && alert.low_dims.length > 0){
+    improvableItems = alert.low_dims;
+  } else {
+    improvableItems = detailItems.filter(function(di){ return di.warn; });
+  }
+  // 去重（按名称）
+  var seenNames = {}, uniqActions = [];
+  for(var ai=0;ai<improvableItems.length;ai++){
+    var nm = improvableItems[ai].name;
+    if(seenNames[nm]) continue;
+    seenNames[nm] = true;
+    var tip = getDimImproveTips(nm);
+    if(tip) uniqActions.push({name: nm, why: tip.why, tip: tip.tip, val: improvableItems[ai].val});
+  }
+  if(uniqActions.length > 0){
+    cardHtml += '<div style="margin:0 24px 16px;padding-top:12px;border-top:1px dashed rgba(0,0,0,0.08)">';
+    cardHtml += '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:10px">🔧 改善建议</div>';
+    for(var ua=0;ua<uniqActions.length;ua++){
+      var a = uniqActions[ua];
+      cardHtml += '<div style="margin-bottom:8px;padding:8px 10px;border-radius:6px;background:#FFFBF0;border-left:3px solid '+color+';font-size:11px;line-height:1.7;color:var(--text-secondary)">';
+      cardHtml += '<div style="font-weight:600;color:var(--text-primary);margin-bottom:2px">'+esc(a.name)+'（当前 '+a.val+'）</div>';
+      if(a.why) cardHtml += '<div style="color:#A36D2D;margin-bottom:2px">⚠ 原因：'+esc(a.why)+'</div>';
+      cardHtml += '<div style="color:#3B6D11">💡 '+esc(a.tip)+'</div>';
+      cardHtml += '</div>';
     }
     cardHtml += '</div>';
   }
