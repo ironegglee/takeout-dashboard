@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="__BUILD_TIME__">
-<meta name="version" content="v2.9.13">
+<meta name="version" content="v2.9.15">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
@@ -2054,11 +2054,22 @@ function openAlertDetail(alert){
   cardHtml += '</div>';
   
   // Main metric highlight
-  var mainVal = '', mainLabel = '';
+  var mainVal = '', mainLabel = '', mainSub = '';
   if(alert.type==='cook'){
-    var m = (alert.detail||'').match(/日均出餐\s*([\d.]+)\s*分/);
-    mainVal = m ? m[1] : '--';
-    mainLabel = '日均出餐时长（分钟）';
+    // 优先使用 max_cook 字段，兜底从 detail 解析「峰值」
+    var maxCook = alert.max_cook;
+    var avgCook = alert.avg_cook;
+    if(!maxCook){
+      var mm = (alert.detail||'').match(/峰值出餐\s*([\d.]+)\s*分/);
+      maxCook = mm ? mm[1] : null;
+    }
+    if(!avgCook){
+      var am = (alert.detail||'').match(/日均\s*([\d.]+)\s*分/);
+      avgCook = am ? am[1] : null;
+    }
+    mainVal = maxCook || '--';
+    mainLabel = '峰值出餐时长（分钟）';
+    mainSub = avgCook ? '日均 '+avgCook+' 分钟' : '';
   } else if(alert.type==='shop'){
     mainVal = alert.shop_score ? alert.shop_score+' 分' : '--';
     mainLabel = '店铺分总分';
@@ -2070,6 +2081,7 @@ function openAlertDetail(alert){
   cardHtml += '<div style="margin:0 24px 16px;padding:12px 16px;border-radius:8px;background:'+color+'0D;border:1px solid '+color+'20;text-align:center">';
   cardHtml += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">'+mainLabel+'</div>';
   cardHtml += '<div style="font-size:28px;font-weight:700;color:'+color+'">'+mainVal+'</div>';
+  if(mainSub) cardHtml += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">'+mainSub+'</div>';
   cardHtml += '</div>';
   
   // Alert message
@@ -2280,8 +2292,12 @@ function openRegionDrillDown(region, colorClass){
   // Extract metric value from alert data
   function getMetric(a){
     if(a.type==="cook"){
-      var m = (a.detail||"").match(/日均出餐\s*([\d.]+)\s*分/);
-      return m ? m[1]+" 分钟" : (a.msg||"");
+      if(a.max_cook!=null) return a.max_cook+" 分钟";
+      var m = (a.detail||"").match(/峰值出餐\s*([\d.]+)\s*分/);
+      if(m) return m[1]+" 分钟";
+      var m2 = (a.detail||"").match(/日均出餐\s*([\d.]+)\s*分/);
+      if(m2) return m2[1]+" 分钟";
+      return (a.msg||"");
     }
     if(a.type==="shop"){
       if(a.shop_score!=null) return a.shop_score+" 分";

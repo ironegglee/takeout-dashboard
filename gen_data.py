@@ -627,9 +627,12 @@ for name in daily_cook['门店名称'].unique():
     bad_dates_all = store_data[store_data['over15']]['日期_str'].tolist()
     for i in range(len(store_data)-1):
         if store_data.loc[i,'over15'] and store_data.loc[i+1,'over15']:
+            bad_days_data = store_data[store_data['over15']]
             over15_stores[str(name)] = {
                 'dates': bad_dates_all,
-                'avg': round(store_data['cook_min_full'].mean(), 1)
+                'avg': round(store_data['cook_min_full'].mean(), 1),
+                'max': round(store_data['cook_min_full'].max(), 1),
+                'bad_avg': round(bad_days_data['cook_min_full'].mean(), 1) if len(bad_days_data) > 0 else 0,
             }
             break
 
@@ -650,8 +653,10 @@ for mp_name, cook_info in over15_stores.items():
             'region_mgr': info['region_mgr'],
             'area_mgr': info['area_mgr'],
             'leader': info['leader'],
-            'msg': f'连续2天出餐超15分钟（{bad_dates[0]}~{bad_dates[-1]}）',
-            'detail': f'近7日日均出餐 {cook_info["avg"]} 分钟 | 超时日期: {",".join(bad_dates)}',
+            'msg': f'连续2天出餐超15分钟（{bad_dates[0]}~{bad_dates[-1]}），峰值 {cook_info["max"]} 分钟',
+            'detail': f'峰值出餐 {cook_info["max"]} 分钟 | 日均 {cook_info["avg"]} 分钟 | 超时日期: {",".join(bad_dates)}',
+            'max_cook': cook_info['max'],
+            'avg_cook': cook_info['avg'],
         })
 
 print(f'  出餐超时预警: {len(alerts)} 条')
