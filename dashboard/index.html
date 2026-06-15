@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="__BUILD_TIME__">
-<meta name="version" content="v2.9.9">
+<meta name="version" content="v2.9.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
@@ -123,12 +123,23 @@
   .main { max-width: 1320px; margin: 0 auto; padding: 24px 32px 0; }
   .channel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
   /* ── 顶部统一指标行 ── */
-  .top-metrics { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px; }
-  .top-metrics .m-card { background: var(--card); border: 1px solid var(--border); }
-  .top-metrics .total-card { background: #F4F1EA; border: 1px solid var(--border); }
-  .top-metrics .total-card .m-val { color: #1A1A1A; }
-  .top-metrics .total-card .m-sub { margin-top:0; }
-  .top-metrics .total-breakdown { display: flex; gap: 10px; font-size: 11px; color: var(--text-secondary); }
+  .top-metrics { display: grid; grid-template-columns: 1fr 200px 1fr; gap: 10px; margin-bottom: 20px; }
+  .top-metrics-group { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+  .top-metrics-group.mp { border-top: 3px solid var(--mp-primary); }
+  .top-metrics-group.mt { border-top: 3px solid var(--mt-primary); }
+  .top-group-hdr { padding: 6px 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+  .top-group-hdr.mp { color: #854F0B; background: #FEF9F0; }
+  .top-group-hdr.mt { color: #993C1D; background: #FFF8F7; }
+  .top-group-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 10px 12px; }
+  .top-group-cards .m-card { background: transparent; border: none; padding: 6px 8px; border-radius: 0; }
+  .top-group-cards .m-card .m-val { font-size: 18px; }
+  .top-group-cards .m-card .m-label { font-size: 10px; }
+  .top-group-cards .m-card .m-sub { font-size: 10px; }
+  /* ── 外卖总店数（中间独立卡）── */
+  .top-metrics .total-card-wrap { background: #F4F1EA; border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; text-align: center; }
+  .top-metrics .total-card-wrap .m-val { font-size: 28px; font-weight: 700; color: #1A1A1A; line-height: 1.2; }
+  .top-metrics .total-card-wrap .m-unit { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: 3px; }
+  .top-metrics .total-breakdown { display: flex; gap: 10px; font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
   .top-metrics .total-breakdown .mp-dot, .top-metrics .total-breakdown .mt-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; flex-shrink:0; }
   .top-metrics .total-breakdown .mp-dot { background: var(--mp-primary); }
   .top-metrics .total-breakdown .mt-dot { background: var(--mt-primary); }
@@ -329,8 +340,12 @@
 
   @media (max-width: 900px) {
     .channel-grid { grid-template-columns: 1fr; }
-    .top-metrics { grid-template-columns: repeat(4, 1fr); }
-    .top-metrics .m-val { font-size: 18px; }
+    .top-metrics { grid-template-columns: 1fr; }
+    .top-metrics-group { border-left: 3px solid var(--border); border-top: none; }
+    .top-metrics-group.mp { border-left-color: var(--mp-primary); }
+    .top-metrics-group.mt { border-left-color: var(--mt-primary); }
+    .top-group-cards .m-val { font-size: 14px; }
+    .total-card-wrap .m-val { font-size: 22px; }
     .mgmt-grid { grid-template-columns: 1fr; }
     .arch-block { flex-direction: column; }
     .store-rank-section { grid-template-columns: 1fr; }
@@ -505,7 +520,7 @@
     .gf-group { flex-basis: 100%; gap: 4px; }
 
     .metrics-row.cols4, .metrics-row.cols5 { grid-template-columns: 1fr 1fr; }
-    .top-metrics { grid-template-columns: 1fr 1fr; }
+    .top-metrics { grid-template-columns: 1fr; }
     .score-dim-grid { grid-template-columns: 1fr; }
     .m-val { font-size: 16px; }
     .drawer-stats.cols3 { grid-template-columns: 1fr; }
@@ -4295,26 +4310,37 @@ function render(){
   const real = calcRealMetrics();
   renderMtScoreTree(real.mtShopBlock, real.mtExpBlock);
 
-  // ── 顶部统一指标行：MP 3项 + 外卖总店数 + MT 3项 ──
+  // ── 顶部统一指标行：MP 组 | 外卖总店数 | MT 组 ──
   const tc = real.totalStoreCount || {deduped:'--', mp:'--', mt:'--'};
-  const topItems = [
-    ...real.mpMetrics,
-    {
-      label:'外卖门店总数',
-      val: tc.deduped, unit:'家',
-      sub:`<span class="total-breakdown"><span><span class="mp-dot"></span>小程序 ${tc.mp} 家</span><span><span class="mt-dot"></span>美团 ${tc.mt} 家</span></span>`,
-      dir:'', ref:'', cls:'total-card'
-    },
-    ...real.mtMetrics
-  ];
-  document.getElementById('top-metrics').innerHTML = topItems.map((m,i)=>{
-    const cardCls = m.cls ? `m-card ${m.cls}` : 'm-card';
-    return `<div class="${cardCls}">
-      <div class="m-label">${m.label}</div>
-      <div class="m-val"${m.title?` title="${m.title}"`:''}>${m.val}<span style="font-size:12px;font-weight:400;margin-left:3px;color:var(--text-secondary)">${m.unit}</span></div>
-      <div class="m-sub ${m.dir||''}">${m.dir==='up'?'<span class="tri-up"></span>':m.dir==='down'?'<span class="tri-down"></span>':''}${m.sub}${m.ref?`<span style="color:var(--text-muted);margin-left:2px">${m.ref}</span>`:''}</div>
+
+  // 渲染一组指标卡片
+  function renderCards(items){
+    return items.map(m=>{
+      return `<div class="m-card">
+        <div class="m-label">${m.label}</div>
+        <div class="m-val"${m.title?` title="${m.title}"`:''}>${m.val}<span style="font-size:11px;font-weight:400;color:var(--text-secondary)">${m.unit}</span></div>
+        <div class="m-sub ${m.dir||''}">${m.dir==='up'?'<span class="tri-up"></span>':m.dir==='down'?'<span class="tri-down"></span>':''}${m.sub}${m.ref?`<span style="color:var(--text-muted);margin-left:2px">${m.ref}</span>`:''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('top-metrics').innerHTML = `
+    <div class="top-metrics-group mp">
+      <div class="top-group-hdr mp">🔶 小程序自配送</div>
+      <div class="top-group-cards">${renderCards(real.mpMetrics)}</div>
+    </div>
+    <div class="total-card-wrap">
+      <div class="m-label">外卖门店总数</div>
+      <div><span class="m-val">${tc.deduped}</span><span class="m-unit">家</span></div>
+      <div class="total-breakdown">
+        <span><span class="mp-dot"></span>小程序 ${tc.mp} 家</span>
+        <span><span class="mt-dot"></span>美团 ${tc.mt} 家</span>
+      </div>
+    </div>
+    <div class="top-metrics-group mt">
+      <div class="top-group-hdr mt">🔴 美团外卖</div>
+      <div class="top-group-cards">${renderCards(real.mtMetrics)}</div>
     </div>`;
-  }).join('');
 
   // 出餐耗时分布 & 分段占比：真实数据优先
   if(REAL_MP_HEAT) renderHeat(REAL_MP_HEAT);

@@ -30,10 +30,23 @@ CURRENT_VERSION = ver_match.group(1) if ver_match else 'v2.9.0'
 print(f'当前版本: {CURRENT_VERSION}')
 
 # 提取日期范围
+# 提取日期范围
 full_date = data.get('full_date_range', data.get('mp_date_range', ''))
 date_start = '2026-05-01'
 date_end = '2026-06-02'
-if full_date and ' ~ ' in full_date:
+
+# 优先从 mp_daily + mt_daily + perf_daily 真实数据计算日期范围
+all_dates = set()
+for arr_key in ('mp_daily', 'mt_daily', 'perf_daily', 'order_daily'):
+    for d in data.get(arr_key, []):
+        dt = d.get('date', '')
+        if dt: all_dates.add(dt)
+if all_dates:
+    sorted_dates = sorted(all_dates)
+    date_start = sorted_dates[0]
+    date_end = sorted_dates[-1]
+    print(f'数据日期范围: {date_start} ~ {date_end}')
+elif full_date and ' ~ ' in full_date:
     parts = full_date.split(' ~ ')
     date_start = parts[0].strip()
     date_end = parts[1].strip()
