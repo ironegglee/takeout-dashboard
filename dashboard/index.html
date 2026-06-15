@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="__BUILD_TIME__">
-<meta name="version" content="v2.9.12">
+<meta name="version" content="v2.9.13">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
@@ -1920,6 +1920,39 @@ function drillDimResort(th){
 let alertDetailModal = null;
 let alertDataMap = [];
 
+// 从 STORE_DAILY 提取日期筛选范围内的门店编码集合（复用函数）
+function getDateFilteredStoreCodes(){
+  var ds = gfState.dateStart, de = gfState.dateEnd;
+  if(!ds || !de || !STORE_DAILY || !Object.keys(STORE_DAILY).length) return null;
+  var codes = new Set();
+  var dates = Object.keys(STORE_DAILY).sort();
+  for(var di=0; di<dates.length; di++){
+    if(dates[di] < ds || dates[di] > de) continue;
+    var sd = STORE_DAILY[dates[di]];
+    if(sd && sd.mt) for(var ci=0; ci<sd.mt.length; ci++) codes.add(sd.mt[ci]);
+    if(sd && sd.mp) for(var ci=0; ci<sd.mp.length; ci++) codes.add(sd.mp[ci]);
+  }
+  return codes.size > 0 ? codes : null;
+}
+
+// 从 CODE_TO_ORG 映射 code→name，取日期筛选范围内的门店名称集合
+function getDateFilteredStoreNames(){
+  var codes = getDateFilteredStoreCodes();
+  if(!codes) return null;
+  var names = new Set();
+  if(typeof CODE_TO_ORG !== 'undefined' && CODE_TO_ORG){
+    var entries = Object.entries(CODE_TO_ORG);
+    for(var i=0; i<entries.length; i++){
+      if(codes.has(entries[i][0])) names.add(entries[i][1].name);
+    }
+  } else {
+    // fallback: 从 STORE_MP + STORE_MT 构建
+    if(STORE_MP) for(var i=0; i<STORE_MP.length; i++){ if(codes.has(STORE_MP[i].code)) names.add(STORE_MP[i].name); }
+    if(STORE_MT) for(var i=0; i<STORE_MT.length; i++){ if(codes.has(STORE_MT[i].code)) names.add(STORE_MT[i].name); }
+  }
+  return names.size > 0 ? names : null;
+}
+
 function applyOrgFilter(alerts){
   let filtered = alerts;
   const mb = gfState.marketBrand;
@@ -2060,6 +2093,13 @@ function renderAlerts(){
   
   // Apply org filters
   let filteredAll = applyOrgFilter(allAlerts);
+
+  // Apply date filter — only show alerts from stores that have data in selected date range
+  var dateNames = getDateFilteredStoreNames();
+  if(dateNames){
+    filteredAll = filteredAll.filter(function(a){ return dateNames.has(a.store); });
+  }
+
   let cooks = filteredAll.filter(function(a){ return a.type === "cook"; });
   let shops = filteredAll.filter(function(a){ return a.type === "shop"; });
   let ratings = filteredAll.filter(function(a){ return a.type === "rating"; });
@@ -2492,8 +2532,16 @@ function updateWorstSortArrows(){
 }
 
 function renderUnifiedStoreRank(){
-  const mpStores = filterStores(STORE_MP);
-  const mtStores = filterStores(STORE_MT);
+  var mpStores = filterStores(STORE_MP);
+  var mtStores = filterStores(STORE_MT);
+
+  // 日期筛选：只保留在所选日期范围内有数据的门店
+  var dateCodes = getDateFilteredStoreCodes();
+  if(dateCodes){
+    mpStores = mpStores.filter(function(s){ return dateCodes.has(s.code); });
+    mtStores = mtStores.filter(function(s){ return dateCodes.has(s.code); });
+  }
+
   const merged = mergeMpMt(mpStores, mtStores);
 
   const fmtVal = (v, dec) => (v != null && !isNaN(v)) ? v.toFixed(dec) : '-';
@@ -3534,18 +3582,12 @@ function calcRealMetrics(){
   ];
 
   // 动态 shopBlock / expBlock
-  // 日期筛选时，用 STORE_DAILY 过滤门店集合（仅计算维度时使用，确保分项数据与日期范围对齐）
+  // 日期筛选时，用 getDateFilteredStoreCodes 复用过滤门店集合
   let mtForDims = mt;
-  if(mtDayFiltered.length > 0 && STORE_DAILY && Object.keys(STORE_DAILY).length > 0){
-    var dateCodes = new Set();
-    var dates = Object.keys(STORE_DAILY).sort();
-    for(var di=0; di<dates.length; di++){
-      if(dates[di] < ds || dates[di] > de) continue;
-      var sd = STORE_DAILY[dates[di]];
-      if(sd && sd.mt) for(var ci=0; ci<sd.mt.length; ci++) dateCodes.add(sd.mt[ci]);
-    }
-    if(dateCodes.size > 0){
-      mtForDims = mt.filter(function(s){ return dateCodes.has(s.code); });
+  if(mtDayFiltered.length > 0){
+    var dimDateCodes = getDateFilteredStoreCodes();
+    if(dimDateCodes){
+      mtForDims = mt.filter(function(s){ return dimDateCodes.has(s.code); });
     }
   }
   var mtDimCount = mtForDims.length || 1;
