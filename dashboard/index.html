@@ -4326,7 +4326,7 @@ function render(){
 
   document.getElementById('top-metrics').innerHTML = `
     <div class="top-metrics-group mp">
-      <div class="top-group-hdr mp">🔶 小程序自配送</div>
+      <div class="top-group-hdr mp"><span class="channel-tag tag-mp">小程序自配送</span></div>
       <div class="top-group-cards">${renderCards(real.mpMetrics)}</div>
     </div>
     <div class="total-card-wrap">
@@ -4338,7 +4338,7 @@ function render(){
       </div>
     </div>
     <div class="top-metrics-group mt">
-      <div class="top-group-hdr mt">🔴 美团外卖</div>
+      <div class="top-group-hdr mt"><span class="channel-tag tag-mt">美团外卖</span></div>
       <div class="top-group-cards">${renderCards(real.mtMetrics)}</div>
     </div>`;
 
