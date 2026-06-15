@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="__BUILD_TIME__">
-<meta name="version" content="v2.9.8">
+<meta name="version" content="v2.9.9">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
@@ -121,15 +121,17 @@
   .period-tab.active { color: #C8873A; border-bottom-color: #C8873A; font-weight: 500; }
 
   .main { max-width: 1320px; margin: 0 auto; padding: 24px 32px 0; }
-  .channel-grid { display: grid; grid-template-columns: 1fr 200px 1fr; gap: 20px; margin-bottom: 20px; }
-  /* ── 外卖总店数（中间面板）── */
-  .total-store-body { padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 140px; }
-  .total-store-num { font-size: 40px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
-  .total-store-unit { font-size: 14px; font-weight: 400; color: var(--text-secondary); margin-left: 4px; }
-  .total-store-breakdown { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--text-secondary); }
-  .total-store-breakdown .mp-dot, .total-store-breakdown .mt-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-  .total-store-breakdown .mp-dot { background: var(--mp-primary); }
-  .total-store-breakdown .mt-dot { background: var(--mt-primary); }
+  .channel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  /* ── 顶部统一指标行 ── */
+  .top-metrics { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px; }
+  .top-metrics .m-card { background: var(--card); border: 1px solid var(--border); }
+  .top-metrics .total-card { background: #F4F1EA; border: 1px solid var(--border); }
+  .top-metrics .total-card .m-val { color: #1A1A1A; }
+  .top-metrics .total-card .m-sub { margin-top:0; }
+  .top-metrics .total-breakdown { display: flex; gap: 10px; font-size: 11px; color: var(--text-secondary); }
+  .top-metrics .total-breakdown .mp-dot, .top-metrics .total-breakdown .mt-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; flex-shrink:0; }
+  .top-metrics .total-breakdown .mp-dot { background: var(--mp-primary); }
+  .top-metrics .total-breakdown .mt-dot { background: var(--mt-primary); }
   .channel-panel { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; }
   .channel-header { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
   .channel-header.mp { background: var(--mp-light); }
@@ -327,8 +329,8 @@
 
   @media (max-width: 900px) {
     .channel-grid { grid-template-columns: 1fr; }
-    .total-store-body { min-height: auto; padding: 12px; flex-direction: row; gap: 16px; }
-    .total-store-num { font-size: 28px; }
+    .top-metrics { grid-template-columns: repeat(4, 1fr); }
+    .top-metrics .m-val { font-size: 18px; }
     .mgmt-grid { grid-template-columns: 1fr; }
     .arch-block { flex-direction: column; }
     .store-rank-section { grid-template-columns: 1fr; }
@@ -503,6 +505,7 @@
     .gf-group { flex-basis: 100%; gap: 4px; }
 
     .metrics-row.cols4, .metrics-row.cols5 { grid-template-columns: 1fr 1fr; }
+    .top-metrics { grid-template-columns: 1fr 1fr; }
     .score-dim-grid { grid-template-columns: 1fr; }
     .m-val { font-size: 16px; }
     .drawer-stats.cols3 { grid-template-columns: 1fr; }
@@ -649,6 +652,9 @@
     <div class="summary-detail" id="summary-detail" style="display:none;padding:12px 18px;background:#faf9f7;border-radius:0 0 10px 10px;font-size:12px;line-height:1.8;color:var(--text-secondary);border-top:1px solid var(--border)"></div>
   </div>
 
+  <!-- ═══ 顶部统一指标行 ═══ -->
+  <div class="top-metrics" id="top-metrics"></div>
+
   <div class="channel-grid">
 
     <!-- ═══ 小程序自配送 ═══ -->
@@ -661,7 +667,6 @@
         <span style="font-size:11px;color:var(--amber)">核心指标：出餐时效</span>
       </div>
       <div class="channel-body">
-        <div class="metrics-row cols5" id="mp-metrics"></div>
         <div class="section-label">出餐耗时分布（今日各时段，分钟）</div>
         <div class="heat-row" id="mp-heat"></div>
         <div class="section-label">近7日平均出餐时间趋势</div>
@@ -678,21 +683,6 @@
       </div>
     </div>
 
-    <!-- ═══ 外卖总店数 ═══ -->
-    <div class="channel-panel" id="total-store-section">
-      <div class="channel-header total-store-hdr" style="background:#F4F1EA;border-bottom:1px solid var(--border);">
-        <div class="channel-label" style="font-weight:600">外卖总店数</div>
-        <span style="font-size:11px;color:var(--text-muted)">双平台去重</span>
-      </div>
-      <div class="total-store-body" id="total-store-body">
-        <div class="total-store-num" id="total-store-count">--</div>
-        <div class="total-store-breakdown" id="total-store-breakdown">
-          <span><span class="mp-dot"></span>小程序 <strong id="total-mp-count">--</strong> 家</span>
-          <span><span class="mt-dot"></span>美团 <strong id="total-mt-count">--</strong> 家</span>
-        </div>
-      </div>
-    </div>
-
     <!-- ═══ 美团第三方 ═══ -->
     <div class="channel-panel" id="mt-section">
       <div class="channel-header mt">
@@ -703,7 +693,6 @@
         <span style="font-size:11px;color:#993C1D">核心指标：店铺分 · 综合体验分</span>
       </div>
       <div class="channel-body">
-        <div class="metrics-row cols5" id="mt-metrics"></div>
         <div class="score-tree" id="mt-score-tree"></div>
         <div class="section-label" style="margin-top:14px">近7日评分趋势</div>
         <div class="legend-row">
@@ -4304,16 +4293,28 @@ function render(){
 
   // 统一使用真实数据计算，不再依赖 hardcoded DATA[p] 的时段无关数据
   const real = calcRealMetrics();
-  renderMetrics('mp-metrics', real.mpMetrics);
   renderMtScoreTree(real.mtShopBlock, real.mtExpBlock);
-  renderMetrics('mt-metrics', real.mtMetrics);
 
-  // 外卖总店数
-  if(real.totalStoreCount){
-    document.getElementById('total-store-count').innerHTML = real.totalStoreCount.deduped + '<span class="total-store-unit">家</span>';
-    document.getElementById('total-mp-count').textContent = real.totalStoreCount.mp;
-    document.getElementById('total-mt-count').textContent = real.totalStoreCount.mt;
-  }
+  // ── 顶部统一指标行：MP 3项 + 外卖总店数 + MT 3项 ──
+  const tc = real.totalStoreCount || {deduped:'--', mp:'--', mt:'--'};
+  const topItems = [
+    ...real.mpMetrics,
+    {
+      label:'外卖门店总数',
+      val: tc.deduped, unit:'家',
+      sub:`<span class="total-breakdown"><span><span class="mp-dot"></span>小程序 ${tc.mp} 家</span><span><span class="mt-dot"></span>美团 ${tc.mt} 家</span></span>`,
+      dir:'', ref:'', cls:'total-card'
+    },
+    ...real.mtMetrics
+  ];
+  document.getElementById('top-metrics').innerHTML = topItems.map((m,i)=>{
+    const cardCls = m.cls ? `m-card ${m.cls}` : 'm-card';
+    return `<div class="${cardCls}">
+      <div class="m-label">${m.label}</div>
+      <div class="m-val"${m.title?` title="${m.title}"`:''}>${m.val}<span style="font-size:12px;font-weight:400;margin-left:3px;color:var(--text-secondary)">${m.unit}</span></div>
+      <div class="m-sub ${m.dir||''}">${m.dir==='up'?'<span class="tri-up"></span>':m.dir==='down'?'<span class="tri-down"></span>':''}${m.sub}${m.ref?`<span style="color:var(--text-muted);margin-left:2px">${m.ref}</span>`:''}</div>
+    </div>`;
+  }).join('');
 
   // 出餐耗时分布 & 分段占比：真实数据优先
   if(REAL_MP_HEAT) renderHeat(REAL_MP_HEAT);

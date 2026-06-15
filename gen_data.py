@@ -5,8 +5,8 @@ v3变更：改为双文件直接读取(避免merge_data.py合并大文件慢/易
 import pandas as pd, sys, json, re, math
 sys.stdout.reconfigure(encoding='utf-8')
 
-OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.xlsx'
-NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-6.8.xlsx'
+OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.backup.xlsx'
+NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-6.14.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-01-16-48-48/dashboard/data.json'
 
 BRAND_MAP = {
@@ -342,7 +342,11 @@ print(f'小程序匹配: {len(mp_stores)}/{len(agg)}, 未匹配: {len(mp_unmatch
 # ═══════════════════════════════════════════
 print('\n=== 4. 业绩数据源 ===')
 perf_old = pd.read_excel(OLD_PATH, sheet_name='业绩数据源')
-perf_new = pd.read_excel(NEW_PATH, sheet_name='业绩数据源')
+try:
+    perf_new = pd.read_excel(NEW_PATH, sheet_name='业绩数据源')
+except ValueError:
+    print('  ⚠ NEW文件无「业绩数据源」sheet，仅使用OLD数据')
+    perf_new = pd.DataFrame(columns=perf_old.columns)
 # 统一列名: NEW的「省份」→「市场/品牌」(与OLD对齐)
 if '省份' in perf_new.columns and '市场/品牌' not in perf_new.columns:
     perf_new = perf_new.rename(columns={'省份': '市场/品牌'})
@@ -432,7 +436,11 @@ print(f'业绩门店数(7日): {len(perf_by_code)}')
 # ═══════════════════════════════════════════
 print('\n=== 5. 订单数据源 ===')
 orders_old = pd.read_excel(OLD_PATH, sheet_name='订单数据源')
-orders_new = pd.read_excel(NEW_PATH, sheet_name='订单数据源')
+try:
+    orders_new = pd.read_excel(NEW_PATH, sheet_name='订单数据源')
+except ValueError:
+    print('  ⚠ NEW文件无「订单数据源」sheet，仅使用OLD数据')
+    orders_new = pd.DataFrame(columns=orders_old.columns)
 orders_df = pd.concat([orders_old, orders_new], ignore_index=True).drop_duplicates().reset_index(drop=True)
 orders_df['日期_dt'] = pd.to_datetime(orders_df['日期'].astype(str), format='%Y%m%d', errors='coerce')
 orders_df['品牌'] = orders_df['品牌'].apply(normalize_brand)
