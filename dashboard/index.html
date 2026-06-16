@@ -3917,11 +3917,71 @@ function calcRealMetrics(){
     mtStoreCount = mt.length;
   }
 
+  // ── 环比：计算上一周期数据，生成 delta ──
+  function prevDelta(cur, prev, metricType) {
+    if (prev == null || prev === 0 || isNaN(prev)) return {s:'', d:''};
+    if (metricType === 'store') {
+      var diff = cur - prev;
+      if (Math.abs(diff) < 0.5) return {s:'持平', d:''};
+      return {s:(diff>0?'+':'')+diff+'家', d:diff>0?'up':'down'};
+    }
+    if (metricType === 'cook') {
+      var d = cur - prev;
+      if (Math.abs(d) < 0.05) return {s:'持平', d:''};
+      return {s:(d>0?'+':'')+d.toFixed(1)+'分钟', d:d>0?'down':'up'};
+    }
+    // 百分比变化
+    var pct = ((cur - prev) / prev) * 100;
+    if (Math.abs(pct) < 0.5) return {s:'持平', d:''};
+    return {s:(pct>0?'+':'')+pct.toFixed(1)+'%', d:pct>0?'up':'down'};
+  }
+
+  let prevDs = null, prevDe = null;
+  if (ds && de && !hasOrgFilter) {
+    var curDays = Math.round((new Date(de) - new Date(ds)) / 86400000);
+    var prevEnd = new Date(new Date(ds).getTime() - 86400000);
+    var prevStart = new Date(prevEnd.getTime() - curDays * 86400000);
+    prevDs = prevStart.toISOString().slice(0,10);
+    prevDe = prevEnd.toISOString().slice(0,10);
+  } else if (!hasOrgFilter && MP_DAILY.length > 0) {
+    var sorted = MP_DAILY.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
+    if (sorted.length >= 14) {
+      prevDs = sorted[sorted.length - 14].date;
+      prevDe = sorted[sorted.length - 8].date;
+    }
+  }
+
+  var refLabel = '较上期';
+  if (prevDs && prevDe && !hasOrgFilter) {
+    var prevMpDay = MP_DAILY.filter(function(d){return d.date >= prevDs && d.date <= prevDe;});
+    var prevMtDay = MT_DAILY.filter(function(d){return d.date >= prevDs && d.date <= prevDe;});
+
+    var prevMpOrd = prevMpDay.reduce(function(a,d){return a+(d.orders||0);},0);
+    var prevMpCook = prevMpOrd > 0 ? (prevMpDay.reduce(function(a,d){return a+(d.orders||0)*(d.avg_cook||0);},0)/prevMpOrd) : null;
+    var prevMpRate = prevMpOrd > 0 ? (prevMpDay.reduce(function(a,d){return a+(d.orders||0)*(d.rate||0);},0)/prevMpOrd) : null;
+    var prevMpStore = prevMpDay.length > 0 ? (prevMpDay[prevMpDay.length-1].store_count||null) : null;
+
+    var prevMtStCount = prevMtDay.reduce(function(a,d){return a+(d.store_count||0);},0);
+    var prevMtScore = prevMtStCount > 0 ? (prevMtDay.reduce(function(a,d){return a+(d.store_count||0)*(d.avg_shop_score||0);},0)/prevMtStCount) : null;
+    var prevMtExp = prevMtStCount > 0 ? (prevMtDay.reduce(function(a,d){return a+(d.store_count||0)*(d.avg_exp_score||0);},0)/prevMtStCount) : null;
+    var prevMtStore = prevMtDay.length > 0 ? (prevMtDay[prevMtDay.length-1].store_count||null) : null;
+
+    var d1 = prevDelta(mpStoreCount, prevMpStore, 'store'); if(d1.s){mpMetrics[0].sub=d1.s;mpMetrics[0].dir=d1.d;mpMetrics[0].ref=refLabel;}
+    var d2 = prevDelta(mpAvgCook, prevMpCook, 'cook'); if(d2.s){mpMetrics[1].sub=d2.s;mpMetrics[1].dir=d2.d;mpMetrics[1].ref=refLabel;}
+    var d3 = prevDelta(mpAvgRate, prevMpRate, 'rate'); if(d3.s){mpMetrics[2].sub=d3.s;mpMetrics[2].dir=d3.d;mpMetrics[2].ref=refLabel;}
+  }
+
   const mtMetrics = [
     {label:'美团门店', val: mtStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
-    {label:'店铺分均值', val: mtAvgScore.toFixed(1), unit:'分', sub:'目标≥95', dir:'', ref:''},
-    {label:'综合体验分', val: mtAvgExp.toFixed(2), unit:'/5', sub:'目标≥4.6', dir:'', ref:''},
+    {label:'店铺分均值', val: mtAvgScore.toFixed(1), unit:'分', sub:'', dir:'', ref:''},
+    {label:'综合体验分', val: mtAvgExp.toFixed(2), unit:'/5', sub:'', dir:'', ref:''},
   ];
+
+  if (prevDs && prevDe && !hasOrgFilter) {
+    var d4 = prevDelta(mtStoreCount, prevMtStore, 'store'); if(d4.s){mtMetrics[0].sub=d4.s;mtMetrics[0].dir=d4.d;mtMetrics[0].ref=refLabel;}
+    var d5 = prevDelta(mtAvgScore, prevMtScore, 'score'); if(d5.s){mtMetrics[1].sub=d5.s;mtMetrics[1].dir=d5.d;mtMetrics[1].ref=refLabel;}
+    var d6 = prevDelta(mtAvgExp, prevMtExp, 'exp'); if(d6.s){mtMetrics[2].sub=d6.s;mtMetrics[2].dir=d6.d;mtMetrics[2].ref=refLabel;}
+  }
 
   // 动态 shopBlock / expBlock
   // 日期筛选时，用 getDateFilteredStoreCodes 复用过滤门店集合
