@@ -27,7 +27,7 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- html2canvas 已移除：导出改为结构化 HTML 报告 -->
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -637,9 +637,9 @@
   </div>
   <div class="header-right">
     <span id="headerUpdateDate" style="font-size:12px;color:var(--text-secondary);opacity:0.85;margin-right:8px;"></span>
-    <button id="exportBtn" onclick="exportSnapshot()" title="导出当前页面为快照图片" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#639922;border:1px solid #4e7a1a;border-radius:6px;font-size:12px;color:#fff;cursor:pointer;margin-right:4px;transition:background 0.15s">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      导出快照
+    <button id="exportBtn" onclick="exportReport()" title="导出结构化诊断报告" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#639922;border:1px solid #4e7a1a;border-radius:6px;font-size:12px;color:#fff;cursor:pointer;margin-right:4px;transition:background 0.15s">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      导出报告
     </button>
     <button id="copyLinkBtn" onclick="copyPageLink()" title="复制可分享链接" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#fff;border:1px solid #d0ccc4;border-radius:6px;font-size:12px;color:#4a4642;cursor:pointer;margin-right:4px;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
@@ -808,18 +808,21 @@
     </div>
   </div>
 
-  <div class="bottom-row" id="alert-section">
-    <div class="card">
+  <div class="bottom-row" id="alert-section" style="transition:all 0.3s">
+    <div id="alert-all-clear" style="display:none;grid-column:1/-1;background:#f0f7e6;border:1px solid #b8d98a;border-radius:8px;padding:12px 20px;text-align:center;font-size:13px;color:#3B6D11;font-weight:500">
+      🎉 当前所有预警指标均达标，暂无预警门店
+    </div>
+    <div class="card" id="alert-card-cook">
       <div class="card-title">⏱ 出餐超15分钟</div>
       <div class="alert-col-header cook" id="cook-header">0 家门店</div>
       <div class="alert-col" id="cook-alert-list"></div>
     </div>
-    <div class="card">
+    <div class="card" id="alert-card-shop">
       <div class="card-title">📊 店铺分低于95分</div>
       <div class="alert-col-header shop" id="shop-header">0 家门店</div>
       <div class="alert-col" id="shop-alert-list"></div>
     </div>
-    <div class="card">
+    <div class="card" id="alert-card-rating">
       <div class="card-title">⭐ 综合体验分低于4.6</div>
       <div class="alert-col-header rating" id="rating-header">0 家门店</div>
       <div class="alert-col" id="rating-alert-list"></div>
@@ -868,6 +871,37 @@
     </div>
   </div>
 </main>
+
+<!-- ═══ 改善指南 ═══ -->
+<div id="improve-guide-section" style="max-width:1280px;margin:0 auto 24px;padding:0 20px">
+  <div style="background:var(--card-bg);border-radius:12px;border:1px solid var(--border-light);overflow:hidden">
+    <div id="improve-guide-header" onclick="toggleImproveGuide()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer;user-select:none;transition:background 0.15s">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">📖</span>
+        <span style="font-size:15px;font-weight:700;color:var(--text-primary)">改善指南</span>
+        <span style="font-size:11px;color:var(--text-muted);background:#f0f0f0;border-radius:10px;padding:2px 10px">如果上榜了怎么办？</span>
+      </div>
+      <span id="improve-guide-arrow" style="font-size:12px;color:var(--text-muted);transition:transform 0.2s">▼</span>
+    </div>
+    <div id="improve-guide-body" style="padding:0 20px 20px">
+      <div id="improve-guide-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleImproveGuide(){
+  var body = document.getElementById('improve-guide-body');
+  var arrow = document.getElementById('improve-guide-arrow');
+  if(body.style.display === 'none'){
+    body.style.display = 'block';
+    arrow.style.transform = 'rotate(0deg)';
+  } else {
+    body.style.display = 'none';
+    arrow.style.transform = 'rotate(-90deg)';
+  }
+}
+</script>
 
 <!-- === 单店详情抽屉 === -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeStoreDetail(event)">
@@ -1450,15 +1484,8 @@ function fallbackCopy(text){
   setTimeout(()=>{ btn.textContent='复制链接'; }, 2000);
 }
 
-// ── 导出快照（html2canvas 分片区导出，含筛选感知 + 门店诊断）──
-var EXPORT_SECTIONS = [
-  {id:'dashboard-summary-card', name:'大盘业绩概览'},
-  {id:'mp-section', name:'小程序自配送'},
-  {id:'mt-section', name:'美团外卖'},
-  {id:'mgmt-grid-wrap', name:'管理层排名（市场·品牌/大区/区经理）'},
-  {id:'alert-section', name:'预警中心'},
-  {id:'store-rank-section', name:'门店排名'},
-];
+// ── 结构化诊断报告导出（替代 html2canvas 截图）──
+// 按 市场/品牌 → 大区 → 区经理 → 单店 层级展示，含问题指标与改善建议
 
 // ── 获取筛选条件可读文本 ──
 function getFilterLabel(){
@@ -1472,7 +1499,6 @@ function getFilterLabel(){
   if(gfState.regionMgr !== 'all') parts.push(gfState.regionMgr);
   if(gfState.areaMgr !== 'all') parts.push(gfState.areaMgr);
   if(gfState.city !== 'all') parts.push(gfState.city);
-  // 日期范围
   var ds = document.getElementById('gf-date-start');
   var de = document.getElementById('gf-date-end');
   if(ds && de){
@@ -1481,217 +1507,276 @@ function getFilterLabel(){
     else if(s) parts.push(s + '~');
     else if(e) parts.push('~' + e);
   }
-  return parts.length > 0 ? parts.join('_') : '全部门店';
+  return parts.length > 0 ? parts.join(' / ') : '全部门店';
 }
 
-// ── 获取门店诊断汇总 HTML，按市场分组（每个市场一张图）──
-function buildMarketDiagHTMLs(){
-  // 收集当前筛选范围内的门店（取并集去重）
+// ── 门店优先级判定 ──
+function getStorePriority(diag){
+  if(diag.status === 'bad') return 'P0';
+  if(diag.status === 'warn') return 'P1';
+  if(diag.issues.length > 0) return 'P2';
+  return 'OK';
+}
+
+// ── 构建结构化诊断报告 HTML ──
+function buildReportHTML(){
+  // 收集全部门店（去重合并）
   var allStores = [];
-  var seenName = {};
+  var seen = {};
   STORE_MP.forEach(function(s){
-    if(!seenName[s.name]){ seenName[s.name]=1; allStores.push(s); }
+    if(!seen[s.name]){ seen[s.name]=1; allStores.push(s); }
   });
   STORE_MT.forEach(function(s){
-    if(!seenName[s.name]){ seenName[s.name]=1; allStores.push(s); }
+    if(!seen[s.name]){ seen[s.name]=1; allStores.push(s); }
   });
-  
   var filtered = filterStores(allStores);
-  if(filtered.length === 0) return [];
-  
-  // 按市场分组
+
+  // 汇总统计
+  var totalMp = filterStores(STORE_MP).length;
+  var totalMt = filterStores(STORE_MT).length;
+  var diags = {};
+  var p0=0, p1=0, p2=0, ok=0;
+  filtered.forEach(function(s){
+    var d = getStoreDiag(s.name);
+    diags[s.name] = d;
+    var p = getStorePriority(d);
+    if(p==='P0') p0++; else if(p==='P1') p1++; else if(p==='P2') p2++; else ok++;
+  });
+
+  // 获取门店的合并指标
+  function getMergedStore(name){
+    var mp = STORE_MP.find(function(s){return s.name===name;});
+    var mt = STORE_MT.find(function(s){return s.name===name;});
+    return {name:name, mp:mp, mt:mt, market:mp?mp.market:(mt?mt.market:'其他'),
+      brand:mp?mp.brand:(mt?mt.brand:''),
+      region_mgr:mp?mp.region_mgr:(mt?mt.region_mgr:''),
+      area_mgr:mp?mp.area_mgr:(mt?mt.area_mgr:''),
+      city:mp?mp.city:(mt?mt.city:'')};
+  }
+
+  // 按 市场→大区→区经理→门店 分组
   var marketGroups = {};
   filtered.forEach(function(s){
-    var mkt = s.market || '其他';
-    if(!marketGroups[mkt]) marketGroups[mkt] = [];
-    marketGroups[mkt].push(s);
+    var ms = getMergedStore(s.name);
+    var mkt = ms.market;
+    var rm = ms.region_mgr || '未分配';
+    var am = ms.area_mgr || '未分配';
+    if(!marketGroups[mkt]) marketGroups[mkt] = {};
+    if(!marketGroups[mkt][rm]) marketGroups[mkt][rm] = {};
+    if(!marketGroups[mkt][rm][am]) marketGroups[mkt][rm][am] = [];
+    marketGroups[mkt][rm][am].push(ms);
   });
-  
-  var result = [];
+
+  var esc = function(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  var now = new Date();
+  var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  var filterLabel = getFilterLabel();
+  var reportTitle = '外卖运营日报 - '+dateStr;
+
+  var h = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+  h += '<title>'+reportTitle+'</title>';
+  h += '<style>*{margin:0;padding:0;box-sizing:border-box}';
+  h += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f5f3ef;color:#333;line-height:1.6}';
+  h += '.report{max-width:1100px;margin:0 auto;padding:20px}';
+  h += '.header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:24px 28px;border-radius:12px 12px 0 0}';
+  h += '.header h1{font-size:22px;font-weight:700}';
+  h += '.header .sub{font-size:12px;opacity:0.8;margin-top:4px}';
+  h += '.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:#fff;border-bottom:1px solid #eee}';
+  h += '.sum-card{text-align:center;padding:16px 8px;border-right:1px solid #f0ede8}';
+  h += '.sum-card:last-child{border-right:none}';
+  h += '.sum-card .val{font-size:26px;font-weight:800}';
+  h += '.sum-card .lbl{font-size:11px;color:#999;margin-top:2px}';
+  h += '.prio-bar{background:#fff;padding:10px 20px;display:flex;gap:16px;align-items:center;font-size:12px;border-bottom:1px solid #eee}';
+  h += '.prio-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}';
+  h += '.market-block{background:#fff;margin-top:16px;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}';
+  h += '.mkt-hdr{padding:14px 20px;font-size:16px;font-weight:700;border-bottom:2px solid #eee;display:flex;align-items:center;gap:8px}';
+  h += '.mkt-hdr .mkt-badge{font-size:11px;padding:2px 8px;border-radius:10px;color:#fff}';
+  h += '.region-block{padding:0 20px}';
+  h += '.region-hdr{padding:12px 0 8px;font-size:14px;font-weight:600;color:#555;border-bottom:1px dashed #eee;margin-bottom:8px}';
+  h += '.area-block{padding:0 0 0 16px;margin-bottom:8px}';
+  h += '.area-hdr{padding:6px 0 4px;font-size:12px;color:#888;display:flex;align-items:center;gap:8px}';
+  h += '.store-card{border:1px solid #eee;border-radius:8px;padding:14px 16px;margin-bottom:8px;background:#fafaf9}';
+  h += '.sc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}';
+  h += '.sc-name{font-weight:700;font-size:14px}';
+  h += '.sc-prio{font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;color:#fff}';
+  h += '.sc-prio.P0{background:#e74c3c}';
+  h += '.sc-prio.P1{background:#f39c12}';
+  h += '.sc-prio.P2{background:#3498db}';
+  h += '.sc-prio.OK{background:#27ae60}';
+  h += '.sc-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:12px}';
+  h += '.sc-metric{padding:3px 10px;border-radius:12px;font-weight:500}';
+  h += '.sc-metric.good{background:#eaf7e6;color:#3B6D11}';
+  h += '.sc-metric.warn{background:#fff8e6;color:#854F0B}';
+  h += '.sc-metric.bad{background:#fff0f0;color:#A32D2D}';
+  h += '.sc-issues{margin-bottom:6px}';
+  h += '.sc-issue{font-size:12px;color:#A32D2D;padding:3px 0;display:flex;align-items:flex-start;gap:4px}';
+  h += '.sc-actions{margin-top:6px;padding-top:6px;border-top:1px dashed #e0dcd4}';
+  h += '.sc-action{font-size:11px;color:#555;padding:2px 0}';
+  h += '.ok-tags{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0}';
+  h += '.ok-tag{font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px}';
+  h += '.footer{text-align:center;padding:30px;color:#999;font-size:11px}';
+  h += '@media print{.report{max-width:100%}.store-card{break-inside:avoid}.market-block{break-inside:avoid}}';
+  h += '</style></head><body><div class="report">';
+
+  // Header
+  h += '<div class="header"><h1>📊 '+reportTitle+'</h1><div class="sub">筛选条件：'+esc(filterLabel)+'　|　小程序 '+totalMp+' 家　美团 '+totalMt+' 家　|　生成时间：'+now.toLocaleString('zh-CN')+'</div></div>';
+
+  // Summary cards
+  var mpFiltered = filterStores(STORE_MP);
+  var mtFiltered = filterStores(STORE_MT);
+  var mpAvg = mpFiltered.length>0?(mpFiltered.reduce(function(a,s){return a+s.avg;},0)/mpFiltered.length).toFixed(1):'--';
+  var mpRate = mpFiltered.length>0?(mpFiltered.reduce(function(a,s){return a+s.rate;},0)/mpFiltered.length).toFixed(1):'--';
+  var mtShop = mtFiltered.length>0?(mtFiltered.reduce(function(a,s){return a+s.shop_score;},0)/mtFiltered.length).toFixed(1):'--';
+  var mtExp = mtFiltered.length>0?(mtFiltered.reduce(function(a,s){return a+s.exp_score;},0)/mtFiltered.length).toFixed(2):'--';
+  h += '<div class="summary">';
+  h += '<div class="sum-card"><div class="val" style="color:#333">'+totalMp+'+'+totalMt+'</div><div class="lbl">小程序+美团门店</div></div>';
+  h += '<div class="sum-card"><div class="val" style="color:#E24B4A">'+mpAvg+'</div><div class="lbl">均出餐时长(分)</div></div>';
+  h += '<div class="sum-card"><div class="val" style="color:#3B6D11">'+mpRate+'%</div><div class="lbl">出餐达标率</div></div>';
+  h += '<div class="sum-card"><div class="val" style="color:#EF9F27">'+mtShop+'</div><div class="lbl">美团店铺分均</div></div>';
+  h += '<div class="sum-card"><div class="val" style="color:#E8321A">'+mtExp+'</div><div class="lbl">美团体验分均</div></div>';
+  h += '</div>';
+
+  // Priority bar
+  h += '<div class="prio-bar"><b>诊断汇总：</b>';
+  h += '<span><span class="prio-dot" style="background:#e74c3c"></span>P0 严重 '+p0+'</span>';
+  h += '<span><span class="prio-dot" style="background:#f39c12"></span>P1 关注 '+p1+'</span>';
+  h += '<span><span class="prio-dot" style="background:#3498db"></span>P2 提示 '+p2+'</span>';
+  h += '<span><span class="prio-dot" style="background:#27ae60"></span>正常 '+ok+'</span>';
+  h += '<span style="margin-left:auto;font-size:11px;color:#999">P0=严重超标 P1=需关注 P2=偏弱 OK=达标</span>';
+  h += '</div>';
+
+  // Market sections
   var marketNames = Object.keys(marketGroups).sort();
   marketNames.forEach(function(mkt){
-    var stores = marketGroups[mkt];
-    // 诊断分类统计
-    var badList = [], warnList = [], okList = [];
-    stores.forEach(function(s){
-      var d = getStoreDiag(s.name);
-      if(d.status === 'bad') badList.push({name:s.name, diag:d});
-      else if(d.status === 'warn') warnList.push({name:s.name, diag:d});
-      else okList.push({name:s.name, diag:d});
-    });
-    
-    var h = '<div style="background:#fff;padding:24px;border-radius:12px;font-family:system-ui,-apple-system,sans-serif">';
-    h += '<div style="font-size:18px;font-weight:700;color:#333;margin-bottom:4px">📋 ' + mkt + ' · 门店诊断汇总</div>';
-    h += '<div style="font-size:12px;color:#999;margin-bottom:16px">筛选条件：'+getFilterLabel()+'　|　共'+stores.length+'家　🔴异常'+badList.length+'　🟡关注'+warnList.length+'　🟢正常'+okList.length+'</div>';
-    
-    // 异常门店
-    if(badList.length > 0){
-      h += '<div style="margin-bottom:20px">';
-      h += '<div style="font-size:14px;font-weight:600;color:#A32D2D;margin-bottom:10px;border-bottom:2px solid #A32D2D;padding-bottom:4px">🔴 异常门店（'+badList.length+'家）</div>';
-      badList.forEach(function(item){
-        h += buildOneStoreDiagCard(item.name, item.diag);
-      });
-      h += '</div>';
-    }
-    
-    // 关注门店
-    if(warnList.length > 0){
-      h += '<div style="margin-bottom:20px">';
-      h += '<div style="font-size:14px;font-weight:600;color:#854F0B;margin-bottom:10px;border-bottom:2px solid #854F0B;padding-bottom:4px">🟡 需关注门店（'+warnList.length+'家）</div>';
-      warnList.forEach(function(item){
-        h += buildOneStoreDiagCard(item.name, item.diag);
-      });
-      h += '</div>';
-    }
-    
-    // 正常门店（精简列出）
-    if(okList.length > 0){
-      h += '<div>';
-      h += '<div style="font-size:14px;font-weight:600;color:#3B6D11;margin-bottom:8px;border-bottom:2px solid #3B6D11;padding-bottom:4px">🟢 正常门店（'+okList.length+'家）</div>';
-      h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-      okList.forEach(function(item){
-        h += '<span style="font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px">'+item.name+'</span>';
-      });
-      h += '</div></div>';
-    }
-    
-    h += '</div>';
-    result.push({market: mkt, html: h});
-  });
-  
-  return result;
-}
+    var regions = marketGroups[mkt];
+    h += '<div class="market-block">';
+    h += '<div class="mkt-hdr">🏙 <span>'+esc(mkt)+'</span></div>';
 
-function buildOneStoreDiagCard(name, diag){
-  var statusColor = diag.status==='bad'?'#A32D2D':(diag.status==='warn'?'#854F0B':'#3B6D11');
-  var statusBg = diag.status==='bad'?'#fff0f0':(diag.status==='warn'?'#fff8ec':'#f0f7e6');
-  var h = '<div style="background:'+statusBg+';border-left:4px solid '+statusColor+';border-radius:4px;padding:12px 14px;margin-bottom:10px;font-size:12px">';
-  h += '<div style="font-weight:700;font-size:13px;color:'+statusColor+';margin-bottom:6px">'+name;
-  // 关键指标
-  var km = diag.keyMetrics;
-  if(km.mp_avg != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">出餐'+km.mp_avg.toFixed(1)+'min</span>';
-  if(km.mp_rate != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">达标率'+km.mp_rate.toFixed(1)+'%</span>';
-  if(km.mt_shop != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">店铺分'+km.mt_shop.toFixed(1)+'</span>';
-  if(km.mt_exp != null) h += '　<span style="font-weight:400;font-size:11px;color:#666">体验分'+km.mt_exp.toFixed(2)+'</span>';
-  h += '</div>';
-  // 问题
-  if(diag.issues.length > 0){
-    h += '<div style="margin-bottom:4px;color:#555">';
-    diag.issues.forEach(function(iss){ h += '<div>· '+iss+'</div>'; });
+    var regionNames = Object.keys(regions).sort();
+    regionNames.forEach(function(rm){
+      var areas = regions[rm];
+      // Count stores and priorities in this region
+      var regionStoreCount=0, regionP0=0, regionP1=0;
+      var areaNames = Object.keys(areas).sort();
+      areaNames.forEach(function(am){areas[am].forEach(function(ms){regionStoreCount++;var p=getStorePriority(diags[ms.name]);if(p==='P0')regionP0++;if(p==='P1')regionP1++;});});
+      var regionBadge = regionP0>0?'<span style="color:#e74c3c;font-size:11px">'+regionP0+'严重</span> ':'';
+      if(regionP1>0) regionBadge += '<span style="color:#f39c12;font-size:11px">'+regionP1+'关注</span>';
+
+      h += '<div class="region-block">';
+      h += '<div class="region-hdr">👤 '+esc(rm)+'（大区）<span style="font-weight:400;font-size:11px;color:#999">'+regionStoreCount+'家</span> '+regionBadge+'</div>';
+
+      areaNames.forEach(function(am){
+        var stores = areas[am];
+        h += '<div class="area-block"><div class="area-hdr">📍 '+esc(am)+'（区经理）<span style="color:#aaa;font-weight:400">'+stores.length+'家</span></div>';
+
+        // Separate problematic from ok stores
+        var probStores = [], okStores = [];
+        stores.forEach(function(ms){
+          var d = diags[ms.name];
+          if(getStorePriority(d)!=='OK') probStores.push(ms); else okStores.push(ms);
+        });
+
+        // Problematic store cards
+        probStores.forEach(function(ms){
+          var d = diags[ms.name];
+          var prio = getStorePriority(d);
+          h += '<div class="store-card">';
+          h += '<div class="sc-top">';
+          h += '<span class="sc-name">'+esc(ms.name)+'<span style="font-weight:400;font-size:11px;color:#999;margin-left:6px">'+esc(ms.city||'')+'</span></span>';
+          h += '<span class="sc-prio '+prio+'">'+prio+'</span>';
+          h += '</div>';
+
+          // Metrics row with color coding
+          h += '<div class="sc-metrics">';
+          var km = d.keyMetrics;
+          if(km.mp_avg != null){
+            var cls = km.mp_avg>12?'bad':(km.mp_avg>10?'warn':'good');
+            h += '<span class="sc-metric '+cls+'">⏱ 出餐'+km.mp_avg.toFixed(1)+'min</span>';
+          }
+          if(km.mp_rate != null){
+            var cls = km.mp_rate<90?'bad':(km.mp_rate<95?'warn':'good');
+            h += '<span class="sc-metric '+cls+'">📊 达标率'+km.mp_rate.toFixed(1)+'%</span>';
+          }
+          if(km.mt_shop != null){
+            var cls = km.mt_shop<90?'bad':(km.mt_shop<95?'warn':'good');
+            h += '<span class="sc-metric '+cls+'">🏪 店铺分'+km.mt_shop.toFixed(1)+'</span>';
+          }
+          if(km.mt_exp != null){
+            var cls = km.mt_exp<4.2?'bad':(km.mt_exp<4.6?'warn':'good');
+            h += '<span class="sc-metric '+cls+'">⭐ 体验分'+km.mt_exp.toFixed(2)+'</span>';
+          }
+          h += '</div>';
+
+          // Issues
+          if(d.issues.length>0){
+            h += '<div class="sc-issues">';
+            d.issues.forEach(function(iss){h += '<div class="sc-issue"><span>⚠️</span><span>'+esc(iss)+'</span></div>';});
+            h += '</div>';
+          }
+
+          // Actions
+          if(d.actions.length>0){
+            h += '<div class="sc-actions">';
+            h += '<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:2px">🔧 改善方式</div>';
+            d.actions.forEach(function(act){h += '<div class="sc-action">'+esc(act)+'</div>';});
+            h += '</div>';
+          }
+          h += '</div>';
+        });
+
+        // OK stores as compact tags
+        if(okStores.length>0){
+          h += '<div class="ok-tags">✅ ';
+          okStores.forEach(function(ms){h += '<span class="ok-tag">'+esc(ms.name)+'</span>';});
+          h += '</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+    });
     h += '</div>';
-  }
-  // 改善动作
-  if(diag.actions.length > 0){
-    h += '<div style="color:#555;padding-top:4px;border-top:1px dashed #ddd">';
-    h += '<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:2px">🔧 改善建议</div>';
-    diag.actions.forEach(function(act){ h += '<div style="margin-left:4px">'+act+'</div>'; });
-    h += '</div>';
-  }
-  h += '</div>';
+  });
+
+  h += '<div class="footer">此报告由外卖业务运营看板自动生成 · '+dateStr+' · 数据范围：'+esc(filterLabel)+'</div>';
+  h += '</div></body></html>';
   return h;
 }
 
-function exportSnapshot(){
+function exportReport(){
   var btn = document.getElementById('exportBtn');
-  var origText = btn.textContent;
-  
-  if(typeof html2canvas === 'undefined'){
-    alert('html2canvas 未加载，请刷新页面后重试');
-    return;
-  }
-  
-  // ── 动态构建导出板块列表 ──
-  var sections = EXPORT_SECTIONS.slice(); // 复制基础板块
-  
-  // 构建门店诊断板块 — 按市场分组，每个市场一个临时 DOM
-  var marketDiags = buildMarketDiagHTMLs();
-  var tempDivs = []; // 所有临时 div，统一管理
-  marketDiags.forEach(function(md){
-    var divId = 'export-store-diag-' + md.market.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '-');
-    var div = document.createElement('div');
-    div.id = divId;
-    div.innerHTML = md.html;
-    div.style.cssText = 'position:absolute;left:0;top:0;width:1100px;background:#F5F3EF;padding:20px;z-index:99999;display:none;pointer-events:none';
-    document.body.appendChild(div);
-    tempDivs.push({el:div, id:divId});
-    sections.push({id:divId, name:'门店诊断_' + md.market, isTemp:true});
-  });
-  
-  var totalCount = sections.length;
-  btn.textContent = '导出中 0/'+totalCount;
+  var origHTML = btn.innerHTML;
+  btn.innerHTML = '生成中…';
   btn.style.pointerEvents = 'none';
   btn.style.opacity = '0.7';
-  var badge = document.querySelector('.live-badge');
-  if(badge) badge.style.display = 'none';
-  
-  var dateStr = new Date().toISOString().slice(0,10);
-  var filterLabel = getFilterLabel();
-  var idx = 0, done = 0;
-  
-  function captureNext(){
-    if(idx >= sections.length){
-      // 清理所有临时 DOM
-      tempDivs.forEach(function(td){
-        if(td.el && td.el.parentNode){
-          td.el.style.display = 'none';
-          td.el.parentNode.removeChild(td.el);
-        }
-      });
-      btn.textContent = '✓ 已导出 '+done+' 张';
+
+  setTimeout(function(){
+    try {
+      var html = buildReportHTML();
+      var blob = new Blob([html], {type:'text/html;charset=UTF-8'});
+      var url = URL.createObjectURL(blob);
+
+      // 下载
+      var dateStr = new Date().toISOString().slice(0,10);
+      var filterLabel = getFilterLabel().replace(/[\/\\:*?"<>|]/g,'-');
+      var a = document.createElement('a');
+      a.download = '外卖运营日报_'+filterLabel+'_'+dateStr+'.html';
+      a.href = url;
+      a.click();
+
+      // 新窗口预览
+      window.open(url, '_blank');
+
+      btn.innerHTML = '✓ 已导出';
       btn.style.pointerEvents = '';
       btn.style.opacity = '';
-      if(badge) badge.style.display = '';
-      setTimeout(function(){ btn.textContent = origText; }, 2500);
-      return;
+      setTimeout(function(){ btn.innerHTML = origHTML; }, 2500);
+    } catch(e){
+      alert('导出失败：'+e.message);
+      btn.innerHTML = origHTML;
+      btn.style.pointerEvents = '';
+      btn.style.opacity = '';
     }
-    
-    var sec = sections[idx];
-    var el = document.getElementById(sec.id);
-    
-    // 临时板块：显示后再截图
-    if(sec.isTemp && el){
-      el.style.display = 'block';
-    }
-    idx++;
-    
-    if(!el){
-      captureNext();
-      return;
-    }
-    
-    btn.textContent = '导出中 '+idx+'/'+totalCount+' '+sec.name;
-    
-    // 临时板块需要捕获完整高度，不截断
-    var opts = {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#F5F3EF',
-      logging: false,
-    };
-    if(sec.isTemp){
-      var scrollH = Math.max(el.scrollHeight, document.documentElement.clientHeight);
-      opts.height = Math.ceil(scrollH);
-      opts.windowHeight = Math.ceil(scrollH + 200);
-      opts.windowWidth = Math.ceil(el.scrollWidth + 200);
-    }
-    html2canvas(el, opts).then(function(canvas){
-      done++;
-      // 隐藏临时板块
-      if(sec.isTemp && el){ el.style.display = 'none'; }
-      var link = document.createElement('a');
-      link.download = '外卖看板_' + filterLabel + '_' + sec.name + '_' + dateStr + '.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      setTimeout(captureNext, 400);
-    }).catch(function(err){
-      if(sec.isTemp && el){ el.style.display = 'none'; }
-      console.warn('导出失败:', sec.name, err);
-      captureNext();
-    });
-  }
-  
-  captureNext();
+  }, 100);
 }
 
 function updateClock(){
@@ -2055,6 +2140,76 @@ function getDimImproveTips(dimName){
   return map[dimName] || null;
 }
 
+// ── 改善指南渲染（按类别分组，供门店自主查阅）──
+function renderImproveGuide(){
+  var container = document.getElementById('improve-guide-content');
+  if(!container) return;
+
+  var groups = [
+    {
+      title: '📦 出餐效率（小程序自配送）',
+      color: '#E24B4A',
+      desc: '出餐超时会导致顾客流失和平台降权，以下措施可帮助缩短出餐时间',
+      items: [
+        {title:'合理排班与高峰备料', desc:'根据业绩预估和高低峰合理排班，备料等需单独花费人力的动作尽量在高峰前完成，备料量覆盖后续整个高峰，避免高峰期临时分出人力备料。'},
+        {title:'开早准备前置', desc:'开早准备尽可能在营业前完成，避免营业后因开早事项未完成花费人力继续开早，影响出餐效率。'},
+        {title:'大单提前沟通', desc:'大单提前与顾客沟通预计送达时间，在不影响送达的情况下穿插小单，避免全部超时。'},
+        {title:'高峰人力调配', desc:'持续爆单时沟通后续伙伴提前进班，极端高峰无法负荷时临时停单修整，恢复后重新开启平台。'},
+        {title:'出餐上报规范', desc:'美团默认餐前调度，每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成，否则影响上报率。'},
+        {title:'超时原因复盘', desc:'定期抽查超15分钟订单录屏/截图，还原超时根因，针对性优化（如特定品类预制流程）。'},
+      ]
+    },
+    {
+      title: '🏪 美团店铺分提升',
+      color: '#EF9F27',
+      desc: '店铺分低于95分会影响曝光和流量，优先攻克权重最高的维度',
+      items: [
+        {title:'差评回复率（权重最高）', desc:getDimImproveTips('差评回复率得分')?getDimImproveTips('差评回复率得分').why+'。'+getDimImproveTips('差评回复率得分').tip:'重视差评回复，24小时内处理，加入值班本/打烊日志每天反馈。'},
+        {title:'商家不接单率', desc:getDimImproveTips('商家不接单率得分')?getDimImproveTips('商家不接单率得分').why+'。'+getDimImproveTips('商家不接单率得分').tip:'定闹钟定时检查菜单，断货及时操作售罄。'},
+        {title:'高峰营业时长', desc:getDimImproveTips('高峰营业时长得分')?getDimImproveTips('高峰营业时长得分').why+'。'+getDimImproveTips('高峰营业时长得分').tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业。'},
+        {title:'基础营业时长', desc:getDimImproveTips('基础营业时长得分')?getDimImproveTips('基础营业时长得分').why+'。'+getDimImproveTips('基础营业时长得分').tip:'确保平台营业时长充足，影响曝光和下单转化。'},
+        {title:'菜单丰富度', desc:getDimImproveTips('菜单丰富度得分')?getDimImproveTips('菜单丰富度得分').why+'。'+getDimImproveTips('菜单丰富度得分').tip:'定期更新菜单，丰富品类展示，提高吸引力。'},
+        {title:'装修丰富度', desc:getDimImproveTips('装修丰富度得分')?getDimImproveTips('装修丰富度得分').why+'。'+getDimImproveTips('装修丰富度得分').tip:'优化店铺头图、轮播图，完善店铺装修素材。'},
+        {title:'优质商品率', desc:getDimImproveTips('优质商品率得分')?getDimImproveTips('优质商品率得分').why+'。'+getDimImproveTips('优质商品率得分').tip:'及时维护商品库存，确保在售商品品质达标。'},
+      ]
+    },
+    {
+      title: '⭐ 美团综合体验分提升',
+      color: '#E8321A',
+      desc: '体验分低于4.6会直接影响顾客复购和平台推荐权重',
+      items: [
+        {title:'复购率（权重20%）', desc:getDimImproveTips('复购率得分')?getDimImproveTips('复购率得分').why+'。'+getDimImproveTips('复购率得分').tip:'随单提供小礼品，提升情绪价值；设置老客专属优惠券。'},
+        {title:'消息回复率', desc:getDimImproveTips('消息回复率得分')?getDimImproveTips('消息回复率得分').why+'。'+getDimImproveTips('消息回复率得分').tip:'开启机器人自动回复，处理顾客日常询问。'},
+        {title:'商品质量/满意度', desc:'评价中反映商品/口味问题较多。加强出品标准化检查，确保每杯饮品口感一致；打包增加检查动作，尽可能不错餐漏餐。'},
+        {title:'包装满意度', desc:getDimImproveTips('包装满意度')?getDimImproveTips('包装满意度').why+'。'+getDimImproveTips('包装满意度').tip:'打包加盖确认扣合，减少洒餐概率。'},
+        {title:'服务负反馈率', desc:getDimImproveTips('服务负反馈率得分')?getDimImproveTips('服务负反馈率得分').why+'。'+getDimImproveTips('服务负反馈率得分').tip:'加强伙伴服务意识培训，高峰时段增派人手。'},
+        {title:'食品安全负反馈', desc:getDimImproveTips('食品安全负反馈率')?getDimImproveTips('食品安全负反馈率').why+'。'+getDimImproveTips('食品安全负反馈率').tip:'伙伴着装穿戴规范、饮品制作场景规范，避免食安风险。'},
+      ]
+    }
+  ];
+
+  var html = '';
+  var esc2 = function(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  for(var g=0;g<groups.length;g++){
+    var grp = groups[g];
+    html += '<div style="margin-bottom:20px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+    html += '<span style="font-size:14px;font-weight:700;color:'+grp.color+'">'+grp.title+'</span>';
+    html += '<span style="font-size:11px;color:var(--text-muted)">'+grp.desc+'</span>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:8px">';
+    for(var it=0;it<grp.items.length;it++){
+      var item = grp.items[it];
+      html += '<div style="background:#fafafa;border:1px solid #eee;border-radius:8px;padding:12px 14px">';
+      html += '<div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px">'+esc2(item.title)+'</div>';
+      html += '<div style="font-size:12px;color:#666;line-height:1.6">'+esc2(item.desc)+'</div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
 function openAlertDetail(alert){
   if(alertDetailModal){ try{document.body.removeChild(alertDetailModal);}catch(e){} }
   var typeLabelMap = {cook:'出餐超15分钟', shop:'店铺分低于95分', rating:'综合体验分低于4.6'};
@@ -2334,6 +2489,13 @@ function renderAlerts(){
   renderPanel("cook-alert-list", cooks, "⏱", "cook");
   renderPanel("shop-alert-list", shops, "📊", "shop");
   renderPanel("rating-alert-list", ratings, "⭐", "rating");
+
+  // 智能折叠：三项预警均为0时显示"全部达标"
+  var allClear = cooks.length === 0 && shops.length === 0 && ratings.length === 0;
+  document.getElementById('alert-card-cook').style.display = allClear ? 'none' : '';
+  document.getElementById('alert-card-shop').style.display = allClear ? 'none' : '';
+  document.getElementById('alert-card-rating').style.display = allClear ? 'none' : '';
+  document.getElementById('alert-all-clear').style.display = allClear ? 'block' : 'none';
 }
 
 function openRegionDrillDown(region, colorClass){
@@ -2719,6 +2881,17 @@ function renderUnifiedStoreRank(){
     return false;
   };
 
+  // ── 底色计算：基于指标预警等级 ──
+  const cellBg = s => {
+    var red = false, yellow = false;
+    if(s.mp_avg != null && s.mp_avg > 12) red = true;
+    if(s.mt_shop_score != null && s.mt_shop_score < 95) yellow = true;
+    if(s.mt_exp_score != null && s.mt_exp_score < 4.6) red = true;
+    if(red) return '#fff0f0';
+    if(yellow) return '#fff8e6';
+    return 'transparent';
+  };
+
   // ── 左面板：标杆门店 ──
   // 标杆条件：出餐≤15min AND 店铺分≥95 AND 综合体验分≥4.6
   const benchFiltered = merged.filter(s => {
@@ -2746,7 +2919,7 @@ function renderUnifiedStoreRank(){
     bestTbody.innerHTML = bestList.map((s, i) => {
       const rate = s.mp_rate;
       const rateColor = rate >= 95 ? '#3B6D11' : rate >= 90 ? '#854F0B' : '#A32D2D';
-      return `<tr class="store-row" onclick="openStoreMerged('${s.name.replace(/'/g, "\\'")}')">
+      return `<tr class="store-row" style="background:${cellBg(s)}" onclick="openStoreMerged('${s.name.replace(/'/g, "\\'")}')">
         <td><span class="rank-badge ${rc(i)}">${i + 1}</span></td>
         <td>${s.name}</td>
         <td style="font-weight:500">${fmtVal(s.mp_avg, 1)}${s.mp_avg != null ? 'min' : ''}</td>
@@ -2800,7 +2973,7 @@ function renderUnifiedStoreRank(){
     worstTbody.innerHTML = worstList.map((s, i) => {
       const rate = s.mp_rate;
       const rateColor = rate >= 95 ? '#3B6D11' : rate >= 90 ? '#854F0B' : '#A32D2D';
-      return `<tr class="store-row" onclick="openStoreMerged('${s.name.replace(/'/g, "\\'")}')">
+      return `<tr class="store-row" style="background:${cellBg(s)}" onclick="openStoreMerged('${s.name.replace(/'/g, "\\'")}')">
         <td><span class="rank-badge ${rc(i)}">${i + 1}</span></td>
         <td>${s.name}</td>
         <td style="font-weight:500">${fmtVal(s.mp_avg, 1)}${s.mp_avg != null ? 'min' : ''}</td>
@@ -4688,6 +4861,7 @@ function render(){
   renderRegionMgrRank();
   renderAreaMgrRank();
   renderUnifiedStoreRank();
+  renderImproveGuide();
 
   // 更新数据范围显示（优先显示用户选择的日期范围）
   const dr = document.getElementById('data-range-display');
