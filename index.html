@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-16T10:12:14+08:00">
-<meta name="version" content="v2.9.18">
+<meta name="build-time" content="2026-06-16T10:35:41+08:00">
+<meta name="version" content="v2.9.19">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.9.18@20260616";
+  var VER = "v2.9.19@20260616";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -3709,7 +3709,7 @@ function calcRealMetrics(){
   }
 
   const mpMetrics = [
-    {label:'门店数', val: mpStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
+    {label:'小程序门店', val: mpStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
     {label:'平均出餐时长', val: mpAvgCook.toFixed(1), unit:'分钟', sub:'', dir:'', ref:''},
     {label:'出餐达标率', val: mpAvgRate.toFixed(1)+'%', unit:'', sub:'超15min', dir:'', ref:''},
   ];
@@ -3745,7 +3745,7 @@ function calcRealMetrics(){
   }
 
   const mtMetrics = [
-    {label:'门店数', val: mtStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
+    {label:'美团门店', val: mtStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
     {label:'店铺分均值', val: mtAvgScore.toFixed(1), unit:'分', sub:'目标≥95', dir:'', ref:''},
     {label:'综合体验分', val: mtAvgExp.toFixed(2), unit:'/5', sub:'目标≥4.6', dir:'', ref:''},
   ];
