@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-16T09:38:20+08:00">
-<meta name="version" content="v2.9.17">
+<meta name="build-time" content="2026-06-16T10:12:14+08:00">
+<meta name="version" content="v2.9.18">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.9.17@20260616";
+  var VER = "v2.9.18@20260616";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -63,6 +63,8 @@
     color: var(--text-primary);
     min-height: 100vh;
     padding: 0 0 40px;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
   }
 
   .header {
@@ -340,12 +342,14 @@
 
   @media (max-width: 900px) {
     .channel-grid { grid-template-columns: 1fr; }
-    .top-metrics { grid-template-columns: 1fr; }
+    .top-metrics { grid-template-columns: 1fr; gap: 8px; }
     .top-metrics-group { border-left: 3px solid var(--border); border-top: none; }
     .top-metrics-group.mp { border-left-color: var(--mp-primary); }
     .top-metrics-group.mt { border-left-color: var(--mt-primary); }
     .top-group-cards .m-val { font-size: 14px; }
-    .total-card-wrap .m-val { font-size: 22px; }
+    .total-card-wrap { padding: 12px; border-left: 3px solid #639922; }
+    .total-card-wrap .m-val { font-size: 26px; }
+    .total-card-wrap .m-unit { font-size: 12px; }
     .mgmt-grid { grid-template-columns: 1fr; }
     .arch-block { flex-direction: column; }
     .store-rank-section { grid-template-columns: 1fr; }
@@ -394,16 +398,22 @@
 
   /* ═══ 手机端 < 768px ═══ */
   @media (max-width: 768px) {
-    body { font-size: 14px; padding-bottom: 20px; }
+    body { font-size: 14px; padding-bottom: 20px; -webkit-tap-highlight-color: transparent; }
     /* 顶栏精简 */
-    .header { height: 44px; padding: 0 12px; }
-    .header-brand { font-size: 13px; gap: 6px; }
+    .header { height: 44px; padding: 0 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .header-brand { font-size: 12px; gap: 5px; flex-shrink: 0; }
+    .header-brand .dot { width: 7px; height: 7px; }
     .header-brand span:last-child { display: none; }
-    .header-right { gap: 6px; }
-    #copyLinkBtn { font-size: 0; padding: 6px 8px; gap: 0; }
-    #copyLinkBtn svg { width: 16px; height: 16px; }
-    .live-badge { font-size: 10px; padding: 2px 8px; }
+    .header-right { gap: 4px; flex-shrink: 0; }
+    #exportBtn { font-size: 0; padding: 5px 8px; gap: 0; }
+    #exportBtn svg { width: 14px; height: 14px; }
+    #copyLinkBtn { font-size: 0; padding: 5px 8px; gap: 0; }
+    #copyLinkBtn svg { width: 14px; height: 14px; }
+    .live-badge { font-size: 0; padding: 4px 6px; }
+    .live-badge span { width: 5px; height: 5px; margin-right: 0; }
     .ts { display: none; }
+    #headerUpdateDate { font-size: 10px; margin-right: 4px; }
+    #headerVerBadge { font-size: 9px; padding: 1px 5px; margin-left: 3px; }
 
     /* 筛选栏折叠 */
     .global-filter-bar { padding: 8px 12px; flex-wrap: wrap; gap: 6px; position: sticky; top: 44px; min-height: auto; }
@@ -429,20 +439,25 @@
     .channel-header { padding: 10px 14px; }
     .channel-header .channel-label { font-size: 12px; }
     .channel-body { padding: 12px 14px; }
-    .section-label { font-size: 11px; }
+    .section-label { font-size: 11px; margin-bottom: 8px; }
 
-    /* 管理排名表横向滚动 */
-    .mgmt-card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px 0; }
+    /* 热力图横向滚动 */
+    .heat-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 2px; padding-bottom: 4px; }
+    .heat-cell { flex: 0 0 auto; min-width: 26px; padding: 4px 3px 3px; font-size: 9px; }
+    .heat-cell .hc-time { font-size: 8px; }
+
+    /* 管理排名表横向滚动 + 触摸提示 */
+    .mgmt-card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px 2px; }
     .mgmt-table { min-width: 600px; }
     .mgmt-table th, .mgmt-table td { font-size: 11px; padding: 5px 6px; }
-    .mgmt-card-header { font-size: 12px; padding: 10px 14px; }
+    .mgmt-card-header { font-size: 12px; padding: 10px 14px; flex-wrap: wrap; gap: 4px; }
 
     /* 门店排名表 */
-    .store-rank-panel .rank-table-wrap { max-height: 400px; overflow-x: auto; }
+    .store-rank-panel .rank-table-wrap { max-height: 400px; overflow: auto; -webkit-overflow-scrolling: touch; }
     .store-rank-panel .rank-table { min-width: 650px; }
-    .store-rank-section { gap: 10px; margin-top: 16px; }
-    .store-rank-header { padding: 10px 14px; font-size: 12px; }
-    .fold-btn, .group-btn { font-size: 10px; padding: 3px 8px; }
+    .store-rank-section { gap: 10px; margin-top: 16px; grid-template-columns: 1fr; }
+    .store-rank-header { padding: 10px 14px; font-size: 12px; flex-wrap: wrap; gap: 4px; }
+    .fold-btn, .group-btn { font-size: 10px; padding: 3px 7px; white-space: nowrap; }
 
     /* 底部预警堆叠 */
     .bottom-row { grid-template-columns: 1fr; gap: 10px; }
@@ -462,6 +477,8 @@
     .score-dim-grid { grid-template-columns: 1fr 1fr; gap: 5px; }
     .score-main-title { font-size: 11px; }
     .dim-value { font-size: 14px; }
+    .dim-name { font-size: 9px; }
+    .score-dim-card { padding: 6px 8px; }
 
     /* 图表缩减 */
     .chart-wrap.h160 { height: 140px; }
@@ -476,6 +493,7 @@
     .alert-pill { padding: 8px 10px; font-size: 11px; }
     .detail-dim-name { width: 60px; font-size: 10px; }
     .detail-dim-target { width: 36px; font-size: 9px; }
+    .detail-dim-bar-wrap { height: 16px; }
     
     /* 饼图文字移动端缩小 */
     .donut-pct { font-size: 10px !important; }
@@ -488,7 +506,6 @@
 
     /* 大盘卡片数值缩小 */
     .dash-card .m-val { font-size: 15px; }
-    .summary-grid { padding: 6px; }
     
     /* 大盘标题栏 */
     .summary-header { padding: 8px 14px; font-size: 12px; }
@@ -496,6 +513,10 @@
     
     /* 饼图4列变2列 */
     .renderMarketPieRow-grid { grid-template-columns: repeat(2,1fr) !important; }
+
+    /* 大盘业绩卡片 3列→2列 */
+    #summary-grid > div:first-child { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+    #summary-grid > div:last-child { grid-template-columns: 1fr !important; gap: 10px !important; }
 
     /* 移动端筛选折叠按钮 */
     .gf-mobile-toggle {
@@ -510,19 +531,37 @@
   }
 
   @media (max-width: 480px) {
-    .header-brand { font-size: 12px; }
+    .header { padding: 0 8px; height: 40px; }
+    .header-brand { font-size: 11px; gap: 4px; }
+    .header-brand .dot { width: 6px; height: 6px; }
+    #exportBtn { padding: 4px 6px; }
+    #exportBtn svg { width: 13px; height: 13px; }
     #copyLinkBtn { padding: 4px 6px; }
-    #copyLinkBtn svg { width: 14px; height: 14px; }
+    #copyLinkBtn svg { width: 13px; height: 13px; }
     .live-badge { display: none; }
     #headerUpdateDate { display: none; }
+    #headerVerBadge { display: none; }
 
-    .global-filter-bar { padding: 6px 10px; }
+    .global-filter-bar { padding: 6px 8px; gap: 4px; }
     .gf-group { flex-basis: 100%; gap: 4px; }
+    .gf-label { font-size: 9px; }
+    .gf-select { font-size: 10px; padding: 3px 16px 3px 5px; }
+    .gf-date-input { font-size: 10px; padding: 3px 5px; }
+    .gf-summary { font-size: 10px; }
 
-    .metrics-row.cols4, .metrics-row.cols5 { grid-template-columns: 1fr 1fr; }
-    .top-metrics { grid-template-columns: 1fr; }
+    .metrics-row.cols4, .metrics-row.cols5 { grid-template-columns: 1fr 1fr; gap: 4px; }
+    .top-metrics { grid-template-columns: 1fr; gap: 6px; }
+    .top-group-cards { grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px 8px; }
+    .top-group-cards .m-card .m-val { font-size: 15px; }
+    .top-group-cards .m-card .m-label { font-size: 9px; }
+    .total-card-wrap { padding: 10px; }
+    .total-card-wrap .m-val { font-size: 22px; }
+    .total-card-wrap .m-unit { font-size: 11px; }
+    .total-card-wrap .total-breakdown { font-size: 10px; gap: 6px; }
+    
     .score-dim-grid { grid-template-columns: 1fr; }
     .m-val { font-size: 16px; }
+    .m-card { padding: 8px 10px; }
     .drawer-stats.cols3 { grid-template-columns: 1fr; }
     .detail-dim-name { width: 50px; }
     .mgmt-table { min-width: 480px; }
@@ -539,9 +578,28 @@
     .renderMarketPieRow-grid { grid-template-columns: repeat(2,1fr) !important; gap:4px !important; }
     
     /* 卡片更紧凑 */
-    .summary-grid { padding: 4px; }
+    .summary-grid { padding: 4px; gap: 6px; }
     .summary-header { padding: 6px 10px; font-size: 11px; }
     .dash-card { padding: 6px 4px; }
+    .channel-body { padding: 8px 10px;}
+    .channel-header { padding: 8px 12px; }
+    
+    /* 预警 pills */
+    .alert-pill { padding: 6px 8px; font-size: 11px; gap: 6px; }
+    .bottom-row { gap: 8px; }
+    .card { padding: 10px 12px; }
+    .card-title { font-size: 12px; margin-bottom: 10px; }
+    .mgmt-grid { gap: 10px; }
+
+    /* 热力图迷你 */
+    .heat-cell { min-width: 22px; padding: 3px 2px 2px; font-size: 8px; }
+    .heat-cell .hc-time { font-size: 7px; }
+
+    /* 架构块 */
+    .arch-block { padding: 10px 12px; flex-wrap: wrap; }
+    .arch-col { min-width: 70px; gap: 4px; }
+    .arch-item { font-size: 10px; padding: 2px 6px; }
+    .arch-arrow-col { padding: 0 5px; font-size: 13px; }
   }
 </style>
 <script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
