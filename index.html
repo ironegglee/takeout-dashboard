@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-15T18:58:58+08:00">
-<meta name="version" content="v2.9.16">
+<meta name="build-time" content="2026-06-16T09:38:20+08:00">
+<meta name="version" content="v2.9.17">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.9.15@20260615";
+  var VER = "v2.9.17@20260616";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -2700,12 +2700,36 @@ function renderUnifiedStoreRank(){
   }
 
   // ── 右面板：预警门店（与标杆独立）──
-  // 排除当前排序列无数据的门店（默认忽视空白数据门店）
-  const worstFiltered = merged.filter(s => hasVal(s, rankSortKey));
+  // 筛选条件：至少有一个指标不达标（出餐>15min，或达标率<85%，或店铺分<95，或体验分<4.6）
+  // 任一数据缺失时对应条件视为「不达标」来计分
+  const isAlertStore = s => {
+    var bad = 0;
+    if(s.mp_avg != null && s.mp_avg > 15) bad++;
+    if(s.mp_rate != null && s.mp_rate < 85) bad++;
+    if(s.mt_shop_score != null && s.mt_shop_score < 95) bad++;
+    if(s.mt_exp_score != null && s.mt_exp_score < 4.6) bad++;
+    return bad > 0;
+  };
+  // 预警严重度评分（值越高越差，用于默认排序）
+  const worstScore = s => {
+    var sc = 0;
+    if(s.mp_avg != null && s.mp_avg > 15) sc += (s.mp_avg - 15) / 15;
+    if(s.mp_rate != null && s.mp_rate < 85) sc += (85 - s.mp_rate) / 85;
+    if(s.mt_shop_score != null && s.mt_shop_score < 95) sc += (95 - s.mt_shop_score) / 95;
+    if(s.mt_exp_score != null && s.mt_exp_score < 4.6) sc += (4.6 - s.mt_exp_score) / 4.6;
+    return sc;
+  };
 
-  const worstDir = rankSortKey === 'avg' ? 'asc' : 'desc';
+  const worstFiltered = merged.filter(s => isAlertStore(s) && hasVal(s, rankSortKey));
+
+  // 默认排序：score → 用 worstScore 排（问题最严重在前）
+  // 其他列：出餐均值 asc，达标率/店铺分/体验分 asc（越低越差，越差越靠前）
+  const worstDir = rankSortKey === 'score' ? 'desc'  // worstScore 越大越差
+                 : rankSortKey === 'avg'   ? 'desc'  // 出餐越长越差
+                 : 'asc';                            // 达标率/店铺分/体验分 越低越差
   const worstList = [...worstFiltered].sort((a, b) => {
-    var va = getSortVal(a, rankSortKey), vb = getSortVal(b, rankSortKey);
+    var va = rankSortKey === 'score' ? worstScore(a) : getSortVal(a, rankSortKey);
+    var vb = rankSortKey === 'score' ? worstScore(b) : getSortVal(b, rankSortKey);
     return worstDir === 'desc' ? vb - va : va - vb;
   });
   
