@@ -3870,11 +3870,10 @@ function calcRealMetrics(){
     mpRevTotal = mp.reduce((a,s)=>a+(s.revenue||0),0);
   }
 
-  // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选用每日汇总
+  // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
   let mpStoreCount;
   if(mpDayFiltered.length > 0){
-    const lastDay = mpDayFiltered[mpDayFiltered.length - 1];
-    mpStoreCount = lastDay.store_count || mp.length;
+    mpStoreCount = mp.length;
   } else if(ds && de && !hasOrgFilter){
     mpStoreCount = 0;
   } else {
@@ -3906,11 +3905,10 @@ function calcRealMetrics(){
     mtOrdCnt = mt.reduce((a,s)=>a+(s.orders||0),0);
   }
 
-  // 美团门店数：有组织筛选时用过滤结果
+  // 美团门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
   let mtStoreCount;
   if(mtDayFiltered.length > 0){
-    const lastDayMt = mtDayFiltered[mtDayFiltered.length - 1];
-    mtStoreCount = lastDayMt.store_count || mt.length;
+    mtStoreCount = mt.length;
   } else if(ds && de && !hasOrgFilter){
     mtStoreCount = 0;
   } else {
