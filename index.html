@@ -680,8 +680,8 @@
       <input type="date" class="gf-date-input" id="gf-date-end" onchange="onFilterChange();updateDateQuickBtns()">
     </div>
     <div class="date-quick-btns" id="dateQuickBtns">
-      <button class="dq-btn dq-active" data-days="-1" onclick="setDateQuick(-1)" title="昨日">昨日</button>
-      <button class="dq-btn" data-days="7" onclick="setDateQuick(7)" title="近7天">近7天</button>
+      <button class="dq-btn" data-days="-1" onclick="setDateQuick(-1)" title="昨日">昨日</button>
+      <button class="dq-btn dq-active" data-days="7" onclick="setDateQuick(7)" title="近7天">近7天</button>
       <button class="dq-btn" data-days="30" onclick="setDateQuick(30)" title="近30天">近30天</button>
       <button class="dq-btn" data-days="0" onclick="setDateQuick(0)" title="全部日期">全部</button>
     </div>
@@ -5186,11 +5186,13 @@ function applyRealData(jsonData){
   try{
 
   const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-  // 默认显示最新一天
-  const defaultDate=EMBEDDED_DATE_END||fmt(new Date());
-  document.getElementById('gf-date-start').value=defaultDate;
-  document.getElementById('gf-date-end').value=defaultDate;
-  gfState.dateStart=defaultDate;gfState.dateEnd=defaultDate;
+  // 默认显示近7天（单日数据可能导致部分图表无内容）
+  const latest=EMBEDDED_DATE_END||fmt(new Date());
+  const latestD=new Date(latest+'T00:00:00');
+  const fromD=new Date(latestD); fromD.setDate(fromD.getDate()-6);
+  document.getElementById('gf-date-start').value=fmt(fromD);
+  document.getElementById('gf-date-end').value=latest;
+  gfState.dateStart=fmt(fromD);gfState.dateEnd=latest;
 
   // 标题栏数据更新日期
   const hd = document.getElementById('headerUpdateDate');
