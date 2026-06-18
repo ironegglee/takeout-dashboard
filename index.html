@@ -106,6 +106,22 @@
   .gf-date-input { padding: 5px 9px; font-size: 12px; font-family: inherit; color: var(--text-primary); border: 1px solid #D9D6CE; border-radius: 6px; outline: none; background: #fff; width: 118px; transition: border-color 0.15s; }
   .gf-date-input:focus, .gf-date-input:hover { border-color: #C8873A; }
   .gf-dash { color: var(--text-muted); font-size: 12px; }
+  /* 快捷日期按钮 */
+  .date-quick-btns { display: flex; gap: 4px; margin-left: 4px; }
+  .dq-btn {
+    padding: 3px 9px; font-size: 11px; border: 1px solid #D9D6CE;
+    border-radius: 5px; background: #fff; color: #666; cursor: pointer;
+    transition: all .15s; white-space: nowrap; line-height: 1.4;
+  }
+  .dq-btn:hover { border-color: #C8873A; color: #C8873A; }
+  .dq-btn.dq-active { background: #C8873A; color: #fff; border-color: #C8873A; }
+  @media(max-width:900px){
+    .date-quick-btns { margin-left: 0; margin-top: 2px; width: 100%; justify-content: flex-start; }
+    .dq-btn { font-size: 10px; padding: 2px 7px; }
+  }
+  @media(max-width:600px){
+    .gf-group[style*='flex-wrap'] .date-quick-btns{flex-basis:100%;margin-left:0}
+  }
   .gf-summary { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .gf-mobile-toggle { display: none; }
   .gf-filter-body { display: contents; }
@@ -656,12 +672,18 @@
 <div class="global-filter-bar" id="globalFilterBar">
   <button class="gf-mobile-toggle" onclick="toggleMobileFilter()" title="展开/收起筛选条件">筛选</button>
   <div class="gf-filter-body" id="gfFilterBody">
-  <div class="gf-group">
+  <div class="gf-group" style="flex-wrap:wrap;gap:4px 12px">
     <span class="gf-label">时间</span>
     <div class="gf-date-range">
-      <input type="date" class="gf-date-input" id="gf-date-start" onchange="onFilterChange()">
+      <input type="date" class="gf-date-input" id="gf-date-start" onchange="onFilterChange();updateDateQuickBtns()">
       <span class="gf-dash">—</span>
-      <input type="date" class="gf-date-input" id="gf-date-end" onchange="onFilterChange()">
+      <input type="date" class="gf-date-input" id="gf-date-end" onchange="onFilterChange();updateDateQuickBtns()">
+    </div>
+    <div class="date-quick-btns" id="dateQuickBtns">
+      <button class="dq-btn dq-active" data-days="-1" onclick="setDateQuick(-1)" title="昨日">昨日</button>
+      <button class="dq-btn" data-days="7" onclick="setDateQuick(7)" title="近7天">近7天</button>
+      <button class="dq-btn" data-days="30" onclick="setDateQuick(30)" title="近30天">近30天</button>
+      <button class="dq-btn" data-days="0" onclick="setDateQuick(0)" title="全部日期">全部</button>
     </div>
   </div>
 
@@ -1832,6 +1854,51 @@ function rebuildCitySelect(){
   s.innerHTML='<option value="all">全部城市</option>'+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
+// ── 快捷日期选择 ──
+function setDateQuick(days){
+  const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  const now=new Date();
+  const latest=EMBEDDED_DATE_END||fmt(now);
+  const latestD=new Date(latest+'T00:00:00');
+  let ds='',de='';
+  if(days===-1){
+    // 昨日：最新日期的前一天（如果最新就是今天则取昨天，否则取最新日期）
+    var yd=new Date(latestD); yd.setDate(yd.getDate()-1);
+    ds=fmt(yd); de=fmt(yd);
+  }else if(days===0){
+    // 全部：清空筛选，显示全量数据
+    ds=''; de='';
+  }else{
+    // 近N天：从 N天前 到 最新日期
+    var fromD=new Date(latestD); fromD.setDate(fromD.getDate()-days+1);
+    ds=fmt(fromD); de=latest;
+  }
+  document.getElementById('gf-date-start').value=ds;
+  document.getElementById('gf-date-end').value=de;
+  gfState.dateStart=ds; gfState.dateEnd=de;
+  updateDateQuickBtns();
+  onFilterChange();
+}
+function updateDateQuickBtns(){
+  var btns=document.querySelectorAll('#dateQuickBtns .dq-btn');
+  var s=gfState.dateStart, e=gfState.dateEnd;
+  btns.forEach(function(b){ b.classList.remove('dq-active'); });
+  if(!s && !e) { setDqActive(btns,0); return; }
+  var fmt=d=>{var p=t=>String(t).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());};
+  var latestStr=EMBEDDED_DATE_END||fmt(new Date()), latestD=new Date(latestStr+'T00:00:00');
+  // 昨日
+  var yd=new Date(latestD); yd.setDate(yd.getDate()-1); var ys=fmt(yd);
+  if(s===ys && e===ys) { setDqActive(btns,-1); return; }
+  // 近7天
+  var d7=new Date(latestD); d7.setDate(d7.getDate()-6); var d7s=fmt(d7);
+  if(s===d7s && e===latestStr) { setDqActive(btns,7); return; }
+  // 近30天
+  var d30=new Date(latestD); d30.setDate(d30.getDate()-29); var d30s=fmt(d30);
+  if(s===d30s && e===latestStr) { setDqActive(btns,30); return; }
+}
+function setDqActive(btns, days){
+  btns.forEach(function(b){ if(parseInt(b.dataset.days)===days) b.classList.add('dq-active'); });
+
 function onFilterChange(){
   gfState.dateStart=document.getElementById('gf-date-start').value;
   gfState.dateEnd=document.getElementById('gf-date-end').value;
@@ -1860,7 +1927,7 @@ function renderSummaryTags(){
 }
 
 function clearFilter(f){
-  if(f==='date'){document.getElementById('gf-date-start').value='';document.getElementById('gf-date-end').value='';gfState.dateStart='';gfState.dateEnd='';}
+  if(f==='date'){document.getElementById('gf-date-start').value='';document.getElementById('gf-date-end').value='';gfState.dateStart='';gfState.dateEnd='';updateDateQuickBtns();}
   else if(f==='marketBrand'){document.getElementById('gf-market-brand').value='all';gfState.marketBrand='all';rebuildCitySelect();}
   else if(f==='regionMgr'){document.getElementById('gf-region-mgr').value='all';gfState.regionMgr='all';onRegionMgrChange();return;}
   else if(f==='areaMgr'){document.getElementById('gf-area-mgr').value='all';gfState.areaMgr='all';}
@@ -5119,16 +5186,18 @@ function applyRealData(jsonData){
   try{
 
   const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-  // 默认显示全量数据范围
-  document.getElementById('gf-date-start').value=EMBEDDED_DATE_START;
-  document.getElementById('gf-date-end').value=EMBEDDED_DATE_END;
-  gfState.dateStart=EMBEDDED_DATE_START;gfState.dateEnd=EMBEDDED_DATE_END;
+  // 默认显示最新一天
+  const defaultDate=EMBEDDED_DATE_END||fmt(new Date());
+  document.getElementById('gf-date-start').value=defaultDate;
+  document.getElementById('gf-date-end').value=defaultDate;
+  gfState.dateStart=defaultDate;gfState.dateEnd=defaultDate;
 
   // 标题栏数据更新日期
   const hd = document.getElementById('headerUpdateDate');
   if(hd) hd.textContent = '数据更新至 ' + EMBEDDED_DATE_END;
 
   applyRealData(EMBEDDED_DATA);
+  updateDateQuickBtns();
 
   function doRender(){
     const as=document.getElementById('gf-area-mgr');
