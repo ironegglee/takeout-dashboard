@@ -169,8 +169,12 @@ now = datetime.now()
 build_time = now.strftime('%Y-%m-%dT%H:%M:%S+08:00')
 ver_str = f'{CURRENT_VERSION}@{now.strftime("%Y%m%d")}'
 
-html = html.replace('__BUILD_TIME__', build_time)
-html = html.replace('__VER__', ver_str)
+# 更新 build-time meta 标签
+html = re.sub(r'<meta name="build-time" content="[^"]*"', f'<meta name="build-time" content="{build_time}"', html)
+# 更新 VER 常量（JS 缓存版本号）
+html = re.sub(r'var VER\s*=\s*"[^"]*"', f'var VER = "{ver_str}"', html)
+# 更新 version meta 标签
+html = re.sub(r'<meta name="version" content="[^"]*"', f'<meta name="version" content="{CURRENT_VERSION}"', html)
 print(f'build-time: {build_time}')
 print(f'VER: {ver_str}')
 
