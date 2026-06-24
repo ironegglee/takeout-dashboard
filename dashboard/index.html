@@ -1898,6 +1898,7 @@ function updateDateQuickBtns(){
 }
 function setDqActive(btns, days){
   btns.forEach(function(b){ if(parseInt(b.dataset.days)===days) b.classList.add('dq-active'); });
+}
 
 function onFilterChange(){
   gfState.dateStart=document.getElementById('gf-date-start').value;
