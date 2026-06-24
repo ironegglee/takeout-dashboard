@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-06-24T16:21:00+08:00">
+<meta name="build-time" content="2026-06-24T16:31:45+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -296,6 +296,9 @@
   .drawer-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .drawer-close { width: 32px; height: 32px; border: none; background: #F5F3EF; border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: background 0.15s; }
   .drawer-close:hover { background: #E8E4DA; }
+  .drawer-back { display: none; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid var(--border); background: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-secondary); transition: all 0.15s; flex-shrink: 0; margin-right: 8px; }
+  .drawer-back:hover { background: #F5F3EF; border-color: #C8873A; color: #C8873A; }
+  .drawer-back.has-back { display: inline-flex; }
   .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
   .drawer-section { margin-bottom: 20px; }
   .drawer-section-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); letter-spacing: 0.03em; }
@@ -929,10 +932,11 @@ function toggleImproveGuide(){
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeStoreDetail(event)">
   <div class="detail-drawer" onclick="event.stopPropagation()">
     <div class="drawer-header">
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="drawer-title" id="drawerTitle"></div>
         <div class="drawer-meta" id="drawerMeta"></div>
       </div>
+      <button class="drawer-back" id="drawerBack" onclick="goDrawerBack()" title="返回上一级">← 返回</button>
       <button class="drawer-close" onclick="closeStoreDetail()">✕</button>
     </div>
     <div class="drawer-body" id="drawerBody"></div>
@@ -959,6 +963,7 @@ if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
 let REAL_MP_HEAT = null;     // 真实出餐耗时分布 {heatHours:[],heatVals:[]}
 let STORE_FOLD_MP = true;    // 小程序门店折叠（默认折叠：只显示top30）
 let STORE_FOLD_MT = true;    // 美团门店折叠
+let drawerBackStack = [];    // 下钻返回栈 [{title,meta,bodyHTML}]
 const STORE_FOLD_N = 30;     // 折叠时默认显示条数
 let STORE_GROUP_MP = false;  // 小程序门店是否城市分组
 let STORE_GROUP_MT = false;  // 美团门店是否城市分组
@@ -3166,6 +3171,19 @@ function openStoreMerged(storeName){
   const mtStore = STORE_MT.find(s => s.name === storeName);
   if (!mpStore && !mtStore) return;
 
+  // 保存当前抽屉状态到返回栈
+  const titleEl = document.getElementById('drawerTitle');
+  const metaEl = document.getElementById('drawerMeta');
+  const bodyEl = document.getElementById('drawerBody');
+  if (document.getElementById('drawerOverlay').classList.contains('open')) {
+    drawerBackStack.push({
+      title: titleEl.innerHTML,
+      meta: metaEl.innerHTML,
+      body: bodyEl.innerHTML
+    });
+  }
+  updateDrawerBackBtn();
+
   const store = mpStore || mtStore;
   const overlay = document.getElementById('drawerOverlay');
   let title = `<span style="display:inline-flex;align-items:center;gap:8px">${store.name}`;
@@ -3334,6 +3352,33 @@ function openStoreMerged(storeName){
 function closeStoreDetail(e){
   if(e&&e.target!==document.getElementById('drawerOverlay'))return;
   document.getElementById('drawerOverlay').classList.remove('open');
+  drawerBackStack = [];
+  updateDrawerBackBtn();
+}
+
+// 返回上一级下钻
+function goDrawerBack(){
+  if (drawerBackStack.length === 0) {
+    closeStoreDetail();
+    return;
+  }
+  var prev = drawerBackStack.pop();
+  document.getElementById('drawerTitle').innerHTML = prev.title;
+  document.getElementById('drawerMeta').innerHTML = prev.meta;
+  document.getElementById('drawerBody').innerHTML = prev.body;
+  updateDrawerBackBtn();
+}
+
+// 更新返回按钮显示状态
+function updateDrawerBackBtn(){
+  var btn = document.getElementById('drawerBack');
+  if (btn) {
+    if (drawerBackStack.length > 0) {
+      btn.classList.add('has-back');
+    } else {
+      btn.classList.remove('has-back');
+    }
+  }
 }
 
 function heatColor2(v,sl){if(v<=5.5)return'#3B6D11';if(v<=6.5)return'#639922';if(v<=sl)return'#EF9F27';return'#E24B4A';}
@@ -3749,7 +3794,19 @@ function renderAreaMgrRank(){
 /* ================================================================
    下钻交互（含排序）
 ================================================================ */
+// 保存当前抽屉状态到返回栈（供各级下钻调用）
+function pushDrawerState(){
+  if (!document.getElementById('drawerOverlay').classList.contains('open')) return;
+  drawerBackStack.push({
+    title: document.getElementById('drawerTitle').innerHTML,
+    meta: document.getElementById('drawerMeta').innerHTML,
+    body: document.getElementById('drawerBody').innerHTML
+  });
+  updateDrawerBackBtn();
+}
+
 function drillMarket(market){
+  pushDrawerState();
   currentDrill={type:'market',name:market};
   const mpStores=filterStores(STORE_MP).filter(s=>s.market===market);
   const mtStores=filterStores(STORE_MT).filter(s=>s.market===market);
@@ -3765,6 +3822,7 @@ function drillMarket(market){
 }
 
 function drillBrand(brand){
+  pushDrawerState();
   currentDrill={type:'brand',name:brand};
   const mpStores=filterStores(STORE_MP).filter(s=>s.brand===brand);
   const mtStores=filterStores(STORE_MT).filter(s=>s.brand===brand);
@@ -3780,6 +3838,7 @@ function drillBrand(brand){
 }
 
 function drillRegionMgr(regionMgr){
+  pushDrawerState();
   currentDrill={type:'region',name:regionMgr};
   const mpStores=filterStores(STORE_MP).filter(s=>s.region_mgr===regionMgr);
   const mtStores=filterStores(STORE_MT).filter(s=>s.region_mgr===regionMgr);
@@ -3796,6 +3855,7 @@ function drillRegionMgr(regionMgr){
 }
 
 function drillAreaMgr(areaMgr, market){
+  pushDrawerState();
   currentDrill={type:'area',name:areaMgr,market};
   const mpStores=filterStores(STORE_MP).filter(s=>s.area_mgr===areaMgr&&s.market===market);
   const mtStores=filterStores(STORE_MT).filter(s=>s.area_mgr===areaMgr&&s.market===market);
@@ -3838,6 +3898,7 @@ function drillAreaMgr(areaMgr, market){
 }
 
 function drillScore(name, type){
+  pushDrawerState();
   currentDrill={type:'score',name,scoreType:type};
   const mtStores=filterStores(STORE_MT);
   let filtered;
