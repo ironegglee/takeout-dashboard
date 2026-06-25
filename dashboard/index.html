@@ -4002,7 +4002,8 @@ function calcRealMetrics(){
   // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
   let mpStoreCount;
   if(mpDayFiltered.length > 0){
-    mpStoreCount = mp.length;
+    // 优先用每日汇总的门店数（全量数据源），避免STORE_MP（仅近7天）漏计数
+    mpStoreCount = mpDayFiltered[mpDayFiltered.length-1].store_count || mp.length;
   } else if(ds && de && !hasOrgFilter){
     mpStoreCount = 0;
   } else {
@@ -4037,7 +4038,8 @@ function calcRealMetrics(){
   // 美团门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
   let mtStoreCount;
   if(mtDayFiltered.length > 0){
-    mtStoreCount = mt.length;
+    // 优先用每日汇总的门店数，避免STORE_MT漏计数
+    mtStoreCount = mtDayFiltered[mtDayFiltered.length-1].store_count || mt.length;
   } else if(ds && de && !hasOrgFilter){
     mtStoreCount = 0;
   } else {
@@ -5203,7 +5205,7 @@ function applyRealData(jsonData){
   // 存储出餐耗时分布 & 分段占比 & 汇总数据供动态渲染使用
   if(jsonData.mp_hourly_cook){
     REAL_MP_HEAT = { heatHours: [], heatVals: [] };
-    for(let h=7; h<=23; h++){
+    for(let h=7; h<=24; h++){
       REAL_MP_HEAT.heatHours.push(h+'时');
       REAL_MP_HEAT.heatVals.push(jsonData.mp_hourly_cook[String(h)] || 0);
     }
