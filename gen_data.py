@@ -6,7 +6,7 @@ import pandas as pd, sys, json, re, math
 sys.stdout.reconfigure(encoding='utf-8')
 
 OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.backup.xlsx'
-NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-6.24.xlsx'
+NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-6.29.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
 BRAND_MAP = {
