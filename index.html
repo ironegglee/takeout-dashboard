@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-01T11:09:12+08:00">
+<meta name="build-time" content="2026-07-01T16:44:41+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -418,23 +418,27 @@
   /* ═══ 手机端 < 768px ═══ */
   @media (max-width: 768px) {
     body { font-size: 14px; padding-bottom: 20px; -webkit-tap-highlight-color: transparent; }
-    /* 顶栏精简 */
-    .header { height: 44px; padding: 0 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .header-brand { font-size: 12px; gap: 5px; flex-shrink: 0; }
-    .header-brand .dot { width: 7px; height: 7px; }
-    .header-brand span:last-child { display: none; }
-    .header-right { gap: 4px; flex-shrink: 0; }
-    #exportBtn { font-size: 0; padding: 5px 8px; gap: 0; }
-    #exportBtn svg { width: 14px; height: 14px; }
-    #copyLinkBtn { font-size: 0; padding: 5px 8px; gap: 0; }
-    #copyLinkBtn svg { width: 14px; height: 14px; }
-    .live-badge { font-size: 0; padding: 4px 6px; }
-    .live-badge span { width: 5px; height: 5px; margin-right: 0; }
-    .ts { display: none; }
-    #headerUpdateDate { font-size: 10px; margin-right: 4px; }
-    #headerVerBadge { font-size: 9px; padding: 1px 5px; margin-left: 3px; }
 
-    /* 筛选栏折叠 */
+    /* ── 顶栏精简：纯图标按钮 ── */
+    .header { height: 44px; padding: 0 10px; }
+    .header-brand { font-size: 13px; gap: 5px; flex-shrink: 0; max-width: 50vw; overflow: hidden; }
+    .header-brand .dot { width: 7px; height: 7px; }
+    /* 隐藏"外卖业务运营看板"文字，只保留品牌名 */
+    .header-brand span:nth-child(3) { display: none; }
+    .header-right { gap: 6px; flex-shrink: 0; }
+    /* 导出/复制按钮 → 仅图标 */
+    #exportBtn { font-size: 0 !important; padding: 6px 8px; gap: 0; min-width: 32px; justify-content: center; }
+    #exportBtn svg { width: 15px; height: 15px; }
+    #copyLinkBtn { font-size: 0 !important; padding: 6px 8px; gap: 0; min-width: 32px; justify-content: center; }
+    #copyLinkBtn svg { width: 15px; height: 15px; }
+    /* 只保留绿点，隐藏"实时监控中"文字 */
+    .live-badge { font-size: 0; padding: 5px 7px; gap: 0; }
+    .live-badge span { width: 6px; height: 6px; margin-right: 0; }
+    .ts { display: none; }
+    #headerUpdateDate { display: none; }
+    #headerVerBadge { font-size: 9px; padding: 1px 5px; }
+
+    /* ── 筛选栏折叠 ── */
     .global-filter-bar { padding: 8px 12px; flex-wrap: wrap; gap: 6px; position: sticky; top: 44px; min-height: auto; }
     .gf-group { border-right: none; margin-right: 0; padding: 0; flex: 1 1 auto; min-width: 0; }
     .gf-group:last-child { flex-basis: 100%; }
@@ -444,66 +448,68 @@
     .gf-summary { margin-left: 0; width: 100%; }
 
     #data-info-bar { padding: 4px 12px; font-size: 10px; flex-wrap: wrap; gap: 4px; }
-    .period-bar { padding: 0 12px; position: sticky; top: calc(44px + var(--filter-h)); }
-    .main { padding: 12px 8px 0; }
+    .period-bar { padding: 0 12px; position: sticky; top: calc(44px + var(--filter-h)); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .period-tab { padding: 9px 14px; font-size: 12px; white-space: nowrap; }
+    .main { padding: 10px 8px 0; }
 
-    /* 指标卡片 2 列 */
+    /* ── 指标卡片 2列 ── */
     .metrics-row.cols4, .metrics-row.cols5 { grid-template-columns: repeat(2, 1fr); gap: 6px; }
     .m-card { padding: 10px 12px; }
     .m-val { font-size: 18px; }
     .m-label { font-size: 10px; }
 
-    /* 面板紧凑 */
+    /* ── 面板紧凑 ── */
     .channel-panel { border-radius: var(--radius-md); }
     .channel-header { padding: 10px 14px; }
     .channel-header .channel-label { font-size: 12px; }
-    .channel-body { padding: 12px 14px; }
-    .section-label { font-size: 11px; margin-bottom: 8px; }
+    .channel-body { padding: 10px 12px; }
+    .section-label { font-size: 11px; margin-bottom: 6px; }
+    .channel-grid { gap: 12px; margin-bottom: 12px; }
 
-    /* 热力图横向滚动 */
+    /* ── 热力图横向滚动 ── */
     .heat-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 2px; padding-bottom: 4px; }
     .heat-cell { flex: 0 0 auto; min-width: 26px; padding: 4px 3px 3px; font-size: 9px; }
     .heat-cell .hc-time { font-size: 8px; }
 
-    /* 管理排名表横向滚动 + 触摸提示 */
-    .mgmt-card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px 2px; }
-    .mgmt-table { min-width: 600px; }
+    /* ── 管理排名表横向滚动 ── */
+    .mgmt-card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 6px 0; }
+    .mgmt-table { min-width: 560px; }
     .mgmt-table th, .mgmt-table td { font-size: 11px; padding: 5px 6px; }
     .mgmt-card-header { font-size: 12px; padding: 10px 14px; flex-wrap: wrap; gap: 4px; }
+    /* 移动端隐藏次要列（如"类型"标注） */
+    .mgmt-table .col-type { display: none; }
+    .mgmt-grid { grid-template-columns: 1fr; gap: 12px; }
 
-    /* 门店排名表 */
-    .store-rank-panel .rank-table-wrap { max-height: 400px; overflow: auto; -webkit-overflow-scrolling: touch; }
-    .store-rank-panel .rank-table { min-width: 650px; }
-    .store-rank-section { gap: 10px; margin-top: 16px; grid-template-columns: 1fr; }
+    /* ── 门店排名表 ── */
+    .store-rank-panel .rank-table-wrap { max-height: 380px; overflow: auto; -webkit-overflow-scrolling: touch; }
+    .store-rank-panel .rank-table { min-width: 580px; }
+    .store-rank-section { gap: 10px; margin-top: 14px; grid-template-columns: 1fr; }
     .store-rank-header { padding: 10px 14px; font-size: 12px; flex-wrap: wrap; gap: 4px; }
     .fold-btn, .group-btn { font-size: 10px; padding: 3px 7px; white-space: nowrap; }
 
-    /* 底部预警堆叠 */
+    /* ── 图表高度缩减 ── */
+    .chart-wrap.h160 { height: 130px; }
+    .chart-wrap.h180 { height: 145px; }
+    .chart-wrap.h200 { height: 160px; }
+    .chart-wrap.h220 { height: 170px; }
+
+    /* ── 底部预警堆叠 ── */
     .bottom-row { grid-template-columns: 1fr; gap: 10px; }
-    .alert-col { max-height: 280px; }
+    .alert-col { max-height: 260px; }
 
-    /* 管理层级网格 */
-    .mgmt-grid { grid-template-columns: 1fr; gap: 12px; }
-
-    /* 抽屉全宽 */
+    /* ── 抽屉全宽 ── */
     .detail-drawer { width: 100%; max-width: 100vw; }
-    .drawer-header { padding: 12px 16px; }
-    .drawer-body { padding: 14px 16px; }
+    .drawer-header { padding: 12px 14px; }
+    .drawer-body { padding: 12px 14px; }
     .drawer-stats.cols3 { grid-template-columns: repeat(2, 1fr); }
 
-    /* 评分树 */
-    .score-main-block { padding: 12px 14px; }
+    /* ── 评分树 ── */
+    .score-main-block { padding: 11px 12px; }
     .score-dim-grid { grid-template-columns: 1fr 1fr; gap: 5px; }
     .score-main-title { font-size: 11px; }
     .dim-value { font-size: 14px; }
     .dim-name { font-size: 9px; }
     .score-dim-card { padding: 6px 8px; }
-
-    /* 图表缩减 */
-    .chart-wrap.h160 { height: 140px; }
-    .chart-wrap.h180 { height: 150px; }
-    .chart-wrap.h200 { height: 170px; }
-    .chart-wrap.h220 { height: 180px; }
 
     .card { padding: 12px 14px; }
     .card-title { font-size: 12px; }
@@ -513,31 +519,27 @@
     .detail-dim-name { width: 60px; font-size: 10px; }
     .detail-dim-target { width: 36px; font-size: 9px; }
     .detail-dim-bar-wrap { height: 16px; }
-    
-    /* 饼图文字移动端缩小 */
+
+    /* ── 饼图文字 ── */
     .donut-pct { font-size: 10px !important; }
     .bigpie-pct { font-size: 7px !important; }
     .bigpie-title { font-size: 7px !important; }
-
-    /* 饼图SVG容器移动端缩小 */
     .dash-card { padding: 8px 6px; }
     .dash-card .m-label { font-size: 9px; }
-
-    /* 大盘卡片数值缩小 */
     .dash-card .m-val { font-size: 15px; }
-    
-    /* 大盘标题栏 */
+
+    /* ── 大盘标题栏 ── */
     .summary-header { padding: 8px 14px; font-size: 12px; }
     #summary-toggle-btn { font-size: 10px; padding: 2px 10px; }
-    
-    /* 饼图4列变2列 */
+
+    /* 饼图4列→2列 */
     .renderMarketPieRow-grid { grid-template-columns: repeat(2,1fr) !important; }
 
-    /* 大盘业绩卡片 3列→2列 */
+    /* 大盘业绩卡片布局 */
     #summary-grid > div:first-child { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
     #summary-grid > div:last-child { grid-template-columns: 1fr !important; gap: 10px !important; }
 
-    /* 移动端筛选折叠按钮 */
+    /* ── 移动端筛选折叠按钮 ── */
     .gf-mobile-toggle {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 5px 12px; font-size: 12px; background: #fff;
@@ -551,14 +553,14 @@
 
   @media (max-width: 480px) {
     .header { padding: 0 8px; height: 40px; }
-    .header-brand { font-size: 11px; gap: 4px; }
+    .header-brand { font-size: 12px; gap: 4px; }
     .header-brand .dot { width: 6px; height: 6px; }
-    #exportBtn { padding: 4px 6px; }
-    #exportBtn svg { width: 13px; height: 13px; }
-    #copyLinkBtn { padding: 4px 6px; }
-    #copyLinkBtn svg { width: 13px; height: 13px; }
+    /* 480px 以下：版本号、实时监控徽章都隐藏 */
+    #exportBtn { padding: 5px 7px; }
+    #exportBtn svg { width: 14px; height: 14px; }
+    #copyLinkBtn { padding: 5px 7px; }
+    #copyLinkBtn svg { width: 14px; height: 14px; }
     .live-badge { display: none; }
-    #headerUpdateDate { display: none; }
     #headerVerBadge { display: none; }
 
     .global-filter-bar { padding: 6px 8px; gap: 4px; }
@@ -577,37 +579,38 @@
     .total-card-wrap .m-val { font-size: 22px; }
     .total-card-wrap .m-unit { font-size: 11px; }
     .total-card-wrap .total-breakdown { font-size: 10px; gap: 6px; }
-    
-    .score-dim-grid { grid-template-columns: 1fr; }
+
+    /* 评分维度在极小屏幕上单列 */
+    .score-dim-grid { grid-template-columns: 1fr 1fr; }
     .m-val { font-size: 16px; }
     .m-card { padding: 8px 10px; }
-    .drawer-stats.cols3 { grid-template-columns: 1fr; }
-    .detail-dim-name { width: 50px; }
-    .mgmt-table { min-width: 480px; }
-    .store-rank-panel .rank-table { min-width: 500px; }
-    
+    .drawer-stats.cols3 { grid-template-columns: 1fr 1fr; }
+    .detail-dim-name { width: 52px; font-size: 9px; }
+    .mgmt-table { min-width: 440px; }
+    .store-rank-panel .rank-table { min-width: 460px; }
+
     /* 饼图文字进一步缩小 */
     .donut-pct { font-size: 9px !important; }
     .bigpie-pct { font-size: 6px !important; }
     .bigpie-title { font-size: 6px !important; }
     .dash-card .m-label { font-size: 8px; }
     .dash-card .m-val { font-size: 13px; }
-    
+
     /* 饼图2列 */
     .renderMarketPieRow-grid { grid-template-columns: repeat(2,1fr) !important; gap:4px !important; }
-    
+
     /* 卡片更紧凑 */
     .summary-grid { padding: 4px; gap: 6px; }
     .summary-header { padding: 6px 10px; font-size: 11px; }
     .dash-card { padding: 6px 4px; }
-    .channel-body { padding: 8px 10px;}
+    .channel-body { padding: 8px 10px; }
     .channel-header { padding: 8px 12px; }
-    
+
     /* 预警 pills */
-    .alert-pill { padding: 6px 8px; font-size: 11px; gap: 6px; }
+    .alert-pill { padding: 6px 8px; font-size: 10px; gap: 5px; }
     .bottom-row { gap: 8px; }
     .card { padding: 10px 12px; }
-    .card-title { font-size: 12px; margin-bottom: 10px; }
+    .card-title { font-size: 11px; margin-bottom: 8px; }
     .mgmt-grid { gap: 10px; }
 
     /* 热力图迷你 */
@@ -619,6 +622,12 @@
     .arch-col { min-width: 70px; gap: 4px; }
     .arch-item { font-size: 10px; padding: 2px 6px; }
     .arch-arrow-col { padding: 0 5px; font-size: 13px; }
+
+    /* 图表高度进一步缩减 */
+    .chart-wrap.h160 { height: 115px; }
+    .chart-wrap.h180 { height: 130px; }
+    .chart-wrap.h200 { height: 145px; }
+    .chart-wrap.h220 { height: 155px; }
   }
 </style>
 <script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
@@ -3620,7 +3629,7 @@ function renderMarketBrandRank(){
   t.innerHTML=`
     <table class="mgmt-table">
       <thead><tr>
-        <th width="26">#</th><th>名称</th><th width="52">类型</th><th class="sortable" width="72" onclick="onMgmtSortClick('marketBrand','cook')">出餐时间<span class="sort-arrow" id="mgmt-marketBrand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','score')">店铺分<span class="sort-arrow" id="mgmt-marketBrand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','rating')">体验分<span class="sort-arrow" id="mgmt-marketBrand-sort-rating"></span></th>
+        <th width="26">#</th><th>名称</th><th class="col-type" width="52">类型</th><th class="sortable" width="72" onclick="onMgmtSortClick('marketBrand','cook')">出餐时间<span class="sort-arrow" id="mgmt-marketBrand-sort-cook"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','score')">店铺分<span class="sort-arrow" id="mgmt-marketBrand-sort-score"></span></th><th class="sortable" width="68" onclick="onMgmtSortClick('marketBrand','rating')">体验分<span class="sort-arrow" id="mgmt-marketBrand-sort-rating"></span></th>
       </tr></thead>
       <tbody>${rows.map((r,i)=>{
         var dotColor = r.type==='market' ? (mkColors[r.name]||'#999') : (brdColors[r.name]||'#999');
@@ -3632,7 +3641,7 @@ function renderMarketBrandRank(){
         return `<tr class="clickable" ${onClick} title="${titleText}">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="mk-name"><span class="mk-dot" style="background:${dotColor}"></span>${r.name}</span></td>
-          <td>${typeTag}</td>
+          <td class="col-type">${typeTag}</td>
           <td class="dim">${r.avgCook}分</td>
           <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.name}','${r.type}')">${r.avgScore.toFixed(1)}</td>
           <td class="num">${r.avgRating.toFixed(2)}</td>
