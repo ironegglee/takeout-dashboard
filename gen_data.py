@@ -5,7 +5,7 @@ v3变更：改为双文件直接读取(避免merge_data.py合并大文件慢/易
 import pandas as pd, sys, json, re, math
 sys.stdout.reconfigure(encoding='utf-8')
 
-OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.xlsx'
+OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.backup.xlsx'
 NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-7.1.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
@@ -89,56 +89,92 @@ def safe_int(val, default=0):
     except: return default
 
 # ═══════════════════════════════════════════
-# 1. 读取架构 (NEW文件「美团架构数据源」, 最新架构)
-#    注意: NEW文件列序=美团ID,美团账号,美团密码,门店编码,门店名称,市场,品牌,城市,大区,区域,大店
-#    需重排为期望序: 品牌,市场,城市,门店编码,门店名称,美团ID,美团账号,美团密码,大区,区域,大店
+# 1. 读取架构 (OLD+NEW文件「美团架构数据源」合并)
+#    先读NEW(最新架构)，再读OLD补充NEW中不存在的门店(如饼坊等)
 # ═══════════════════════════════════════════
 print('=== 1. 读取架构 ===')
-arch = pd.read_excel(NEW_PATH, sheet_name='美团架构数据源')
-# 新版源文件: 美团ID,门店编码,门店名称,市场,品牌,城市,大区,区域,大店 (9列，无账号密码)
-# 旧版源文件: 美团ID_raw,美团账号,美团密码,门店编码,门店名称,市场,品牌,城市,大区,区域,大店 (11列)
-ncols = arch.shape[1]
-if ncols >= 11:
-    arch = arch.iloc[:, :11]
-    arch.columns = ['美团ID_raw','美团账号','美团密码','门店编码','门店名称','市场','品牌','城市','大区','区域','大店']
-    arch = arch[['品牌','市场','城市','门店编码','门店名称','美团ID_raw','美团账号','美团密码','大区','区域','大店']]
-    arch.columns = ['品牌','市场','城市','门店编码','门店名称','美团ID','美团账号','美团密码','大区','区域','大店']
-else:
-    arch.columns = ['美团ID','门店编码','门店名称','市场','品牌','城市','大区','区域','大店']
-    arch = arch[['品牌','市场','城市','门店编码','门店名称','美团ID','大区','区域','大店']]
-print(f'架构: {len(arch)} 门店')
 
-arch_by_mtid = {}
-arch_by_name = {}
-arch_by_code = {}
-
-for _, r in arch.iterrows():
-    name = str(r['门店名称']) if pd.notna(r['门店名称']) else ''
-    # 跳过空名称的架构行（数据源脏数据，5条：Y73100151/C73300018/G73100154/C02300027/C02300028）
-    if not name or not name.strip():
-        continue
-    mtid = str(int(r['美团ID'])) if pd.notna(r['美团ID']) else ''
-    city = str(r['城市']) if pd.notna(r['城市']) and str(r['城市']) != 'nan' else ''
-    region = str(r['大区']) if pd.notna(r['大区']) else ''
-    area = str(r['区域']) if pd.notna(r['区域']) else ''
-    leader = str(r['大店']) if pd.notna(r['大店']) else ''
-    brand = normalize_brand(r['品牌'])
-    market = normalize_market(r['市场'], brand)
-    code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
+def read_arch(filepath):
+    """读取单个文件的架构数据，返回 {mtid: info, name: info, code: info} 三个dict"""
+    df = pd.read_excel(filepath, sheet_name='美团架构数据源')
+    ncols = df.shape[1]
+    if ncols >= 11:
+        df = df.iloc[:, :11]
+        df.columns = ['美团ID_raw','美团账号','美团密码','门店编码','门店名称','市场','品牌','城市','大区','区域','大店']
+        df = df[['品牌','市场','城市','门店编码','门店名称','美团ID_raw','美团账号','美团密码','大区','区域','大店']]
+        df.columns = ['品牌','市场','城市','门店编码','门店名称','美团ID','美团账号','美团密码','大区','区域','大店']
+    else:
+        df.columns = ['美团ID','门店编码','门店名称','市场','品牌','城市','大区','区域','大店']
+        df = df[['品牌','市场','城市','门店编码','门店名称','美团ID','大区','区域','大店']]
     
-    info = {
-        'brand': brand, 'market': market, 'city': city,
-        'region_mgr': region, 'area_mgr': area, 'leader': leader,
-        'store_code': code, 'arch_name': name
-    }
-    if mtid:
-        arch_by_mtid[mtid] = info
-    if name:
-        arch_by_name[name] = info
-    if code:
-        arch_by_code[code] = info
+    by_mtid, by_name, by_code = {}, {}, {}
+    for _, r in df.iterrows():
+        name = str(r['门店名称']) if pd.notna(r['门店名称']) else ''
+        if not name or not name.strip():
+            continue
+        mtid = str(int(r['美团ID'])) if pd.notna(r['美团ID']) else ''
+        city = str(r['城市']) if pd.notna(r['城市']) and str(r['城市']) != 'nan' else ''
+        region = str(r['大区']) if pd.notna(r['大区']) else ''
+        area = str(r['区域']) if pd.notna(r['区域']) else ''
+        leader = str(r['大店']) if pd.notna(r['大店']) else ''
+        brand = normalize_brand(r['品牌'])
+        market = normalize_market(r['市场'], brand)
+        code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
+        info = {
+            'brand': brand, 'market': market, 'city': city,
+            'region_mgr': region, 'area_mgr': area, 'leader': leader,
+            'store_code': code, 'arch_name': name
+        }
+        if mtid:
+            by_mtid[mtid] = info
+        if name:
+            by_name[name] = info
+        if code:
+            by_code[code] = info
+    return by_mtid, by_name, by_code
 
-print(f'  有美团ID: {len(arch_by_mtid)}, 有门店名称: {len(arch_by_name)}, 有门店编码: {len(arch_by_code)}')
+# 先读NEW(最新架构)
+arch_by_mtid, arch_by_name, arch_by_code = read_arch(NEW_PATH)
+print(f'NEW架构: {len(arch_by_mtid)} 门店(有美团ID)')
+
+# 再读OLD补充NEW中不存在的门店(保留饼坊等已下架品牌的历史数据)
+old_mtid, old_name, old_code = read_arch(OLD_PATH)
+added = 0
+for mtid, info in old_mtid.items():
+    if mtid not in arch_by_mtid:
+        arch_by_mtid[mtid] = info; added += 1
+for name, info in old_name.items():
+    if name not in arch_by_name:
+        arch_by_name[name] = info
+for code, info in old_code.items():
+    if code not in arch_by_code:
+        arch_by_code[code] = info
+print(f'OLD补充: +{added} 门店, 合并后: {len(arch_by_mtid)} 门店(有美团ID)')
+
+# 汇总品牌分布
+brand_counts = {}
+for info in arch_by_mtid.values():
+    b = info['brand']
+    brand_counts[b] = brand_counts.get(b, 0) + 1
+print(f'品牌分布: {dict(sorted(brand_counts.items()))}')
+
+# 从OLD架构中找回饼坊门店：NEW文件中可能已将饼坊改标为茶颜悦色，
+# 但历史数据中仍是饼坊品牌，需要根据OLD架构覆盖回饼坊
+old_bingfang = {mtid: info for mtid, info in old_mtid.items() if info['brand'] == '饼坊'}
+for mtid, info in old_bingfang.items():
+    if mtid in arch_by_mtid:
+        arch_by_mtid[mtid]['brand'] = '饼坊'
+        arch_by_mtid[mtid]['market'] = info['market']
+    else:
+        arch_by_mtid[mtid] = info
+    name = info['arch_name']
+    if name and name in arch_by_name:
+        arch_by_name[name]['brand'] = '饼坊'
+    code = info['store_code']
+    if code and code in arch_by_code:
+        arch_by_code[code]['brand'] = '饼坊'
+        arch_by_code[code]['market'] = info['market']
+print(f'饼坊门店: 从OLD恢复 {len(old_bingfang)} 家')
 
 # ═══════════════════════════════════════════
 # 2. 读取美团指标数据 (OLD+NEW「美团指标数据源」内存合并)
@@ -585,7 +621,7 @@ output = clean_nan({
     'store_arch': arch_by_code,
     'alerts': alerts,
     'match_summary': {
-        'arch_total': len(arch),
+        'arch_total': len(arch_by_mtid),
         'mt_matched': len(mt_stores),
         'mt_total': len(mt_latest),
         'mp_matched': len(mp_stores),
