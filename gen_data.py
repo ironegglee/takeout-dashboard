@@ -5,7 +5,7 @@ v3变更：改为双文件直接读取(避免merge_data.py合并大文件慢/易
 import pandas as pd, sys, json, re, math
 sys.stdout.reconfigure(encoding='utf-8')
 
-OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.backup.xlsx'
+OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.xlsx'
 NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-7.1.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
@@ -13,8 +13,7 @@ BRAND_MAP = {
     '茶颜': '茶颜悦色', '茶颜悦色': '茶颜悦色',
     '鸳央': '鸳央咖啡', '鸳央咖啡': '鸳央咖啡',
     '墨柠': '墨柠', '古德墨柠': '墨柠',
-    '昼夜': '昼夜诗', '昼夜诗': '昼夜诗',
-    '饼坊': '饼坊'
+    '昼夜': '昼夜诗', '昼夜诗': '昼夜诗'
 }
 
 def normalize_brand(val):
@@ -35,7 +34,7 @@ def normalize_brand(val):
     if '昼夜' in v:
         return '昼夜诗'
     if '饼坊' in v or '饼行' in v:
-        return '饼坊'
+        return '茶颜悦色'
     return v
 
 # 品牌→市场映射：当市场字段被品牌名污染时，根据品牌推断真实市场
@@ -43,7 +42,6 @@ BRAND_TO_MARKET = {
     '墨柠': '湖南', '古德墨柠': '湖南',
     '鸳央咖啡': '湖南', '鸳央': '湖南',
     '昼夜诗': '湖南', '昼夜': '湖南',
-    '饼坊': '湖南',
 }
 
 def normalize_market(market_val, brand_val=''):
@@ -157,24 +155,6 @@ for info in arch_by_mtid.values():
     b = info['brand']
     brand_counts[b] = brand_counts.get(b, 0) + 1
 print(f'品牌分布: {dict(sorted(brand_counts.items()))}')
-
-# 从OLD架构中找回饼坊门店：NEW文件中可能已将饼坊改标为茶颜悦色，
-# 但历史数据中仍是饼坊品牌，需要根据OLD架构覆盖回饼坊
-old_bingfang = {mtid: info for mtid, info in old_mtid.items() if info['brand'] == '饼坊'}
-for mtid, info in old_bingfang.items():
-    if mtid in arch_by_mtid:
-        arch_by_mtid[mtid]['brand'] = '饼坊'
-        arch_by_mtid[mtid]['market'] = info['market']
-    else:
-        arch_by_mtid[mtid] = info
-    name = info['arch_name']
-    if name and name in arch_by_name:
-        arch_by_name[name]['brand'] = '饼坊'
-    code = info['store_code']
-    if code and code in arch_by_code:
-        arch_by_code[code]['brand'] = '饼坊'
-        arch_by_code[code]['market'] = info['market']
-print(f'饼坊门店: 从OLD恢复 {len(old_bingfang)} 家')
 
 # ═══════════════════════════════════════════
 # 2. 读取美团指标数据 (OLD+NEW「美团指标数据源」内存合并)
@@ -572,7 +552,33 @@ if '日期_dt' in df2.columns and not df2['日期_dt'].empty:
     dmax = df2['日期_dt'].max().strftime('%Y-%m-%d')
     mp_date_range = f'{dmin} ~ {dmax}'
 
+# 按日期生成 store_daily（供前端日期筛选联动门店排名等）
+print('\n=== 8.1 生成 store_daily ===')
 store_daily = {}
+
+# 美团每日门店编码
+for date_str_val, grp in mt.groupby('日期_str'):
+    date_str = str(date_str_val)
+    mt_codes = [str(c) for c in grp['门店编码'].unique() if pd.notna(c)]
+    if date_str not in store_daily:
+        store_daily[date_str] = {'mt': [], 'mp': []}
+    store_daily[date_str]['mt'] = mt_codes
+
+# 小程序每日门店编码（已有日期_dt列）
+if '日期_dt' in df2.columns:
+    for date_dt, grp in df2.groupby('日期_dt'):
+        date_str = date_dt.strftime('%Y-%m-%d')
+        mp_codes = [str(c) for c in grp['门店代码'].unique() if pd.notna(c)]
+        if date_str not in store_daily:
+            store_daily[date_str] = {'mt': [], 'mp': []}
+        store_daily[date_str]['mp'] = mp_codes
+
+print(f'store_daily: {len(store_daily)} 天')
+
+# 全量日期范围
+all_dates = sorted(store_daily.keys())
+full_date_range = f'{all_dates[0]} ~ {all_dates[-1]}' if all_dates else ''
+print(f'全量日期范围: {full_date_range}')
 
 # ═══════════════════════════════════════════
 # 9. 输出 JSON

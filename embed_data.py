@@ -52,9 +52,9 @@ elif full_date and ' ~ ' in full_date:
     date_end = parts[1].strip()
 
 # ═══════════════════════════════════════════
-# 2. 读取 index.html
+# 2. 读取 dashboard/index.html（源文件，已包含最新修改）
 # ═══════════════════════════════════════════
-with open(INDEX_HTML, 'r', encoding='utf-8') as f:
+with open(SRC_HTML, 'r', encoding='utf-8') as f:
     html = f.read()
 
 # ═══════════════════════════════════════════

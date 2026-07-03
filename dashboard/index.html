@@ -741,8 +741,8 @@
       <input type="date" class="gf-date-input" id="gf-date-end" onchange="onFilterChange();updateDateQuickBtns()">
     </div>
     <div class="date-quick-btns" id="dateQuickBtns">
-      <button class="dq-btn" data-days="-1" onclick="setDateQuick(-1)" title="昨日">昨日</button>
-      <button class="dq-btn dq-active" data-days="7" onclick="setDateQuick(7)" title="近7天">近7天</button>
+      <button class="dq-btn dq-active" data-days="-1" onclick="setDateQuick(-1)" title="昨日">昨日</button>
+      <button class="dq-btn" data-days="7" onclick="setDateQuick(7)" title="近7天">近7天</button>
       <button class="dq-btn" data-days="30" onclick="setDateQuick(30)" title="近30天">近30天</button>
       <button class="dq-btn" data-days="0" onclick="setDateQuick(0)" title="全部日期">全部</button>
     </div>
@@ -3761,7 +3761,7 @@ function renderMarketBrandRank(){
   const mpStores=filterStores(STORE_MP);
   const mtStores=filterStores(STORE_MT);
   const mkColors={'湖南':'#639922','湖北':'#EF9F27','江苏':'#667eea','重庆':'#E8321A'};
-  const brdColors={'鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A','饼坊':'#C8873A'};
+  const brdColors={'鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A'};
 
   // Calculate days from date filter
   var rankDays = 7;
@@ -4388,18 +4388,18 @@ function setPieDimension(dim){
 function normBrand(v){
   v = (v||'').trim();
   if(!v) return '';
-  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜','饼坊':'饼坊','饼行':'饼坊'};
+  var exact = {'茶颜':'茶颜悦色','茶颜悦色':'茶颜悦色','鸳央':'鸳央咖啡','鸳央咖啡':'鸳央咖啡','墨柠':'墨柠','古德墨柠':'墨柠','昼夜':'昼夜'};
   if(exact[v]) return exact[v];
   if(v.indexOf('茶颜')>=0) return '茶颜悦色';
   if(v.indexOf('鸳央')>=0 || v.indexOf('鸯央')>=0) return '鸳央咖啡';
   if(v.indexOf('墨柠')>=0 || v.indexOf('古德')>=0) return '墨柠';
   if(v.indexOf('昼夜')>=0) return '昼夜';
-  if(v.indexOf('饼坊')>=0 || v.indexOf('饼行')>=0) return '饼坊';
+  if(v.indexOf('饼坊')>=0 || v.indexOf('饼行')>=0) return '茶颜悦色';
   return v;
 }
 
 // ── 市场名统一归一化（JS端二次防护）──
-var BRAND_AS_MARKET = {'墨柠':1,'古德墨柠':1,'鸳央咖啡':1,'鸳央':1,'昼夜':1,'饼坊':1};
+var BRAND_AS_MARKET = {'墨柠':1,'古德墨柠':1,'鸳央咖啡':1,'鸳央':1,'昼夜':1};
 var MARKET_NORM = {
   '湖南':'湖南','湖南省':'湖南','湖南省市场':'湖南',
   '江苏':'江苏','江苏省':'江苏','江苏省市场':'江苏',
@@ -4804,7 +4804,7 @@ function renderDashboardSummary(){
 function renderMarketPieRow(marketData, marketNames, brandData, brandNames, totalTakeout, mpTakeout, mtTakeout, totalTC, mpTC, mtTC, totalStores, mpStores, mtStores, globalRev, globalMp, globalMt, globalTC, globalMpTC, globalMtTC, globalStores, globalMpStores, globalMtStores, totalRevenue, totalAllTCRef, totalAllStoresRef, active, dimension){
   var pies = [];
   
-  var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜':'昼夜','饼坊':'饼坊'};
+  var SHORT_LABEL = {'茶颜悦色':'茶颜','鸳央咖啡':'鸳央','墨柠':'墨柠','昼夜':'昼夜'};
   function shortLabel(n){ return SHORT_LABEL[n] || n; }
   
   // 根据维度从 store-level 数据中取字段
@@ -5215,29 +5215,40 @@ function render(){
     mpBdNote.style.display = (ds2 && de2 && (ds2 !== EMBEDDED_DATE_START || de2 !== EMBEDDED_DATE_END)) ? 'block' : 'none';
   }
 
-  // ── 趋势图：显示所选日期范围内最近7天数据 ──
-  let trend_mp = MP_DAILY.filter(d => !!d.date && (!ds2 || !de2 || (d.date >= ds2 && d.date <= de2)));
-  trend_mp.sort((a,b) => a.date.localeCompare(b.date));
-  // 如果范围超过7天，只显示最后7天；否则显示全部
+  // ── 趋势图：始终显示以截止日期为终点的近7日趋势 ──
+  // 即使选择单日，也展示该日往前6天的趋势（共7天）
+  var trendEnd = de2;
+  if(!trendEnd && MP_DAILY.length > 0){
+    trendEnd = MP_DAILY[MP_DAILY.length-1].date;
+  }
+  var trendStart = '';
+  if(trendEnd){
+    var tEndD = new Date(trendEnd+'T00:00:00');
+    var tStartD = new Date(tEndD); tStartD.setDate(tStartD.getDate()-6);
+    var p2=function(t){return String(t).padStart(2,'0');};
+    trendStart = tStartD.getFullYear()+'-'+p2(tStartD.getMonth()+1)+'-'+p2(tStartD.getDate());
+  }
+  let trend_mp = MP_DAILY.filter(function(d){ return !!d.date && (!trendStart || d.date >= trendStart) && (!trendEnd || d.date <= trendEnd); });
+  trend_mp.sort(function(a,b){ return a.date.localeCompare(b.date); });
   trend_mp = trend_mp.slice(-7);
   if(trend_mp.length > 0){
     renderMpTrendChart({
-      days: trend_mp.map(d=>d.date.slice(5)),
-      vals: trend_mp.map(d=>d.avg_cook),
+      days: trend_mp.map(function(d){ return d.date.slice(5); }),
+      vals: trend_mp.map(function(d){ return d.avg_cook; }),
       sla: 10
     });
   } else {
     renderMpTrendChart({days:[], vals:[], sla:10});
   }
 
-  let trend_mt = MT_DAILY.filter(d => !!d.date && (!ds2 || !de2 || (d.date >= ds2 && d.date <= de2)));
-  trend_mt.sort((a,b) => a.date.localeCompare(b.date));
+  let trend_mt = MT_DAILY.filter(function(d){ return !!d.date && (!trendStart || d.date >= trendStart) && (!trendEnd || d.date <= trendEnd); });
+  trend_mt.sort(function(a,b){ return a.date.localeCompare(b.date); });
   trend_mt = trend_mt.slice(-7);
   if(trend_mt.length > 0){
     renderMtScoreChart({
-      days: trend_mt.map(d=>d.date.slice(5)),
-      shop: trend_mt.map(d=>d.avg_shop_score),
-      exp: trend_mt.map(d=>d.avg_exp_score),
+      days: trend_mt.map(function(d){ return d.date.slice(5); }),
+      shop: trend_mt.map(function(d){ return d.avg_shop_score; }),
+      exp: trend_mt.map(function(d){ return d.avg_exp_score; }),
     });
   } else {
     renderMtScoreChart({days:[], shop:[], exp:[]});
@@ -5448,13 +5459,14 @@ function applyRealData(jsonData){
   try{
 
   const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-  // 默认显示近7天（单日数据可能导致部分图表无内容）
+  // 默认显示最新单日数据（昨日）
   const latest=EMBEDDED_DATE_END||fmt(new Date());
   const latestD=new Date(latest+'T00:00:00');
-  const fromD=new Date(latestD); fromD.setDate(fromD.getDate()-6);
-  document.getElementById('gf-date-start').value=fmt(fromD);
-  document.getElementById('gf-date-end').value=latest;
-  gfState.dateStart=fmt(fromD);gfState.dateEnd=latest;
+  const yDay=new Date(latestD); yDay.setDate(yDay.getDate()-1);
+  const yStr=fmt(yDay);
+  document.getElementById('gf-date-start').value=yStr;
+  document.getElementById('gf-date-end').value=yStr;
+  gfState.dateStart=yStr;gfState.dateEnd=yStr;
 
   // 标题栏数据更新日期
   const hd = document.getElementById('headerUpdateDate');
