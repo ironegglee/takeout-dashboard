@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-02T14:41:00+08:00">
+<meta name="build-time" content="2026-07-03T10:37:18+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.10@20260702";
+  var VER = "v2.10@20260703";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -128,6 +128,20 @@
   .gf-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(200,135,58,0.1); color: #854F0B; border-radius: 20px; font-size: 11px; font-weight: 500; }
   .gf-tag-remove { cursor: pointer; opacity: 0.6; font-size: 12px; line-height: 1; }
   .gf-tag-remove:hover { opacity: 1; }
+
+  /* ── 门店搜索框 ── */
+  .gf-search-wrap { display: flex; align-items: center; gap: 4px; }
+  .gf-search-input {
+    padding: 5px 10px 5px 28px; font-size: 12px; font-family: inherit;
+    color: var(--text-primary); border: 1px solid #D9D6CE; border-radius: 6px;
+    outline: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.5' fill='none' stroke='%239B9990' stroke-width='1.2'/%3E%3Cline x1='9.5' y1='9.5' x2='12.5' y2='12.5' stroke='%239B9990' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat 8px center;
+    width: 180px; transition: border-color 0.15s, box-shadow 0.15s, width 0.2s;
+  }
+  .gf-search-input:focus { border-color: #C8873A; box-shadow: 0 0 0 2px rgba(200,135,58,0.12); width: 220px; }
+  .gf-search-input::placeholder { color: #B5B0A6; }
+  .gf-search-clear { cursor: pointer; font-size: 14px; color: var(--text-muted); line-height: 1; padding: 2px; display: none; }
+  .gf-search-clear:hover { color: var(--text-primary); }
+  .gf-search-clear.visible { display: inline-block; }
 
   .period-bar {
     background: var(--card); border-bottom: 1px solid var(--border);
@@ -446,6 +460,8 @@
     .gf-select { font-size: 11px; padding: 4px 20px 4px 6px; min-width: 0; flex: 1; }
     .gf-date-input { font-size: 11px; padding: 4px 6px; width: auto; flex: 1; min-width: 0; }
     .gf-summary { margin-left: 0; width: 100%; }
+    .gf-search-input { width: 100%; flex: 1; }
+    .gf-search-input:focus { width: 100%; }
 
     #data-info-bar { padding: 4px 12px; font-size: 10px; flex-wrap: wrap; gap: 4px; }
     .period-bar { padding: 0 12px; position: sticky; top: calc(44px + var(--filter-h)); overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -729,6 +745,14 @@
     <select class="gf-select" id="gf-area-mgr" onchange="onFilterChange()">
       <option value="all">全部区经理</option>
     </select>
+  </div>
+
+  <div class="gf-group">
+    <span class="gf-label">门店</span>
+    <div class="gf-search-wrap">
+      <input type="text" class="gf-search-input" id="gf-store-search" placeholder="搜索门店名…" oninput="onStoreSearchInput(this.value)">
+      <span class="gf-search-clear" id="gf-search-clear" onclick="clearStoreSearch()">×</span>
+    </div>
   </div>
 
   <div class="gf-summary" id="gf-summary-tags"></div>
@@ -1306,7 +1330,7 @@ const DATA = {
    筛选 & 渲染逻辑
 ================================================================ */
 let charts={};
-const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all'};
+const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all',storeSearch:''};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
 const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
 let rankSortKey = 'score';   // 预警门店排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
@@ -1921,8 +1945,28 @@ function onFilterChange(){
   gfState.regionMgr=document.getElementById('gf-region-mgr').value;
   gfState.areaMgr=document.getElementById('gf-area-mgr').value;
   gfState.city=document.getElementById('gf-city').value;
+  gfState.storeSearch=document.getElementById('gf-store-search').value.trim();
   DASH_ACTIVE_MARKET = '大盘';
   renderSummaryTags(); updateInfoBar(); render();
+}
+
+// ── 门店搜索：防抖 ──
+var _storeSearchTimer = null;
+function onStoreSearchInput(val){
+  var clearBtn = document.getElementById('gf-search-clear');
+  if(val.trim()) clearBtn.classList.add('visible'); else clearBtn.classList.remove('visible');
+  if(_storeSearchTimer) clearTimeout(_storeSearchTimer);
+  _storeSearchTimer = setTimeout(function(){
+    gfState.storeSearch = val.trim();
+    DASH_ACTIVE_MARKET = '大盘';
+    renderSummaryTags(); render();
+  }, 350);
+}
+function clearStoreSearch(){
+  document.getElementById('gf-store-search').value = '';
+  document.getElementById('gf-search-clear').classList.remove('visible');
+  gfState.storeSearch = '';
+  renderSummaryTags(); render();
 }
 
 function renderSummaryTags(){
@@ -1938,6 +1982,7 @@ function renderSummaryTags(){
   if(gfState.regionMgr!=='all')t.push({label:gfState.regionMgr,field:'regionMgr'});
   if(gfState.areaMgr!=='all')t.push({label:gfState.areaMgr,field:'areaMgr'});
   if(gfState.city!=='all')t.push({label:gfState.city,field:'city'});
+  if(gfState.storeSearch)t.push({label:'🔍 '+gfState.storeSearch,field:'storeSearch'});
   document.getElementById('gf-summary-tags').innerHTML=t.map(x=>`<span class="gf-tag">${x.label}<span class="gf-tag-remove" onclick="clearFilter('${x.field}')">×</span></span>`).join('');
 }
 
@@ -1947,6 +1992,7 @@ function clearFilter(f){
   else if(f==='regionMgr'){document.getElementById('gf-region-mgr').value='all';gfState.regionMgr='all';onRegionMgrChange();return;}
   else if(f==='areaMgr'){document.getElementById('gf-area-mgr').value='all';gfState.areaMgr='all';}
   else if(f==='city'){document.getElementById('gf-city').value='all';gfState.city='all';}
+  else if(f==='storeSearch'){clearStoreSearch();return;}
   renderSummaryTags();render();
 }
 
@@ -1959,6 +2005,10 @@ function filterStores(arr){return arr.filter(s=>{
   if(gfState.regionMgr!=='all'&&s.region_mgr!==gfState.regionMgr)return false;
   if(gfState.areaMgr!=='all'&&s.area_mgr!==gfState.areaMgr)return false;
   if(gfState.city!=='all'&&s.city!==gfState.city)return false;
+  if(gfState.storeSearch){
+    const q=gfState.storeSearch.toLowerCase();
+    if(!s.name||s.name.toLowerCase().indexOf(q)===-1)return false;
+  }
   return true;
 });}
 
@@ -2188,6 +2238,10 @@ function applyOrgFilter(alerts){
   if(gfState.regionMgr !== 'all') filtered = filtered.filter(a => a.region_mgr === gfState.regionMgr);
   if(gfState.areaMgr !== 'all') filtered = filtered.filter(a => a.area_mgr === gfState.areaMgr);
   if(gfState.city !== 'all') filtered = filtered.filter(a => a.city === gfState.city);
+  if(gfState.storeSearch){
+    const q = gfState.storeSearch.toLowerCase();
+    filtered = filtered.filter(a => (a.store||'').toLowerCase().indexOf(q) !== -1);
+  }
   return filtered;
 }
 
