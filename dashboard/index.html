@@ -3490,7 +3490,6 @@ function openStoreMerged(storeName){
         <div class="drawer-stats cols3">
           <div class="drawer-stat"><div class="drawer-stat-label">店铺分</div><div class="drawer-stat-val" style="color:#667eea">${mtStore.shop_score}</div></div>
           <div class="drawer-stat"><div class="drawer-stat-label">综合体验分</div><div class="drawer-stat-val" style="color:#f5576c">${mtStore.exp_score}</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">今日营业额</div><div class="drawer-stat-val" style="color:#E8321A">${(mtStore.revenue / 10000).toFixed(2)}<span style="font-size:11px;font-weight:400"> 万</span></div></div>
         </div>
       </div>
       <div class="drawer-section">
@@ -3606,8 +3605,6 @@ function renderMpDetail(store, body){
         <div class="drawer-stat"><div class="drawer-stat-label">平均出餐时长</div><div class="drawer-stat-val" style="color:#C8873A">${store.avg}<span style="font-size:11px;font-weight:400"> 分钟</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">最长出餐时长</div><div class="drawer-stat-val">${store.max||'--'}<span style="font-size:11px;font-weight:400"> 分钟</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">出餐达标率</div><div class="drawer-stat-val" style="color:${store.rate>=95?'#3B6D11':store.rate>=90?'#854F0B':'#A32D2D'}">${store.rate}<span style="font-size:11px;font-weight:400">%</span></div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">预估订单量</div><div class="drawer-stat-val">${Math.round(store.revenue/28)}<span style="font-size:11px;font-weight:400"> 单</span></div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">今日营业额</div><div class="drawer-stat-val" style="color:#C8873A">${(store.revenue/10000).toFixed(2)}<span style="font-size:11px;font-weight:400"> 万</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">超 SLA</div><div class="drawer-stat-val" style="color:${store.avg>15?'#A32D2D':'#3B6D11'}">${store.avg>15?'超时':'正常'}</div></div>
       </div>
     </div>
@@ -3679,7 +3676,6 @@ function renderMtDetail(store, body){
       <div class="drawer-stats cols3">
         <div class="drawer-stat"><div class="drawer-stat-label">店铺分</div><div class="drawer-stat-val" style="color:#667eea">${store.shop_score}</div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">综合体验分</div><div class="drawer-stat-val" style="color:#f5576c">${store.exp_score}</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">今日营业额</div><div class="drawer-stat-val" style="color:#E8321A">${(store.revenue/10000).toFixed(2)}<span style="font-size:11px;font-weight:400"> 万</span></div></div>
       </div>
     </div>
     <div class="drawer-section">
@@ -4087,13 +4083,12 @@ function drillAreaMgr(areaMgr, market){
 
   Object.entries(byLeader).sort(([a],[b])=>a.localeCompare(b,'zh')).forEach(([leader,groups])=>{
     const ldMP=groups.mp,ldMT=groups.mt;
-    const ldTotal=ldMP.reduce((a,s)=>a+s.revenue,0)+(ldMT.reduce((a,s)=>a+s.revenue,0));
     const ldCount=ldMP.length+ldMT.length;
 
     h+=`<div class="leader-block" style="background:#F8F6F0;border:1px solid #E8E4DA;border-radius:6px;padding:12px 14px;margin-bottom:12px">`;
     h+=`<div class="section-label" style="margin-bottom:6px;display:flex;align-items:center;gap:8px">`;
     h+=`<span style="background:#667eea;color:#fff;font-size:10px;padding:2px 8px;border-radius:3px">大店长</span>`;
-    h+=`${leader}<span style="font-size:11px;color:var(--text-muted);font-weight:400">${ldCount}家门店 · ${(ldTotal/10000).toFixed(1)}万</span>`;
+    h+=`${leader}<span style="font-size:11px;color:var(--text-muted);font-weight:400">${ldCount}家门店</span>`;
     h+=`</div>`;
     h+=renderUnifiedDrillTable('area',ldMP,ldMT);
     h+=`</div>`;
@@ -5139,11 +5134,7 @@ function renderActiveDetail(ad, marketName, days, dimension){
 }
 
 var METRIC_INFO = {
-  '业绩': '<b>业绩</b>：所选日期范围内的外卖总收款金额（含自配送+美团）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总业绩" 求和。<br><br><b>数据来源</b>：业绩数据源（POS+平台对账汇总）。<br><br><b>自配送</b>：小程序外卖订单总金额；<b>美团</b>：美团平台订单总金额。<br><br><b>💡 如何提升</b>：优化菜单结构提高客单价、提升门店流量增加曝光、开展营销活动促进复购。',
-  'TC': '<b>TC（订单量）</b>：所选日期范围内的外卖总订单数（Transaction Count）。<br><br><b>计算公式</b>：Σ 各门店每日"外卖总"订单数 求和。<br><br><b>数据来源</b>：订单数据源。<br><br><b>自配送</b>：小程序外卖订单数；<b>美团</b>：美团平台订单数。<br><br><b>💡 如何提升</b>：增加外卖平台曝光投入、优化门店评分吸引顾客、高峰期保障出餐速度。',
-  '门店数': '<b>门店数</b>：所选日期范围内有外卖业绩的活跃门店总数（去重）。<br><br><b>计算公式</b>：业绩>0 的门店按编码去重计数（自配送与美团取并集）。<br><br><b>数据来源</b>：业绩数据源按日统计。<br><br><b>💡 如何保持</b>：确保所有营业门店均开通外卖服务，新开门店及时上线。',
-  '店日均业绩': '<b>店日均业绩</b>：单店每日平均外卖营收。<br><br><b>计算公式</b>：外卖总额 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量单店外卖运营效率的核心指标，可比性远高于总额。<br><br><b>💡 如何提升</b>：提高门店曝光排名、优化外卖菜单、缩短出餐时间、提升店铺分吸引顾客。',
-  '店日均TC': '<b>店日均TC</b>：单店每日平均外卖订单数。<br><br><b>计算公式</b>：外卖总订单 ÷ 活跃门店数 ÷ 天数。<br><br><b>用途</b>：衡量门店外卖客流强度，配合客单价分析可定位增长空间。<br><br><b>💡 如何提升</b>：高峰期安排充足人手、保障出餐速度、参与平台活动提升曝光。',
+  '门店数': '<b>门店数</b>：所选日期范围内有外卖活动的活跃门店总数（去重）。<br><br><b>计算公式</b>：有外卖活动的门店按编码去重计数（自配送与美团取并集）。<br><br><b>💡 如何保持</b>：确保所有营业门店均开通外卖服务，新开门店及时上线。',
 };
 
 function showMetricInfo(label){
