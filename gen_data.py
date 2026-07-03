@@ -422,6 +422,7 @@ for mp_name, cook_info in over15_stores.items():
             'detail': f'峰值出餐 {cook_info["max"]} 分钟 | 日均 {cook_info["avg"]} 分钟 | 超时日期: {",".join(bad_dates)}',
             'max_cook': cook_info['max'],
             'avg_cook': cook_info['avg'],
+            'alert_dates': bad_dates,
         })
 
 print(f'  出餐超时预警: {len(alerts)} 条')

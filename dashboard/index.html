@@ -2568,6 +2568,19 @@ function openAlertDetail(alert){
   if(mainSub) cardHtml += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">'+mainSub+'</div>';
   cardHtml += '</div>';
   
+  // Alert dates (for cook type)
+  if(alert.type==='cook' && alert.alert_dates && alert.alert_dates.length>0){
+    cardHtml += '<div style="margin:0 24px 12px">';
+    cardHtml += '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px">📅 超时日期</div>';
+    cardHtml += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    for(var di=0;di<alert.alert_dates.length;di++){
+      var dp = alert.alert_dates[di].split('-');
+      var dlabel = (dp.length===3) ? parseInt(dp[1])+'月'+parseInt(dp[2])+'日' : alert.alert_dates[di];
+      cardHtml += '<span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#FEF0EE;border:1px solid '+color+'30;font-size:11px;color:'+color+'">'+dlabel+'</span>';
+    }
+    cardHtml += '</div></div>';
+  }
+  
   // Alert message
   if(alert.msg){
     cardHtml += '<div style="margin:0 24px 12px;padding:8px 12px;border-radius:6px;background:#FFF5F5;border-left:3px solid '+color+';font-size:12px;color:var(--text-secondary);line-height:1.6">'+esc(alert.msg)+'</div>';
@@ -2661,10 +2674,23 @@ function renderAlerts(){
   // Apply org filters
   let filteredAll = applyOrgFilter(allAlerts);
 
-  // Apply date filter — only show alerts from stores that have data in selected date range
-  var dateNames = getDateFilteredStoreNames();
-  if(dateNames){
-    filteredAll = filteredAll.filter(function(a){ return dateNames.has(a.store); });
+  // Apply date filter — for cook alerts, check alert_dates overlap with selected date range
+  var ds = gfState.dateStart, de = gfState.dateEnd;
+  var hasDateFilter = ds && de;
+  if(hasDateFilter){
+    filteredAll = filteredAll.filter(function(a){
+      if(a.type === 'cook'){
+        // Cook alert: only show if alert_dates overlap with selected range
+        var dates = a.alert_dates || [];
+        for(var i=0;i<dates.length;i++){
+          var d = dates[i];
+          if(d >= ds && d <= de) return true;
+        }
+        return false;
+      }
+      // shop/rating alerts have no daily dimension, keep all (org filter already applied)
+      return true;
+    });
   }
 
   let cooks = filteredAll.filter(function(a){ return a.type === "cook"; });
@@ -2849,6 +2875,7 @@ function openRegionDrillDown(region, colorClass){
     leaderHtml += '<th style="width:46px;padding:6px 2px;text-align:center;font-weight:500;color:var(--text-muted);font-size:11px">平台</th>';
     leaderHtml += '<th style="width:40px;padding:6px 2px;text-align:center;font-weight:500;color:var(--text-muted);font-size:11px">城市</th>';
     if(colorClass==="cook") leaderHtml += '<th style="width:60px;padding:6px 2px;text-align:center;font-weight:500;color:var(--text-muted);font-size:11px">出餐</th>';
+    if(colorClass==="cook") leaderHtml += '<th style="padding:6px 4px;text-align:left;font-weight:500;color:var(--text-muted);font-size:11px">超时日期</th>';
     if(colorClass==="shop") leaderHtml += '<th style="width:48px;padding:6px 2px;text-align:center;font-weight:500;color:var(--text-muted);font-size:11px">总分</th>';
     if(colorClass==="shop") leaderHtml += '<th style="padding:6px 4px;text-align:left;font-weight:500;color:var(--text-muted);font-size:11px">失分指标</th>';
     if(colorClass==="rating") leaderHtml += '<th style="width:54px;padding:6px 2px;text-align:center;font-weight:500;color:var(--text-muted);font-size:11px">体验分</th>';
@@ -2865,6 +2892,19 @@ function openRegionDrillDown(region, colorClass){
       leaderHtml += '<td style="padding:7px 2px;text-align:center"><span style="font-size:10px;padding:1px 5px;border-radius:10px;'+(sa.type==="cook"?"background:#FDF3E7;color:#C8873A":"background:#FEF0EE;color:#E8321A")+'">'+platformMap[sa.type||colorClass]+'</span></td>';
       leaderHtml += '<td style="padding:7px 2px;text-align:center;font-size:11px;color:var(--text-secondary)">'+esc(sa.city)+'</td>';
       leaderHtml += '<td style="padding:7px 2px;text-align:center;font-weight:600;color:'+color+'">'+getMetric(sa)+'</td>';
+      // Cook: show alert dates
+      if(colorClass==="cook"){
+        var ad = sa.alert_dates || [];
+        var dateStrs = [];
+        for(var di=0;di<ad.length;di++){
+          var parts = ad[di].split('-');
+          if(parts.length === 3) dateStrs.push(parseInt(parts[1])+'/'+parseInt(parts[2]));
+        }
+        var showDates = dateStrs.slice(0,3);
+        var dateTxt = showDates.length ? showDates.join('、') : '—';
+        if(dateStrs.length > 3) dateTxt += ' <span style="font-size:10px;color:var(--text-muted)">+'+(dateStrs.length-3)+'</span>';
+        leaderHtml += '<td style="padding:7px 4px;font-size:11px;color:var(--text-secondary);white-space:nowrap">'+dateTxt+'</td>';
+      }
       // Shop/Rating: show failing dimension tags
       if(colorClass==="shop"||colorClass==="rating"){
         leaderHtml += '<td style="padding:5px 4px">';
