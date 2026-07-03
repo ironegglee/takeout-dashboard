@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-03T18:45:24+08:00">
+<meta name="build-time" content="2026-07-03T18:53:34+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -621,8 +621,8 @@
     .gf-autocomplete-item { padding: 6px 8px; font-size: 11px; }
     .gf-autocomplete-item .match-meta { font-size: 9px; }
     .top-metrics { grid-template-columns: 1fr; gap: 6px; }
-    .top-group-cards { grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px 8px; }
-    .top-group-cards .m-card .m-val { font-size: 15px; }
+    .top-group-cards { grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 6px 8px; }
+    .top-group-cards .m-card .m-val { font-size: 14px; }
     .top-group-cards .m-card .m-label { font-size: 9px; }
     .total-card-wrap { padding: 10px; }
     .total-card-wrap .m-val { font-size: 22px; }
@@ -4130,11 +4130,11 @@ function calcRealMetrics(){
     mpOrd = mpDayFiltered.reduce((a,d)=>a+(d.orders||0),0);
     const totalOrders = mpOrd;
     mpAvgCook = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0),0)/totalOrders) : 0;
-  } else if(ds && de && !hasOrgFilter){
-    mpOrd = 0; mpAvgCook = 0;
+    mpAvgRate = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalOrders) : 0; mpAvgRate = 0;
   } else {
     mpOrd = mp.reduce((a,s)=>a+(s.orders||0),0);
     mpAvgCook = mp.length ? (mp.reduce((a,s)=>a+(s.avg||0),0)/mp.length) : 0;
+    mpAvgRate = mp.length ? (mp.reduce((a,s)=>a+(s.rate||0),0)/mp.length) : 0;
   }
 
   // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
@@ -4151,6 +4151,7 @@ function calcRealMetrics(){
   const mpMetrics = [
     {label:'小程序门店', val: mpStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
     {label:'平均出餐时长', val: mpAvgCook.toFixed(1), unit:'分钟', sub:'', dir:'', ref:''},
+    {label:'15分钟达标率', val: mpAvgRate.toFixed(1)+'%', unit:'', sub:'', dir:'', ref:''},
   ];
 
   // 美团 KPI：仅日期筛选用每日汇总，组织筛选用过滤门店汇总
@@ -4218,6 +4219,7 @@ function calcRealMetrics(){
 
     var prevMpOrd = prevMpDay.reduce(function(a,d){return a+(d.orders||0);},0);
     var prevMpCook = prevMpOrd > 0 ? (prevMpDay.reduce(function(a,d){return a+(d.orders||0)*(d.avg_cook||0);},0)/prevMpOrd) : null;
+    var prevMpRate = prevMpOrd > 0 ? (prevMpDay.reduce(function(a,d){return a+(d.orders||0)*(d.rate||0);},0)/prevMpOrd) : null;
     var prevMpStore = prevMpDay.length > 0 ? (prevMpDay[prevMpDay.length-1].store_count||null) : null;
 
     var prevMtStCount = prevMtDay.reduce(function(a,d){return a+(d.store_count||0);},0);
@@ -4227,6 +4229,7 @@ function calcRealMetrics(){
 
     var d1 = prevDelta(mpStoreCount, prevMpStore, 'store'); if(d1.s){mpMetrics[0].sub=d1.s;mpMetrics[0].dir=d1.d;mpMetrics[0].ref=refLabel;}
     var d2 = prevDelta(mpAvgCook, prevMpCook, 'cook'); if(d2.s){mpMetrics[1].sub=d2.s;mpMetrics[1].dir=d2.d;mpMetrics[1].ref=refLabel;}
+    var d3 = prevDelta(mpAvgRate, prevMpRate, 'rate'); if(d3.s){mpMetrics[2].sub=d3.s;mpMetrics[2].dir=d3.d;mpMetrics[2].ref=refLabel;}
   }
 
   const mtMetrics = [
