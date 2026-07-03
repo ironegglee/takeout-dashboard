@@ -5,8 +5,8 @@ v3变更：改为双文件直接读取(避免merge_data.py合并大文件慢/易
 import pandas as pd, sys, json, re, math
 sys.stdout.reconfigure(encoding='utf-8')
 
-OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.backup.xlsx'
-NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-6.30.xlsx'
+OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.xlsx'
+NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-7.1.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
 BRAND_MAP = {
@@ -337,11 +337,16 @@ mp_stores = [s for s in mp_stores if s.get('name') and s.get('brand') and s['bra
 print(f'小程序匹配: {len(mp_stores)}/{len(agg)}, 未匹配: {len(mp_unmatched)}')
 
 # ═══════════════════════════════════════════
-# 4. 业绩数据源 (OLD+NEW「业绩数据源」内存合并)
-#    注意: OLD文件col[24]=市场/品牌, NEW文件col[24]=省份, 需统一列名后合并
+# ═══════════════════════════════════════════
+# 4. 业绩数据源（可能缺失，层叠兜底）
 # ═══════════════════════════════════════════
 print('\n=== 4. 业绩数据源 ===')
-perf_old = pd.read_excel(OLD_PATH, sheet_name='业绩数据源')
+perf_cols = ['日期','门店名称','品牌','大区','区经理','大店长','城市','外卖总业绩','小程序外卖订单总金额','美团订单总金额','订单总金额','门店编码','市场/品牌']
+try:
+    perf_old = pd.read_excel(OLD_PATH, sheet_name='业绩数据源')
+except ValueError:
+    print('  ⚠ OLD文件无「业绩数据源」sheet')
+    perf_old = pd.DataFrame(columns=perf_cols)
 try:
     perf_new = pd.read_excel(NEW_PATH, sheet_name='业绩数据源')
 except ValueError:
@@ -351,153 +356,167 @@ except ValueError:
 if '省份' in perf_new.columns and '市场/品牌' not in perf_new.columns:
     perf_new = perf_new.rename(columns={'省份': '市场/品牌'})
 perf = pd.concat([perf_old, perf_new], ignore_index=True).drop_duplicates().reset_index(drop=True)
-perf['日期_dt'] = pd.to_datetime(perf['日期'].astype(str), format='%Y%m%d', errors='coerce')
-perf['品牌'] = perf['品牌'].apply(normalize_brand)
-perf['region_mgr'] = perf['大区'].astype(str)
-perf['area_mgr'] = perf['区经理'].astype(str)
-perf['leader'] = perf['大店长'].astype(str)
-perf['city'] = perf['城市'].astype(str)
-perf['外卖总_val'] = pd.to_numeric(perf['外卖总业绩'], errors='coerce').fillna(0)
-perf['小程序外卖_val'] = pd.to_numeric(perf['小程序外卖订单总金额'], errors='coerce').fillna(0)
-perf['美团_val'] = pd.to_numeric(perf['美团订单总金额'], errors='coerce').fillna(0)
-perf['大盘_val'] = pd.to_numeric(perf['订单总金额'], errors='coerce').fillna(0)  # 全渠道总业绩(含堂食)
-
-# 将业绩数据源中不在架构表的门店编码补入 arch_by_code（解决 store_daily.total 中约363家堂食门店无组织信息的问题）
-_perf_codes = perf[['门店编码','门店名称','品牌','市场/品牌','城市','大区','区经理','大店长']].drop_duplicates()
-_extended = 0
-for _, r in _perf_codes.iterrows():
-    code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
-    if not code or code in arch_by_code:
-        continue
-    name = str(r['门店名称']) if pd.notna(r['门店名称']) else ''
-    brand = normalize_brand(r['品牌'])
-    market = normalize_market(r['市场/品牌'], brand)
-    city = str(r['城市']) if pd.notna(r['城市']) and str(r['城市']) != 'nan' else ''
-    region = str(r['大区']) if pd.notna(r['大区']) else ''
-    area = str(r['区经理']) if pd.notna(r['区经理']) else ''
-    leader = str(r['大店长']) if pd.notna(r['大店长']) else ''
-    arch_by_code[code] = {
-        'brand': brand, 'market': market, 'city': city,
-        'region_mgr': region, 'area_mgr': area, 'leader': leader,
-        'store_code': code, 'arch_name': name
-    }
-    _extended += 1
-print(f'  arch_by_code 补全: +{_extended} (总计{len(arch_by_code)})')
-
-# 业绩每日汇总（分渠道）
-perf_daily = perf.groupby('日期_dt').agg(
-    revenue=('外卖总_val', 'sum'),
-    mp_revenue=('小程序外卖_val', 'sum'),
-    mt_revenue=('美团_val', 'sum'),
-    total_revenue=('大盘_val', 'sum'),  # 大盘业绩（全渠道含堂食）
-    store_count=('门店编码', 'nunique'),
-    mp_stores=('门店编码', lambda x: x[perf.loc[x.index,'小程序外卖_val']>0].nunique()),
-    mt_stores=('门店编码', lambda x: x[perf.loc[x.index,'美团_val']>0].nunique()),
-    total_stores=('门店编码', lambda x: x[perf.loc[x.index,'大盘_val']>0].nunique()),
-).reset_index()
-perf_daily['date'] = perf_daily['日期_dt'].dt.strftime('%Y-%m-%d')
-perf_daily['revenue'] = perf_daily['revenue'].round(0).astype(int)
-perf_daily['mp_revenue'] = perf_daily['mp_revenue'].round(0).astype(int)
-perf_daily['mt_revenue'] = perf_daily['mt_revenue'].round(0).astype(int)
-perf_daily['total_revenue'] = perf_daily['total_revenue'].round(0).astype(int)
-perf_daily['mp_stores'] = perf_daily['mp_stores'].astype(int)
-perf_daily['mt_stores'] = perf_daily['mt_stores'].astype(int)
-perf_daily['total_stores'] = perf_daily['total_stores'].astype(int)
-print(f'业绩每日: {len(perf_daily)} 天, 大盘 {perf_daily["total_revenue"].sum():.0f}, 外卖总 {perf_daily["revenue"].sum():.0f}, 小程序 {perf_daily["mp_revenue"].sum():.0f}, 美团 {perf_daily["mt_revenue"].sum():.0f}')
-
-# 业绩门店维度汇总（最新7天，分渠道）
-perf_max = perf['日期_dt'].max()
-perf_7d = perf[perf['日期_dt'] >= perf_max - pd.Timedelta(days=6)]
-perf_store = perf_7d.groupby(['门店编码','门店名称','品牌','市场/品牌','city','region_mgr','area_mgr','leader']).agg(
-    revenue=('外卖总_val', 'sum'),
-    mp_revenue=('小程序外卖_val', 'sum'),
-    mt_revenue=('美团_val', 'sum'),
-    days=('日期', 'nunique'),
-).reset_index()
-perf_store['revenue'] = perf_store['revenue'].round(0).astype(int)
-perf_store['mp_revenue'] = perf_store['mp_revenue'].round(0).astype(int)
-perf_store['mt_revenue'] = perf_store['mt_revenue'].round(0).astype(int)
-
-# 构建门店编码→业绩映射（分渠道）
-perf_by_code = {}
-for _, r in perf_store.iterrows():
-    code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
-    if code:
-        perf_by_code[code] = {
-            'revenue': int(r['revenue']), 'mp_revenue': int(r['mp_revenue']),
-            'mt_revenue': int(r['mt_revenue']), 'days': int(r['days']),
-            'market': normalize_market(r['市场/品牌'], r['品牌'])
+if len(perf) == 0:
+    print('  业绩数据为空，跳过后续处理')
+    perf_daily_list = []; perf_by_code = {}; perf_daily = pd.DataFrame(); perf_store = pd.DataFrame(); perf_7d = pd.DataFrame()
+else:
+    perf['日期_dt'] = pd.to_datetime(perf['日期'].astype(str), format='%Y%m%d', errors='coerce')
+    perf['品牌'] = perf['品牌'].apply(normalize_brand)
+    perf['region_mgr'] = perf['大区'].astype(str)
+    perf['area_mgr'] = perf['区经理'].astype(str)
+    perf['leader'] = perf['大店长'].astype(str)
+    perf['city'] = perf['城市'].astype(str)
+    perf['外卖总_val'] = pd.to_numeric(perf['外卖总业绩'], errors='coerce').fillna(0)
+    perf['小程序外卖_val'] = pd.to_numeric(perf['小程序外卖订单总金额'], errors='coerce').fillna(0)
+    perf['美团_val'] = pd.to_numeric(perf['美团订单总金额'], errors='coerce').fillna(0)
+    perf['大盘_val'] = pd.to_numeric(perf['订单总金额'], errors='coerce').fillna(0)  # 全渠道总业绩(含堂食)
+    
+    # 将业绩数据源中不在架构表的门店编码补入 arch_by_code（解决 store_daily.total 中约363家堂食门店无组织信息的问题）
+    _perf_codes = perf[['门店编码','门店名称','品牌','市场/品牌','城市','大区','区经理','大店长']].drop_duplicates()
+    _extended = 0
+    for _, r in _perf_codes.iterrows():
+        code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
+        if not code or code in arch_by_code:
+            continue
+        name = str(r['门店名称']) if pd.notna(r['门店名称']) else ''
+        brand = normalize_brand(r['品牌'])
+        market = normalize_market(r['市场/品牌'], brand)
+        city = str(r['城市']) if pd.notna(r['城市']) and str(r['城市']) != 'nan' else ''
+        region = str(r['大区']) if pd.notna(r['大区']) else ''
+        area = str(r['区经理']) if pd.notna(r['区经理']) else ''
+        leader = str(r['大店长']) if pd.notna(r['大店长']) else ''
+        arch_by_code[code] = {
+            'brand': brand, 'market': market, 'city': city,
+            'region_mgr': region, 'area_mgr': area, 'leader': leader,
+            'store_code': code, 'arch_name': name
         }
-
+        _extended += 1
+    print(f'  arch_by_code 补全: +{_extended} (总计{len(arch_by_code)})')
+    
+    # 业绩每日汇总（分渠道）
+    perf_daily = perf.groupby('日期_dt').agg(
+        revenue=('外卖总_val', 'sum'),
+        mp_revenue=('小程序外卖_val', 'sum'),
+        mt_revenue=('美团_val', 'sum'),
+        total_revenue=('大盘_val', 'sum'),  # 大盘业绩（全渠道含堂食）
+        store_count=('门店编码', 'nunique'),
+        mp_stores=('门店编码', lambda x: x[perf.loc[x.index,'小程序外卖_val']>0].nunique()),
+        mt_stores=('门店编码', lambda x: x[perf.loc[x.index,'美团_val']>0].nunique()),
+        total_stores=('门店编码', lambda x: x[perf.loc[x.index,'大盘_val']>0].nunique()),
+    ).reset_index()
+    perf_daily['date'] = perf_daily['日期_dt'].dt.strftime('%Y-%m-%d')
+    perf_daily['revenue'] = perf_daily['revenue'].round(0).astype(int)
+    perf_daily['mp_revenue'] = perf_daily['mp_revenue'].round(0).astype(int)
+    perf_daily['mt_revenue'] = perf_daily['mt_revenue'].round(0).astype(int)
+    perf_daily['total_revenue'] = perf_daily['total_revenue'].round(0).astype(int)
+    perf_daily['mp_stores'] = perf_daily['mp_stores'].astype(int)
+    perf_daily['mt_stores'] = perf_daily['mt_stores'].astype(int)
+    perf_daily['total_stores'] = perf_daily['total_stores'].astype(int)
+    print(f'业绩每日: {len(perf_daily)} 天, 大盘 {perf_daily["total_revenue"].sum():.0f}, 外卖总 {perf_daily["revenue"].sum():.0f}, 小程序 {perf_daily["mp_revenue"].sum():.0f}, 美团 {perf_daily["mt_revenue"].sum():.0f}')
+    
+    # 业绩门店维度汇总（最新7天，分渠道）
+    perf_max = perf['日期_dt'].max()
+    perf_7d = perf[perf['日期_dt'] >= perf_max - pd.Timedelta(days=6)]
+    perf_store = perf_7d.groupby(['门店编码','门店名称','品牌','市场/品牌','city','region_mgr','area_mgr','leader']).agg(
+        revenue=('外卖总_val', 'sum'),
+        mp_revenue=('小程序外卖_val', 'sum'),
+        mt_revenue=('美团_val', 'sum'),
+        days=('日期', 'nunique'),
+    ).reset_index()
+    perf_store['revenue'] = perf_store['revenue'].round(0).astype(int)
+    perf_store['mp_revenue'] = perf_store['mp_revenue'].round(0).astype(int)
+    perf_store['mt_revenue'] = perf_store['mt_revenue'].round(0).astype(int)
+    
+    # 构建门店编码→业绩映射（分渠道）
+    perf_by_code = {}
+    for _, r in perf_store.iterrows():
+        code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
+        if code:
+            perf_by_code[code] = {
+                'revenue': int(r['revenue']), 'mp_revenue': int(r['mp_revenue']),
+                'mt_revenue': int(r['mt_revenue']), 'days': int(r['days']),
+                'market': normalize_market(r['市场/品牌'], r['品牌'])
+            }
+    
 print(f'业绩门店数(7日): {len(perf_by_code)}')
 
 # ═══════════════════════════════════════════
 # 5. 订单数据源 (OLD+NEW「订单数据源」内存合并)
 # ═══════════════════════════════════════════
 print('\n=== 5. 订单数据源 ===')
-orders_old = pd.read_excel(OLD_PATH, sheet_name='订单数据源')
+order_cols = ['日期','门店名称','门店编码','品牌','大区','区经理','大店长','城市','外卖总','有效订单数','小程序外卖订单数','美团订单数']
+try:
+    orders_old = pd.read_excel(OLD_PATH, sheet_name='订单数据源')
+except ValueError:
+    print('  ⚠ OLD文件无「订单数据源」sheet')
+    orders_old = pd.DataFrame(columns=order_cols)
 try:
     orders_new = pd.read_excel(NEW_PATH, sheet_name='订单数据源')
 except ValueError:
-    print('  ⚠ NEW文件无「订单数据源」sheet，仅使用OLD数据')
-    orders_new = pd.DataFrame(columns=orders_old.columns)
+    print('  ⚠ NEW文件无「订单数据源」sheet')
+    orders_new = pd.DataFrame(columns=orders_old.columns if len(orders_old.columns) > 0 else order_cols)
 orders_df = pd.concat([orders_old, orders_new], ignore_index=True).drop_duplicates().reset_index(drop=True)
-orders_df['日期_dt'] = pd.to_datetime(orders_df['日期'].astype(str), format='%Y%m%d', errors='coerce')
-orders_df['品牌'] = orders_df['品牌'].apply(normalize_brand)
-orders_df['region_mgr'] = orders_df['大区'].astype(str)
-orders_df['area_mgr'] = orders_df['区经理'].astype(str)
-orders_df['leader'] = orders_df['大店长'].astype(str)
-orders_df['外卖总_val'] = pd.to_numeric(orders_df['外卖总'], errors='coerce').fillna(0).astype(int)
-orders_df['有效订单数_val'] = pd.to_numeric(orders_df['有效订单数'], errors='coerce').fillna(0).astype(int)
-orders_df['小程序外卖_val'] = pd.to_numeric(orders_df['小程序外卖订单数'], errors='coerce').fillna(0).astype(int)
-orders_df['美团_val'] = pd.to_numeric(orders_df['美团订单数'], errors='coerce').fillna(0).astype(int)
-
-# 订单每日汇总（分渠道）
-# 外卖门店数=业绩数据源外卖总非0；小程序/美团门店数=订单数据源对应字段非0
-order_daily = orders_df.groupby('日期_dt').agg(
-    orders=('外卖总_val', 'sum'),
-    total_orders=('有效订单数_val', 'sum'),  # 大盘订单（全渠道）
-    mp_orders=('小程序外卖_val', 'sum'),
-    mt_orders=('美团_val', 'sum'),
-    store_count=('门店编码', 'nunique'),
-    mp_stores=('门店编码', lambda x: x[orders_df.loc[x.index,'小程序外卖_val']>0].nunique()),
-    mt_stores=('门店编码', lambda x: x[orders_df.loc[x.index,'美团_val']>0].nunique()),
-    total_stores=('门店编码', lambda x: x[orders_df.loc[x.index,'有效订单数_val']>0].nunique()),
-).reset_index()
-order_daily['date'] = order_daily['日期_dt'].dt.strftime('%Y-%m-%d')
-order_daily['orders'] = order_daily['orders'].astype(int)
-order_daily['mp_orders'] = order_daily['mp_orders'].astype(int)
-order_daily['mt_orders'] = order_daily['mt_orders'].astype(int)
-order_daily['mp_stores'] = order_daily['mp_stores'].astype(int)
-order_daily['mt_stores'] = order_daily['mt_stores'].astype(int)
-print(f'订单每日: {len(order_daily)} 天, 外卖总 {order_daily["orders"].sum():.0f}, 小程序 {order_daily["mp_orders"].sum():.0f}, 美团 {order_daily["mt_orders"].sum():.0f}')
-
-# 订单门店维度汇总（最新7天，分渠道）
-order_max = orders_df['日期_dt'].max()
-order_7d = orders_df[orders_df['日期_dt'] >= order_max - pd.Timedelta(days=6)].copy()
-order_7d['city'] = order_7d['城市'].astype(str)
-order_store = order_7d.groupby(['门店编码','门店名称','品牌','city','region_mgr','area_mgr','leader']).agg(
-    orders=('外卖总_val', 'sum'),
-    total_orders=('有效订单数_val', 'sum'),
-    mp_orders=('小程序外卖_val', 'sum'),
-    mt_orders=('美团_val', 'sum'),
-    days=('日期', 'nunique'),
-).reset_index()
-order_store['orders'] = order_store['orders'].astype(int)
-order_store['total_orders'] = order_store['total_orders'].astype(int)
-order_store['mp_orders'] = order_store['mp_orders'].astype(int)
-order_store['mt_orders'] = order_store['mt_orders'].astype(int)
-
-order_by_code = {}
-for _, r in order_store.iterrows():
-    code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
-    if code:
-        order_by_code[code] = {
-            'orders': int(r['orders']), 'total_orders': int(r['total_orders']),
-            'mp_orders': int(r['mp_orders']), 'mt_orders': int(r['mt_orders']), 'days': int(r['days'])
-        }
-
-print(f'订单门店数(7日): {len(order_by_code)}')
+if len(orders_df) == 0:
+    print('  订单数据为空，跳过后续处理')
+    order_daily_list = []; order_by_code = {}; order_daily = pd.DataFrame(); order_store = pd.DataFrame(); order_7d = pd.DataFrame()
+    orders_df = pd.DataFrame()
+else:
+    orders_df['日期_dt'] = pd.to_datetime(orders_df['日期'].astype(str), format='%Y%m%d', errors='coerce')
+    orders_df['品牌'] = orders_df['品牌'].apply(normalize_brand)
+    orders_df['region_mgr'] = orders_df['大区'].astype(str)
+    orders_df['area_mgr'] = orders_df['区经理'].astype(str)
+    orders_df['leader'] = orders_df['大店长'].astype(str)
+    orders_df['外卖总_val'] = pd.to_numeric(orders_df['外卖总'], errors='coerce').fillna(0).astype(int)
+    orders_df['有效订单数_val'] = pd.to_numeric(orders_df['有效订单数'], errors='coerce').fillna(0).astype(int)
+    orders_df['小程序外卖_val'] = pd.to_numeric(orders_df['小程序外卖订单数'], errors='coerce').fillna(0).astype(int)
+    orders_df['美团_val'] = pd.to_numeric(orders_df['美团订单数'], errors='coerce').fillna(0).astype(int)
+    
+    # 订单每日汇总（分渠道）
+    # 外卖门店数=业绩数据源外卖总非0；小程序/美团门店数=订单数据源对应字段非0
+    order_daily = orders_df.groupby('日期_dt').agg(
+        orders=('外卖总_val', 'sum'),
+        total_orders=('有效订单数_val', 'sum'),  # 大盘订单（全渠道）
+        mp_orders=('小程序外卖_val', 'sum'),
+        mt_orders=('美团_val', 'sum'),
+        store_count=('门店编码', 'nunique'),
+        mp_stores=('门店编码', lambda x: x[orders_df.loc[x.index,'小程序外卖_val']>0].nunique()),
+        mt_stores=('门店编码', lambda x: x[orders_df.loc[x.index,'美团_val']>0].nunique()),
+        total_stores=('门店编码', lambda x: x[orders_df.loc[x.index,'有效订单数_val']>0].nunique()),
+    ).reset_index()
+    order_daily['date'] = order_daily['日期_dt'].dt.strftime('%Y-%m-%d')
+    order_daily['orders'] = order_daily['orders'].astype(int)
+    order_daily['mp_orders'] = order_daily['mp_orders'].astype(int)
+    order_daily['mt_orders'] = order_daily['mt_orders'].astype(int)
+    order_daily['mp_stores'] = order_daily['mp_stores'].astype(int)
+    order_daily['mt_stores'] = order_daily['mt_stores'].astype(int)
+    print(f'订单每日: {len(order_daily)} 天, 外卖总 {order_daily["orders"].sum():.0f}, 小程序 {order_daily["mp_orders"].sum():.0f}, 美团 {order_daily["mt_orders"].sum():.0f}')
+    
+    # 订单门店维度汇总（最新7天，分渠道）
+    order_max = orders_df['日期_dt'].max()
+    order_7d = orders_df[orders_df['日期_dt'] >= order_max - pd.Timedelta(days=6)].copy()
+    order_7d['city'] = order_7d['城市'].astype(str)
+    order_store = order_7d.groupby(['门店编码','门店名称','品牌','city','region_mgr','area_mgr','leader']).agg(
+        orders=('外卖总_val', 'sum'),
+        total_orders=('有效订单数_val', 'sum'),
+        mp_orders=('小程序外卖_val', 'sum'),
+        mt_orders=('美团_val', 'sum'),
+        days=('日期', 'nunique'),
+    ).reset_index()
+    order_store['orders'] = order_store['orders'].astype(int)
+    order_store['total_orders'] = order_store['total_orders'].astype(int)
+    order_store['mp_orders'] = order_store['mp_orders'].astype(int)
+    order_store['mt_orders'] = order_store['mt_orders'].astype(int)
+    
+    order_by_code = {}
+    for _, r in order_store.iterrows():
+        code = str(r['门店编码']) if pd.notna(r['门店编码']) else ''
+        if code:
+            order_by_code[code] = {
+                'orders': int(r['orders']), 'total_orders': int(r['total_orders']),
+                'mp_orders': int(r['mp_orders']), 'mt_orders': int(r['mt_orders']), 'days': int(r['days'])
+            }
+    
+    print(f'订单门店数(7日): {len(order_by_code)}')
 
 # ═══════════════════════════════════════════
 # 6. 合并业绩/订单到门店数据（分渠道）
@@ -537,66 +556,70 @@ mt_stores = attach_perf_order(mt_stores, 'mt')
 # 6b. 大盘业绩汇总（全渠道，独立于小程序/美团模块）
 # ═══════════════════════════════════════════
 print('\n=== 6b. 大盘业绩汇总 ===')
-perf_7d_total = perf_store['revenue'].sum()
-perf_7d_mp = perf_store['mp_revenue'].sum()
-perf_7d_mt = perf_store['mt_revenue'].sum()
-# 近7天有业绩的门店数（分渠道）
-perf_7d_stores_total = len(perf_store)
-perf_7d_stores_mp = int((perf_store['mp_revenue'] > 0).sum())
-perf_7d_stores_mt = int((perf_store['mt_revenue'] > 0).sum())
-perf_days = int(perf_7d['日期'].nunique()) if len(perf_7d) > 0 else 7
-
-order_7d_total = order_store['orders'].sum()
-order_7d_total_all = order_store['total_orders'].sum()  # 大盘订单（全渠道有效订单数）
-order_7d_mp = order_store['mp_orders'].sum()
-order_7d_mt = order_store['mt_orders'].sum()
-order_7d_stores_total = len(order_store)
-order_7d_stores_mp = int((order_store['mp_orders'] > 0).sum())
-order_7d_stores_mt = int((order_store['mt_orders'] > 0).sum())
-
-def calc_daily_avg(total, stores, days):
-    """店日均 = 总额 ÷ 门店数 ÷ 天数"""
-    if stores > 0 and days > 0:
-        return round(total / stores / days, 1)
-    return 0
-
-dashboard_summary = {
-    'days': perf_days,
-    'revenue': {
-        'total': int(perf_7d_total),
-        'mp': int(perf_7d_mp),
-        'mt': int(perf_7d_mt),
-        'mt_pct': round(perf_7d_mt / perf_7d_total * 100, 1) if perf_7d_total > 0 else 0,
-    },
-    'tc': {
-        'total': int(order_7d_total),
-        'total_all': int(order_7d_total_all),  # 大盘订单（全渠道有效订单数）
-        'mp': int(order_7d_mp),
-        'mt': int(order_7d_mt),
-        'mt_pct': round(order_7d_mt / order_7d_total * 100, 1) if order_7d_total > 0 else 0,
-    },
-    'stores': {
-        'total': perf_7d_stores_total,
-        'mp': perf_7d_stores_mp,
-        'mt': perf_7d_stores_mt,
-        'mt_pct': round(perf_7d_stores_mt / perf_7d_stores_total * 100, 1) if perf_7d_stores_total > 0 else 0,
-    },
-    'daily_avg_revenue': {
-        'total': calc_daily_avg(perf_7d_total, perf_7d_stores_total, perf_days),
-        'mp': calc_daily_avg(perf_7d_mp, perf_7d_stores_mp, perf_days),
-        'mt': calc_daily_avg(perf_7d_mt, perf_7d_stores_mt, perf_days),
-    },
-    'daily_avg_tc': {
-        'total': round(order_7d_total / perf_7d_stores_total / perf_days, 1) if perf_7d_stores_total > 0 else 0,
-        'mp': round(order_7d_mp / perf_7d_stores_mp / perf_days, 1) if perf_7d_stores_mp > 0 else 0,
-        'mt': round(order_7d_mt / perf_7d_stores_mt / perf_days, 1) if perf_7d_stores_mt > 0 else 0,
-    },
-}
-
-print(f'大盘汇总: 业绩总{perf_7d_total/10000:.1f}万(小程序{perf_7d_mp/10000:.1f}万/美团{perf_7d_mt/10000:.1f}万), '
-      f'TC总{order_7d_total}(小程序{order_7d_mp}/美团{order_7d_mt}), '
-      f'门店总{perf_7d_stores_total}(小程序{perf_7d_stores_mp}/美团{perf_7d_stores_mt}), '
-      f'天数{perf_days}')
+if len(perf_store) > 0 and len(order_store) > 0:
+    perf_7d_total = perf_store['revenue'].sum()
+    perf_7d_mp = perf_store['mp_revenue'].sum()
+    perf_7d_mt = perf_store['mt_revenue'].sum()
+    # 近7天有业绩的门店数（分渠道）
+    perf_7d_stores_total = len(perf_store)
+    perf_7d_stores_mp = int((perf_store['mp_revenue'] > 0).sum())
+    perf_7d_stores_mt = int((perf_store['mt_revenue'] > 0).sum())
+    perf_days = int(perf_7d['日期'].nunique()) if len(perf_7d) > 0 else 7
+    
+    order_7d_total = order_store['orders'].sum()
+    order_7d_total_all = order_store['total_orders'].sum()  # 大盘订单（全渠道有效订单数）
+    order_7d_mp = order_store['mp_orders'].sum()
+    order_7d_mt = order_store['mt_orders'].sum()
+    order_7d_stores_total = len(order_store)
+    order_7d_stores_mp = int((order_store['mp_orders'] > 0).sum())
+    order_7d_stores_mt = int((order_store['mt_orders'] > 0).sum())
+    
+    def calc_daily_avg(total, stores, days):
+        """店日均 = 总额 ÷ 门店数 ÷ 天数"""
+        if stores > 0 and days > 0:
+            return round(total / stores / days, 1)
+        return 0
+    
+    dashboard_summary = {
+        'days': perf_days,
+        'revenue': {
+            'total': int(perf_7d_total),
+            'mp': int(perf_7d_mp),
+            'mt': int(perf_7d_mt),
+            'mt_pct': round(perf_7d_mt / perf_7d_total * 100, 1) if perf_7d_total > 0 else 0,
+        },
+        'tc': {
+            'total': int(order_7d_total),
+            'total_all': int(order_7d_total_all),  # 大盘订单（全渠道有效订单数）
+            'mp': int(order_7d_mp),
+            'mt': int(order_7d_mt),
+            'mt_pct': round(order_7d_mt / order_7d_total * 100, 1) if order_7d_total > 0 else 0,
+        },
+        'stores': {
+            'total': perf_7d_stores_total,
+            'mp': perf_7d_stores_mp,
+            'mt': perf_7d_stores_mt,
+            'mt_pct': round(perf_7d_stores_mt / perf_7d_stores_total * 100, 1) if perf_7d_stores_total > 0 else 0,
+        },
+        'daily_avg_revenue': {
+            'total': calc_daily_avg(perf_7d_total, perf_7d_stores_total, perf_days),
+            'mp': calc_daily_avg(perf_7d_mp, perf_7d_stores_mp, perf_days),
+            'mt': calc_daily_avg(perf_7d_mt, perf_7d_stores_mt, perf_days),
+        },
+        'daily_avg_tc': {
+            'total': round(order_7d_total / perf_7d_stores_total / perf_days, 1) if perf_7d_stores_total > 0 else 0,
+            'mp': round(order_7d_mp / perf_7d_stores_mp / perf_days, 1) if perf_7d_stores_mp > 0 else 0,
+            'mt': round(order_7d_mt / perf_7d_stores_mt / perf_days, 1) if perf_7d_stores_mt > 0 else 0,
+        },
+    }
+    
+    print(f'大盘汇总: 业绩总{perf_7d_total/10000:.1f}万(小程序{perf_7d_mp/10000:.1f}万/美团{perf_7d_mt/10000:.1f}万), '
+          f'TC总{order_7d_total}(小程序{order_7d_mp}/美团{order_7d_mt}), '
+          f'门店总{perf_7d_stores_total}(小程序{perf_7d_stores_mp}/美团{perf_7d_stores_mt}), '
+          f'天数{perf_days}')
+else:
+    dashboard_summary = {}
+    print('  业绩/订单数据为空，大盘汇总跳过')
 
 # ═══════════════════════════════════════════
 # 7. 预警中心数据
@@ -790,11 +813,13 @@ for r in mt_daily:
 print(f'mt_daily: {len(mt_daily)} 天')
 
 # 业绩每日
-perf_daily_list = perf_daily[['date','revenue','mp_revenue','mt_revenue','total_revenue','store_count','mp_stores','mt_stores']].to_dict('records')
-for r in perf_daily_list:
-    r['store_count'] = int(r['store_count'])
-    r['mp_stores'] = int(r.get('mp_stores', 0))
-    r['mt_stores'] = int(r.get('mt_stores', 0))
+perf_daily_list = []
+if len(perf_daily) > 0:
+    perf_daily_list = perf_daily[['date','revenue','mp_revenue','mt_revenue','total_revenue','store_count','mp_stores','mt_stores']].to_dict('records')
+    for r in perf_daily_list:
+        r['store_count'] = int(r['store_count'])
+        r['mp_stores'] = int(r.get('mp_stores', 0))
+        r['mt_stores'] = int(r.get('mt_stores', 0))
 print(f'perf_daily: {len(perf_daily_list)} 天')
 
 # 全量日期范围（业绩数据覆盖5.1~最新）
@@ -805,12 +830,14 @@ if perf_daily_list:
     print(f'full_date_range: {full_date_range}')
 
 # 订单每日
-order_daily_list = order_daily[['date','orders','total_orders','mp_orders','mt_orders','store_count','mp_stores','mt_stores','total_stores']].to_dict('records')
-for r in order_daily_list:
-    r['store_count'] = int(r['store_count'])
-    r['mp_stores'] = int(r.get('mp_stores', 0))
-    r['mt_stores'] = int(r.get('mt_stores', 0))
-    r['total_stores'] = int(r.get('total_stores', 0))
+order_daily_list = []
+if len(order_daily) > 0:
+    order_daily_list = order_daily[['date','orders','total_orders','mp_orders','mt_orders','store_count','mp_stores','mt_stores','total_stores']].to_dict('records')
+    for r in order_daily_list:
+        r['store_count'] = int(r['store_count'])
+        r['mp_stores'] = int(r.get('mp_stores', 0))
+        r['mt_stores'] = int(r.get('mt_stores', 0))
+        r['total_stores'] = int(r.get('total_stores', 0))
 print(f'order_daily: {len(order_daily_list)} 天')
 
 # 日期范围
@@ -824,42 +851,29 @@ if '日期_dt' in df2.columns and not df2['日期_dt'].empty:
 # 8b. 每日门店列表（供前端日期筛选时门店去重）
 # ═══════════════════════════════════════════
 print('\n=== 8b. 每日门店列表（去重用）===')
-perf['日期_str'] = perf['日期_dt'].dt.strftime('%Y-%m-%d')
 store_daily = {}
-for date_str, grp in perf.groupby('日期_str'):
-    codes_mp = grp[grp['小程序外卖_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    codes_mt = grp[grp['美团_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    codes_all = grp[grp['外卖总_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    codes_total = grp[grp['大盘_val'] > 0]['门店编码'].astype(str).unique().tolist()  # 订单总金额>0=堂食营业
-    store_daily[str(date_str)] = {
-        'mp': codes_mp,
-        'mt': codes_mt,
-        'all': codes_all,
-        'total': codes_total
-    }
+try:
+    if len(perf) > 0:
+        perf['日期_str'] = perf['日期_dt'].dt.strftime('%Y-%m-%d')
+        for date_str, grp in perf.groupby('日期_str'):
+            codes_mp = grp[grp['小程序外卖_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            codes_mt = grp[grp['美团_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            codes_all = grp[grp['外卖总_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            codes_total = grp[grp['大盘_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            store_daily[str(date_str)] = {'mp': codes_mp, 'mt': codes_mt, 'all': codes_all, 'total': codes_total}
+    if len(orders_df) > 0:
+        orders_df['日期_str'] = orders_df['日期_dt'].dt.strftime('%Y-%m-%d')
+        for date_str, grp in orders_df.groupby('日期_str'):
+            if date_str not in store_daily: continue
+            codes_mp_tc = grp[grp['小程序外卖_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            codes_mt_tc = grp[grp['美团_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            codes_all_tc = grp[grp['外卖总_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            codes_total_tc = grp[grp['有效订单数_val'] > 0]['门店编码'].astype(str).unique().tolist()
+            store_daily[date_str].update({'mp_tc': codes_mp_tc, 'mt_tc': codes_mt_tc, 'all_tc': codes_all_tc, 'total_tc': codes_total_tc})
+except Exception as e:
+    print(f'  ⚠ 每日门店列表生成失败: {e}')
+    store_daily = {}
 print(f'store_daily: {len(store_daily)} 天')
-
-# TC-based store daily (from 订单数据源: 有效订单数>0)
-orders_df['日期_str'] = orders_df['日期_dt'].dt.strftime('%Y-%m-%d')
-for date_str, grp in orders_df.groupby('日期_str'):
-    if date_str not in store_daily:
-        continue
-    codes_mp_tc = grp[grp['小程序外卖_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    codes_mt_tc = grp[grp['美团_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    codes_all_tc = grp[grp['外卖总_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    codes_total_tc = grp[grp['有效订单数_val'] > 0]['门店编码'].astype(str).unique().tolist()
-    store_daily[date_str].update({
-        'mp_tc': codes_mp_tc,
-        'mt_tc': codes_mt_tc,
-        'all_tc': codes_all_tc,
-        'total_tc': codes_total_tc
-    })
-
-# 示例：显示第一天各渠道门店数
-if store_daily:
-    first_day = list(store_daily.keys())[0]
-    sd = store_daily[first_day]
-    print(f'  {first_day}: 外卖总{len(sd["all"])}家(TC:{len(sd.get("all_tc",[]))}), 自配送{len(sd["mp"])}家(TC:{len(sd.get("mp_tc",[]))}), 美团{len(sd["mt"])}家(TC:{len(sd.get("mt_tc",[]))}), 大盘{len(sd["total"])}家(TC:{len(sd.get("total_tc",[]))})')
 
 # ═══════════════════════════════════════════
 # 9. 输出 JSON

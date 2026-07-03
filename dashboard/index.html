@@ -2060,7 +2060,7 @@ function pickAutocompleteItem(name){
   closeAutocomplete();
   gfState.storeSearch = name;
   DASH_ACTIVE_MARKET = '大盘';
-  renderSummaryTags(); render();
+  renderSummaryTags(); renderFilterReminder(); render();
 }
 function closeAutocomplete(){
   document.getElementById('gf-autocomplete').classList.remove('open');
@@ -2074,7 +2074,7 @@ function onStoreSearchInput(val){
   _storeSearchTimer = setTimeout(function(){
     gfState.storeSearch = val.trim();
     DASH_ACTIVE_MARKET = '大盘';
-    renderSummaryTags(); render();
+    renderSummaryTags(); renderFilterReminder(); render();
   }, 350);
 }
 function onStoreSearchFocus(val){
@@ -2114,7 +2114,7 @@ function clearStoreSearch(){
   document.getElementById('gf-search-clear').classList.remove('visible');
   gfState.storeSearch = '';
   closeAutocomplete();
-  renderSummaryTags(); render();
+  renderSummaryTags(); renderFilterReminder(); render();
 }
 
 function renderSummaryTags(){
@@ -5297,12 +5297,12 @@ function updateInfoBar(){
     const totalO = orders || 1;
     const cook = (mpFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0),0)/totalO).toFixed(1);
     const rate = (mpFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalO).toFixed(1);
-    txt += `　|　小程序${mpFiltered.length}日订单${(orders/10000).toFixed(1)}万　均出餐${cook}min　达标率${rate}%`;
+    txt += `　|　均出餐${cook}min　达标率${rate}%`;
   } else if(ds && de){
     // 日期已选但无匹配数据 → 显示该时段无数据
     txt += `　|　小程序${ds}~${de} 无数据`;
   } else if(EMBEDDED_DATA.mp_summary){
-    txt += `　|　小程序7日订单${(EMBEDDED_DATA.mp_summary.total_orders/10000).toFixed(1)}万　均出餐${EMBEDDED_DATA.mp_summary.avg_cook_time}min　达标率${EMBEDDED_DATA.mp_summary['达标率']}%`;
+    txt += `　|　均出餐${EMBEDDED_DATA.mp_summary.avg_cook_time}min　达标率${EMBEDDED_DATA.mp_summary['达标率']}%`;
   }
   document.getElementById('data-range-text').textContent = txt;
 }
@@ -5312,7 +5312,7 @@ function applyRealData(jsonData){
   const genDate = jsonData.generated_at || jsonData.meituan_latest_date || '';
   let infoText = `数据更新：${genDate}　美团${jsonData.mt_stores.length}家　小程序${jsonData.mp_stores.length}家`;
   if(jsonData.mp_summary){
-    infoText += `　|　小程序7日订单${(jsonData.mp_summary.total_orders/10000).toFixed(1)}万　均出餐${jsonData.mp_summary.avg_cook_time}min　达标率${jsonData.mp_summary['达标率']}%`;
+    infoText += `　|　均出餐${jsonData.mp_summary.avg_cook_time}min　达标率${jsonData.mp_summary['达标率']}%`;
   }
   document.getElementById('data-range-text').textContent = infoText;
 
