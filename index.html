@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-03T10:37:18+08:00">
+<meta name="build-time" content="2026-07-03T10:58:21+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -130,7 +130,7 @@
   .gf-tag-remove:hover { opacity: 1; }
 
   /* ── 门店搜索框 ── */
-  .gf-search-wrap { display: flex; align-items: center; gap: 4px; }
+  .gf-search-wrap { display: flex; align-items: center; gap: 4px; position: relative; }
   .gf-search-input {
     padding: 5px 10px 5px 28px; font-size: 12px; font-family: inherit;
     color: var(--text-primary); border: 1px solid #D9D6CE; border-radius: 6px;
@@ -142,6 +142,37 @@
   .gf-search-clear { cursor: pointer; font-size: 14px; color: var(--text-muted); line-height: 1; padding: 2px; display: none; }
   .gf-search-clear:hover { color: var(--text-primary); }
   .gf-search-clear.visible { display: inline-block; }
+
+  /* ── 搜索框 autocomplete 下拉 ── */
+  .gf-autocomplete {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 28px;
+    max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #D9D6CE;
+    border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 500;
+    display: none; font-size: 12px;
+  }
+  .gf-autocomplete.open { display: block; }
+  .gf-autocomplete-item { padding: 7px 10px; cursor: pointer; color: var(--text-primary); border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; justify-content: space-between; }
+  .gf-autocomplete-item:last-child { border-bottom: none; }
+  .gf-autocomplete-item:hover, .gf-autocomplete-item.active { background: rgba(200,135,58,0.08); color: #854F0B; }
+  .gf-autocomplete-item .match-name { font-weight: 500; }
+  .gf-autocomplete-item .match-meta { font-size: 10px; color: var(--text-muted); }
+  .gf-autocomplete-empty { padding: 10px; color: #B5B0A6; text-align: center; font-size: 12px; }
+  .filter-reminder-bar {
+    background: rgba(200,135,58,0.06); border-bottom: 1px solid rgba(200,135,58,0.2);
+    padding: 6px 32px; display: none; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text-secondary); flex-wrap: wrap;
+  }
+  .filter-reminder-bar.active { display: flex; }
+  .filter-reminder-item {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fff; border: 1px solid rgba(200,135,58,0.3);
+    padding: 2px 8px; border-radius: 12px; font-size: 11px; color: #854F0B;
+  }
+  .filter-reminder-item .remove-filter {
+    cursor: pointer; font-size: 13px; line-height: 1; opacity: 0.6; margin-left: 2px;
+  }
+  .filter-reminder-item .remove-filter:hover { opacity: 1; }
+  .filter-reminder-label { font-weight: 500; color: #854F0B; margin-right: 4px; }
 
   .period-bar {
     background: var(--card); border-bottom: 1px solid var(--border);
@@ -462,6 +493,8 @@
     .gf-summary { margin-left: 0; width: 100%; }
     .gf-search-input { width: 100%; flex: 1; }
     .gf-search-input:focus { width: 100%; }
+    .filter-reminder-bar { padding: 4px 12px; font-size: 10px; }
+    .filter-reminder-item { font-size: 10px; padding: 1px 6px; }
 
     #data-info-bar { padding: 4px 12px; font-size: 10px; flex-wrap: wrap; gap: 4px; }
     .period-bar { padding: 0 12px; position: sticky; top: calc(44px + var(--filter-h)); overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -584,9 +617,9 @@
     .gf-label { font-size: 9px; }
     .gf-select { font-size: 10px; padding: 3px 16px 3px 5px; }
     .gf-date-input { font-size: 10px; padding: 3px 5px; }
-    .gf-summary { font-size: 10px; }
-
-    .metrics-row.cols4, .metrics-row.cols5 { grid-template-columns: 1fr 1fr; gap: 4px; }
+    .gf-autocomplete { right: 0; max-height: 180px; }
+    .gf-autocomplete-item { padding: 6px 8px; font-size: 11px; }
+    .gf-autocomplete-item .match-meta { font-size: 9px; }
     .top-metrics { grid-template-columns: 1fr; gap: 6px; }
     .top-group-cards { grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px 8px; }
     .top-group-cards .m-card .m-val { font-size: 15px; }
@@ -750,8 +783,9 @@
   <div class="gf-group">
     <span class="gf-label">门店</span>
     <div class="gf-search-wrap">
-      <input type="text" class="gf-search-input" id="gf-store-search" placeholder="搜索门店名…" oninput="onStoreSearchInput(this.value)">
+      <input type="text" class="gf-search-input" id="gf-store-search" placeholder="搜索门店名…" oninput="onStoreSearchInput(this.value)" onkeydown="onStoreSearchKey(event)" onfocus="onStoreSearchFocus(this.value)">
       <span class="gf-search-clear" id="gf-search-clear" onclick="clearStoreSearch()">×</span>
+      <div class="gf-autocomplete" id="gf-autocomplete"></div>
     </div>
   </div>
 
@@ -762,6 +796,12 @@
 <div id="data-info-bar" style="background:#f0f7e6;border-bottom:1px solid #d4e8b0;padding:4px 20px;font-size:11px;color:#4a7c2a;display:flex;justify-content:space-between;align-items:center;">
   <span id="data-range-text"></span>
   <button onclick="exportAlertsCSV()" title="导出全部预警门店为 CSV 文件" style="padding:3px 12px;font-size:11px;background:#639922;color:#fff;border:none;border-radius:3px;cursor:pointer;white-space:nowrap;">📥 导出预警门店</button>
+</div>
+
+<!-- 筛选条件提醒条 -->
+<div class="filter-reminder-bar" id="filterReminderBar">
+  <span class="filter-reminder-label">🎯 当前筛选：</span>
+  <span id="filterReminderContent"></span>
 </div>
 
 <nav class="period-bar">
@@ -1947,14 +1987,87 @@ function onFilterChange(){
   gfState.city=document.getElementById('gf-city').value;
   gfState.storeSearch=document.getElementById('gf-store-search').value.trim();
   DASH_ACTIVE_MARKET = '大盘';
-  renderSummaryTags(); updateInfoBar(); render();
+  renderSummaryTags(); updateInfoBar(); renderFilterReminder(); render();
 }
 
-// ── 门店搜索：防抖 ──
+function renderFilterReminder(){
+  var bar = document.getElementById('filterReminderBar');
+  var content = document.getElementById('filterReminderContent');
+  var items = [];
+  if(gfState.dateStart && gfState.dateEnd) items.push({label: gfState.dateStart + ' ~ ' + gfState.dateEnd, field: 'date'});
+  if(gfState.marketBrand !== 'all'){
+    var mb = gfState.marketBrand;
+    var label = '';
+    if(mb.startsWith('mkt:')) label = mb.slice(4) + '市场';
+    else if(mb.startsWith('brd:')) label = mb.slice(4);
+    items.push({label: label, field: 'marketBrand'});
+  }
+  if(gfState.regionMgr !== 'all') items.push({label: gfState.regionMgr, field: 'regionMgr'});
+  if(gfState.areaMgr !== 'all') items.push({label: gfState.areaMgr, field: 'areaMgr'});
+  if(gfState.city !== 'all') items.push({label: gfState.city, field: 'city'});
+  if(gfState.storeSearch) items.push({label: '🔍 ' + gfState.storeSearch, field: 'storeSearch'});
+  if(items.length === 0){
+    bar.classList.remove('active');
+    return;
+  }
+  bar.classList.add('active');
+  content.innerHTML = items.map(function(x){
+    return '<span class="filter-reminder-item">' + esc(x.label) + '<span class="remove-filter" onclick="clearFilter(\'' + x.field + '\')">×</span></span>';
+  }).join('');
+}
+
+// ── 门店搜索：防抖 + autocomplete 下拉 ──
 var _storeSearchTimer = null;
+var _autocompleteIndex = -1;
+function getStoreNames(){
+  var names = [];
+  var seen = {};
+  if(STORE_MP) for(var i=0;i<STORE_MP.length;i++){ if(!seen[STORE_MP[i].name]){seen[STORE_MP[i].name]=1;names.push(STORE_MP[i]);} }
+  if(STORE_MT) for(var i=0;i<STORE_MT.length;i++){ if(!seen[STORE_MT[i].name]){seen[STORE_MT[i].name]=1;names.push(STORE_MT[i]);} }
+  return names.sort(function(a,b){return a.name.localeCompare(b.name);});
+}
+function renderAutocomplete(q){
+  var box = document.getElementById('gf-autocomplete');
+  if(!q || q.length < 1){ box.classList.remove('open'); _autocompleteIndex = -1; return; }
+  var qL = q.toLowerCase();
+  var all = getStoreNames();
+  var matches = [];
+  for(var i=0;i<all.length;i++){
+    if(all[i].name.toLowerCase().indexOf(qL) !== -1) matches.push(all[i]);
+    if(matches.length >= 15) break;
+  }
+  if(matches.length === 0){
+    box.innerHTML = '<div class="gf-autocomplete-empty">暂无匹配门店</div>';
+  } else {
+    var h = '';
+    for(var i=0;i<matches.length;i++){
+      var s = matches[i];
+      var meta = (s.city || '') + (s.market ? ' · '+s.market : '');
+      h += '<div class="gf-autocomplete-item" data-index="'+i+'" data-name="'+esc(s.name)+'" onclick="pickAutocompleteItem(\''+s.name.replace(/'/g,"\\'")+'\')">';
+      h += '<span class="match-name">'+esc(s.name)+'</span><span class="match-meta">'+esc(meta)+'</span>';
+      h += '</div>';
+    }
+    box.innerHTML = h;
+  }
+  box.classList.add('open');
+  _autocompleteIndex = -1;
+}
+function pickAutocompleteItem(name){
+  document.getElementById('gf-store-search').value = name;
+  document.getElementById('gf-search-clear').classList.add('visible');
+  closeAutocomplete();
+  gfState.storeSearch = name;
+  DASH_ACTIVE_MARKET = '大盘';
+  renderSummaryTags(); render();
+}
+function closeAutocomplete(){
+  document.getElementById('gf-autocomplete').classList.remove('open');
+  _autocompleteIndex = -1;
+}
 function onStoreSearchInput(val){
   var clearBtn = document.getElementById('gf-search-clear');
   if(val.trim()) clearBtn.classList.add('visible'); else clearBtn.classList.remove('visible');
+  renderAutocomplete(val.trim());
   if(_storeSearchTimer) clearTimeout(_storeSearchTimer);
   _storeSearchTimer = setTimeout(function(){
     gfState.storeSearch = val.trim();
@@ -1962,10 +2075,43 @@ function onStoreSearchInput(val){
     renderSummaryTags(); render();
   }, 350);
 }
+function onStoreSearchFocus(val){
+  renderAutocomplete(val.trim());
+}
+function onStoreSearchKey(e){
+  var box = document.getElementById('gf-autocomplete');
+  if(!box.classList.contains('open')) return;
+  var items = box.querySelectorAll('.gf-autocomplete-item');
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    _autocompleteIndex = Math.min(_autocompleteIndex + 1, items.length - 1);
+    updateAutocompleteActive(items);
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    _autocompleteIndex = Math.max(_autocompleteIndex - 1, -1);
+    updateAutocompleteActive(items);
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    if(_autocompleteIndex >= 0 && items[_autocompleteIndex]){
+      pickAutocompleteItem(items[_autocompleteIndex].dataset.name);
+    } else if(document.getElementById('gf-store-search').value.trim()){
+      closeAutocomplete();
+    }
+  } else if(e.key === 'Escape'){
+    closeAutocomplete();
+  }
+}
+function updateAutocompleteActive(items){
+  for(var i=0;i<items.length;i++){
+    if(i === _autocompleteIndex) items[i].classList.add('active');
+    else items[i].classList.remove('active');
+  }
+}
 function clearStoreSearch(){
   document.getElementById('gf-store-search').value = '';
   document.getElementById('gf-search-clear').classList.remove('visible');
   gfState.storeSearch = '';
+  closeAutocomplete();
   renderSummaryTags(); render();
 }
 
@@ -5341,6 +5487,15 @@ function applyRealData(jsonData){
   doRender();
   // 移动端默认折叠筛选栏
   if(window.innerWidth <= 768){ toggleMobileFilter(); }
+
+  // 点击页面其他地方关闭 autocomplete 下拉
+  document.addEventListener('click', function(e){
+    var wrap = document.querySelector('.gf-search-wrap');
+    var box = document.getElementById('gf-autocomplete');
+    if(wrap && box && !wrap.contains(e.target)){
+      box.classList.remove('open');
+    }
+  });
   }catch(e){
     var erEl=document.getElementById('js-error-log');
     if(erEl){
