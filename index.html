@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-03T17:53:20+08:00">
+<meta name="build-time" content="2026-07-03T18:28:34+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -4145,7 +4145,8 @@ function calcRealMetrics(){
   // ── 日期范围过滤每日数据 ──
   const ds = gfState.dateStart, de = gfState.dateEnd;
   // 只有当没有任何组织维度筛选时，才使用全局每日汇总；否则用门店数据按筛选器聚合
-  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
+  const hasStoreSearch = gfState.storeSearch && gfState.storeSearch.trim();
+  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all' || hasStoreSearch;
   let mpDayFiltered = [], mtDayFiltered = [];
   if(ds && de && !hasOrgFilter){
     mpDayFiltered = MP_DAILY.filter(d => d.date >= ds && d.date <= de);
@@ -5198,7 +5199,8 @@ function updateInfoBar(){
 
   // 根据日期筛选计算实时小程序汇总（仅无组织筛选时用全局每日数据）
   const ds = gfState.dateStart, de = gfState.dateEnd;
-  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
+  const hasStoreSearch = gfState.storeSearch && gfState.storeSearch.trim();
+  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all' || hasStoreSearch;
   let mpFiltered = (ds && de && !hasOrgFilter) ? MP_DAILY.filter(d => d.date >= ds && d.date <= de) : [];
   if(mpFiltered.length > 0){
     const orders = mpFiltered.reduce((a,d)=>a+(d.orders||0),0);
@@ -5363,14 +5365,11 @@ function applyRealData(jsonData){
   try{
 
   const p=t=>String(t).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-  // 默认显示最新单日数据（昨日）
+  // 默认显示最新单日数据
   const latest=EMBEDDED_DATE_END||fmt(new Date());
-  const latestD=new Date(latest+'T00:00:00');
-  const yDay=new Date(latestD); yDay.setDate(yDay.getDate()-1);
-  const yStr=fmt(yDay);
-  document.getElementById('gf-date-start').value=yStr;
-  document.getElementById('gf-date-end').value=yStr;
-  gfState.dateStart=yStr;gfState.dateEnd=yStr;
+  document.getElementById('gf-date-start').value=latest;
+  document.getElementById('gf-date-end').value=latest;
+  gfState.dateStart=latest;gfState.dateEnd=latest;
 
   // 标题栏数据更新日期
   const hd = document.getElementById('headerUpdateDate');
