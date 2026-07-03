@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-03T18:28:34+08:00">
+<meta name="build-time" content="2026-07-03T18:45:24+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -940,7 +940,6 @@
           <th width="26">#</th>
           <th>门店</th>
           <th width="64" class="sortable" onclick="toggleBenchSort('avg')">出餐均值<span class="sort-arrow" id="rank-sort-avg"></span></th>
-          <th width="56" class="sortable" onclick="toggleBenchSort('rate')">达标率<span class="sort-arrow" id="rank-sort-rate"></span></th>
           <th width="56" class="sortable" onclick="toggleBenchSort('shop_score')">店铺分<span class="sort-arrow" id="rank-sort-shop_score"></span></th>
           <th width="56" class="sortable" onclick="toggleBenchSort('exp_score')">体验分<span class="sort-arrow" id="rank-sort-exp_score"></span></th>
         </tr></thead>
@@ -959,7 +958,6 @@
           <th width="26">#</th>
           <th>门店</th>
           <th width="64" class="sortable" onclick="toggleWorstSort('avg')">出餐均值<span class="sort-arrow" id="rank-sort-avg2"></span></th>
-          <th width="56" class="sortable" onclick="toggleWorstSort('rate')">达标率<span class="sort-arrow" id="rank-sort-rate2"></span></th>
           <th width="56" class="sortable" onclick="toggleWorstSort('shop_score')">店铺分<span class="sort-arrow" id="rank-sort-shop_score2"></span></th>
           <th width="56" class="sortable" onclick="toggleWorstSort('exp_score')">体验分<span class="sort-arrow" id="rank-sort-exp_score2"></span></th>
         </tr></thead>
@@ -1244,7 +1242,6 @@ const DATA = {
     goals:[
       {label:'月营收（自配送）',cur:89.2,target:110,color:'#C8873A',fmt:v=>v+'万'},
       {label:'月营收（美团）',cur:156,target:180,color:'#E8321A',fmt:v=>v+'万'},
-      {label:'出餐达标率',cur:95.9,target:97,color:'#639922',fmt:v=>v+'%'},
       {label:'平均店铺分',cur:93.5,target:94,color:'#667eea',fmt:v=>v.toFixed(1)+'分'},
     ],
     orderTrend:{hours:['8','9','10','11','12','13','14','15','16','17'],mpRev:[1.2,1.9,2.4,3.6,5.1,4.7,3.8,3.1,3.3,4.2],mtRev:[2.1,3.2,4.1,6.0,8.6,7.7,6.4,5.4,5.7,6.6]},
@@ -1300,7 +1297,6 @@ const DATA = {
     goals:[
       {label:'月营收（自配送）',cur:89.2,target:110,color:'#C8873A',fmt:v=>v+'万'},
       {label:'月营收（美团）',cur:156,target:180,color:'#E8321A',fmt:v=>v+'万'},
-      {label:'出餐达标率',cur:95.0,target:97,color:'#639922',fmt:v=>v+'%'},
       {label:'平均店铺分',cur:92.8,target:94,color:'#667eea',fmt:v=>v.toFixed(1)+'分'},
     ],
     orderTrend:{hours:['周一','周二','周三','周四','周五','周六','周日'],mpRev:[26.0,27.0,28.8,30.6,35.0,35.8,31.2],mtRev:[42.0,43.2,45.8,49.2,54.0,56.0,51.8]},
@@ -1357,7 +1353,6 @@ const DATA = {
     goals:[
       {label:'月营收（自配送）',cur:89.2,target:110,color:'#C8873A',fmt:v=>v+'万'},
       {label:'月营收（美团）',cur:156,target:180,color:'#E8321A',fmt:v=>v+'万'},
-      {label:'出餐达标率',cur:94.4,target:97,color:'#639922',fmt:v=>v+'%'},
       {label:'平均店铺分',cur:92.0,target:94,color:'#667eea',fmt:v=>v.toFixed(1)+'分'},
     ],
     orderTrend:{hours:['第1周','第2周','第3周','第4周'],mpRev:[20.0,21.5,23.2,24.5],mtRev:[34.0,37.0,41.5,43.5]},
@@ -1373,7 +1368,7 @@ let charts={};
 const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all',storeSearch:''};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
 const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
-let rankSortKey = 'score';   // 预警门店排序列: score(综合), avg(出餐均值), rate(达标率), shop_score(店铺分), exp_score(体验分)
+let rankSortKey = 'score';   // 预警门店排序列: score(综合), avg(出餐均值), shop_score(店铺分), exp_score(体验分)
 let rankSortDir = 'desc';    // 预警门店排序方向
 let benchSortKey = 'score';  // 标杆门店排序列（独立于预警门店）
 let benchSortDir = 'desc';   // 标杆门店排序方向（独立于预警门店）
@@ -1469,7 +1464,6 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
 
   const getVal = (s, k) => {
     if (k === 'avg') return s.mp_avg != null ? s.mp_avg : Infinity;
-    if (k === 'rate') return s.mp_rate != null ? s.mp_rate : -Infinity;
     if (k === 'shop_score') return s.mt_shop_score != null ? s.mt_shop_score : -Infinity;
     if (k === 'merchant_rating') return s.mt_merchant_rating != null ? s.mt_merchant_rating : -Infinity;
     if (k === 'exp_score') return s.mt_exp_score != null ? s.mt_exp_score : -Infinity;
@@ -1727,13 +1721,11 @@ function buildReportHTML(){
   var mpFiltered = filterStores(STORE_MP);
   var mtFiltered = filterStores(STORE_MT);
   var mpAvg = mpFiltered.length>0?(mpFiltered.reduce(function(a,s){return a+s.avg;},0)/mpFiltered.length).toFixed(1):'--';
-  var mpRate = mpFiltered.length>0?(mpFiltered.reduce(function(a,s){return a+s.rate;},0)/mpFiltered.length).toFixed(1):'--';
   var mtShop = mtFiltered.length>0?(mtFiltered.reduce(function(a,s){return a+s.shop_score;},0)/mtFiltered.length).toFixed(1):'--';
   var mtExp = mtFiltered.length>0?(mtFiltered.reduce(function(a,s){return a+s.exp_score;},0)/mtFiltered.length).toFixed(2):'--';
   h += '<div class="summary">';
   h += '<div class="sum-card"><div class="val" style="color:#333">'+totalMp+'+'+totalMt+'</div><div class="lbl">小程序+美团门店</div></div>';
   h += '<div class="sum-card"><div class="val" style="color:#E24B4A">'+mpAvg+'</div><div class="lbl">均出餐时长(分)</div></div>';
-  h += '<div class="sum-card"><div class="val" style="color:#3B6D11">'+mpRate+'%</div><div class="lbl">出餐达标率</div></div>';
   h += '<div class="sum-card"><div class="val" style="color:#EF9F27">'+mtShop+'</div><div class="lbl">美团店铺分均</div></div>';
   h += '<div class="sum-card"><div class="val" style="color:#E8321A">'+mtExp+'</div><div class="lbl">美团体验分均</div></div>';
   h += '</div>';
@@ -1794,10 +1786,6 @@ function buildReportHTML(){
           if(km.mp_avg != null){
             var cls = km.mp_avg>12?'bad':(km.mp_avg>10?'warn':'good');
             h += '<span class="sc-metric '+cls+'">⏱ 出餐'+km.mp_avg.toFixed(1)+'min</span>';
-          }
-          if(km.mp_rate != null){
-            var cls = km.mp_rate<90?'bad':(km.mp_rate<95?'warn':'good');
-            h += '<span class="sc-metric '+cls+'">📊 达标率'+km.mp_rate.toFixed(1)+'%</span>';
           }
           if(km.mt_shop != null){
             var cls = km.mt_shop<90?'bad':(km.mt_shop<95?'warn':'good');
@@ -3092,7 +3080,7 @@ function toggleWorstSort(key){
 
 function updateRankSortArrows(){
   // 标杆门店箭头
-  ['avg','rate','shop_score','exp_score'].forEach(function(k){
+  ['avg','shop_score','exp_score'].forEach(function(k){
     var els = document.querySelectorAll('#rank-sort-'+k);
     for(var i=0;i<els.length;i++){
       els[i].className = 'sort-arrow ' + (benchSortKey === k ? 'active '+benchSortDir : 'none');
@@ -3101,7 +3089,7 @@ function updateRankSortArrows(){
 }
 
 function updateBenchSortArrows(){
-  ['avg','rate','shop_score','exp_score'].forEach(function(k){
+  ['avg','shop_score','exp_score'].forEach(function(k){
     var els = document.querySelectorAll('#rank-sort-'+k);
     for(var i=0;i<els.length;i++){
       els[i].className = 'sort-arrow ' + (benchSortKey === k ? 'active '+benchSortDir : 'none');
@@ -3110,7 +3098,7 @@ function updateBenchSortArrows(){
 }
 
 function updateWorstSortArrows(){
-  ['avg','rate','shop_score','exp_score'].forEach(function(k){
+  ['avg','shop_score','exp_score'].forEach(function(k){
     var els = document.querySelectorAll('#rank-sort-'+k+'2');
     for(var i=0;i<els.length;i++){
       els[i].className = 'sort-arrow ' + (rankSortKey === k ? 'active '+rankSortDir : 'none');
@@ -3134,9 +3122,9 @@ function renderUnifiedStoreRank(){
   const fmtVal = (v, dec) => (v != null && !isNaN(v)) ? v.toFixed(dec) : '-';
   const rc = i => i < 3 ? `rank-${i + 1}` : 'rank-n';
 
-  // 综合得分：出餐均值(lower=better) + 达标率(higher=better) + 店铺分(higher=better) + 体验分(higher=better)
+  // 综合得分：出餐均值(lower=better) + 店铺分(higher=better) + 体验分(higher=better)
   const score = s => {
-    const cook = (s.mp_avg != null && s.mp_rate != null) ? (1 - (s.mp_avg || 15) / 15) * 0.3 + ((s.mp_rate || 0) / 100) * 0.2 : 0;
+    const cook = s.mp_avg != null ? (1 - (s.mp_avg || 15) / 15) * 0.5 : 0;
     const mt = s.has_mt ? ((s.mt_shop_score || 0) / 5) * 0.3 + ((s.mt_exp_score || 0) / 5) * 0.2 : 0;
     return cook + mt;
   };
@@ -3145,7 +3133,6 @@ function renderUnifiedStoreRank(){
   const getSortVal = (s, key) => {
     if(key === 'score') return score(s);
     if(key === 'avg') return s.mp_avg != null ? s.mp_avg : 999;
-    if(key === 'rate') return s.mp_rate != null ? s.mp_rate : -1;
     if(key === 'shop_score') return s.mt_shop_score != null ? s.mt_shop_score : -1;
     if(key === 'exp_score') return s.mt_exp_score != null ? s.mt_exp_score : -1;
     return 0;
@@ -3155,7 +3142,6 @@ function renderUnifiedStoreRank(){
   const hasVal = (s, key) => {
     if(key === 'score') return true;
     if(key === 'avg') return s.mp_avg != null;
-    if(key === 'rate') return s.mp_rate != null;
     if(key === 'shop_score') return s.mt_shop_score != null;
     if(key === 'exp_score') return s.mt_exp_score != null;
     return false;
@@ -3194,16 +3180,13 @@ function renderUnifiedStoreRank(){
   const allMergedCnt = merged.length;
   if (bestCnt) bestCnt.textContent = `${bestList.length} 家 / ${allMergedCnt} 家`;
   if (!bestList.length) {
-    bestTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">暂无满足标杆条件的门店<br><span style="font-size:10px;color:var(--text-muted)">条件：出餐≤15min · 店铺分≥95 · 体验分≥4.6</span></div></td></tr>`;
+    bestTbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">暂无满足标杆条件的门店<br><span style="font-size:10px;color:var(--text-muted)">条件：出餐≤15min · 店铺分≥95 · 体验分≥4.6</span></div></td></tr>`;
   } else {
     bestTbody.innerHTML = bestList.map((s, i) => {
-      const rate = s.mp_rate;
-      const rateColor = rate >= 95 ? '#3B6D11' : rate >= 90 ? '#854F0B' : '#A32D2D';
       return `<tr class="store-row" style="background:${cellBg(s)}" onclick="openStoreMerged('${s.name.replace(/'/g, "\\'")}')">
         <td><span class="rank-badge ${rc(i)}">${i + 1}</span></td>
         <td>${s.name}</td>
         <td style="font-weight:500">${fmtVal(s.mp_avg, 1)}${s.mp_avg != null ? 'min' : ''}</td>
-        <td style="font-weight:500;color:${rateColor}">${fmtVal(s.mp_rate, 1)}${rate != null ? '%' : ''}</td>
         <td style="font-weight:500;color:#667eea">${fmtVal(s.mt_shop_score, 1)}</td>
         <td style="font-weight:500;color:#f5576c">${fmtVal(s.mt_exp_score, 2)}</td>
       </tr>`;
@@ -3211,12 +3194,11 @@ function renderUnifiedStoreRank(){
   }
 
   // ── 右面板：预警门店（与标杆独立）──
-  // 筛选条件：至少有一个指标不达标（出餐>15min，或达标率<85%，或店铺分<95，或体验分<4.6）
+  // 筛选条件：至少有一个指标不达标（出餐>15min，或店铺分<95，或体验分<4.6）
   // 任一数据缺失时对应条件视为「不达标」来计分
   const isAlertStore = s => {
     var bad = 0;
     if(s.mp_avg != null && s.mp_avg > 15) bad++;
-    if(s.mp_rate != null && s.mp_rate < 85) bad++;
     if(s.mt_shop_score != null && s.mt_shop_score < 95) bad++;
     if(s.mt_exp_score != null && s.mt_exp_score < 4.6) bad++;
     return bad > 0;
@@ -3225,7 +3207,6 @@ function renderUnifiedStoreRank(){
   const worstScore = s => {
     var sc = 0;
     if(s.mp_avg != null && s.mp_avg > 15) sc += (s.mp_avg - 15) / 15;
-    if(s.mp_rate != null && s.mp_rate < 85) sc += (85 - s.mp_rate) / 85;
     if(s.mt_shop_score != null && s.mt_shop_score < 95) sc += (95 - s.mt_shop_score) / 95;
     if(s.mt_exp_score != null && s.mt_exp_score < 4.6) sc += (4.6 - s.mt_exp_score) / 4.6;
     return sc;
@@ -3234,10 +3215,10 @@ function renderUnifiedStoreRank(){
   const worstFiltered = merged.filter(s => isAlertStore(s) && hasVal(s, rankSortKey));
 
   // 默认排序：score → 用 worstScore 排（问题最严重在前）
-  // 其他列：出餐均值 asc，达标率/店铺分/体验分 asc（越低越差，越差越靠前）
+  // 其他列：出餐均值 desc，店铺分/体验分 asc（越低越差，越差越靠前）
   const worstDir = rankSortKey === 'score' ? 'desc'  // worstScore 越大越差
                  : rankSortKey === 'avg'   ? 'desc'  // 出餐越长越差
-                 : 'asc';                            // 达标率/店铺分/体验分 越低越差
+                 : 'asc';                            // 店铺分/体验分 越低越差
   const worstList = [...worstFiltered].sort((a, b) => {
     var va = rankSortKey === 'score' ? worstScore(a) : getSortVal(a, rankSortKey);
     var vb = rankSortKey === 'score' ? worstScore(b) : getSortVal(b, rankSortKey);
@@ -3248,16 +3229,13 @@ function renderUnifiedStoreRank(){
   const worstCnt = document.getElementById('worst-rank-count');
   if (worstCnt) worstCnt.textContent = `${worstList.length} 家 / ${allMergedCnt} 家`;
   if (!worstList.length) {
-    worstTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">暂无预警门店</div></td></tr>`;
+    worstTbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">暂无预警门店</div></td></tr>`;
   } else {
     worstTbody.innerHTML = worstList.map((s, i) => {
-      const rate = s.mp_rate;
-      const rateColor = rate >= 95 ? '#3B6D11' : rate >= 90 ? '#854F0B' : '#A32D2D';
       return `<tr class="store-row" style="background:${cellBg(s)}" onclick="openStoreMerged('${s.name.replace(/'/g, "\\'")}')">
         <td><span class="rank-badge ${rc(i)}">${i + 1}</span></td>
         <td>${s.name}</td>
         <td style="font-weight:500">${fmtVal(s.mp_avg, 1)}${s.mp_avg != null ? 'min' : ''}</td>
-        <td style="font-weight:500;color:${rateColor}">${fmtVal(s.mp_rate, 1)}${rate != null ? '%' : ''}</td>
         <td style="font-weight:500;color:#667eea">${fmtVal(s.mt_shop_score, 1)}</td>
         <td style="font-weight:500;color:#f5576c">${fmtVal(s.mt_exp_score, 2)}</td>
       </tr>`;
@@ -3280,18 +3258,12 @@ function getStoreDiag(storeName){
   
   try {
   if(mpStore){
-    keyMetrics.mp_avg = mpStore.avg; keyMetrics.mp_rate = mpStore.rate; keyMetrics.mp_max = mpStore.max;
+    keyMetrics.mp_avg = mpStore.avg; keyMetrics.mp_max = mpStore.max;
     if(mpStore.avg > 15) { status = 'bad'; issues.push('平均出餐'+mpStore.avg+'分钟，严重超SLA标杆(15分钟)');
       actions.push('① 根据业绩预估和高低峰合理排班，备料等需要单独花费人力的动作尽量在高峰前完成，备料量尽可能覆盖后续整个高峰，避免高峰期临时分出人力备料');
       actions.push('② 开早准备尽可能在营业前完成，避免营业后因开早事项未完成，花费人力继续开早，影响出餐');
       actions.push('③ 大单提前与顾客沟通预计送达时间，得到肯定后在不影响送达的情况下穿插做一些小单，避免全部超时');
       actions.push('④ 持续爆单时沟通后续伙伴提前进班，极端高峰无法负荷时临时停单修整，恢复后重新开启平台'); }
-    // avg <= 15 不提示出餐相关诊断
-    if(mpStore.avg > 15 && mpStore.rate < 70) { status = 'bad'; issues.push('出餐达标率仅'+mpStore.rate+'%，近三分之一订单超15分钟');
-      actions.push('① 根据业绩预估和高低峰合理排班，备料等需要单独花费人力的动作尽量在高峰前完成，备料量尽可能覆盖后续整个高峰，避免高峰期临时分出人力备料');
-      actions.push('② 持续爆单时沟通后续伙伴提前进班，极端高峰无法负荷时临时停单修整，恢复后重新开启平台'); }
-    else if(mpStore.avg > 15 && mpStore.rate < 85) { status = (status==='ok'?'warn':status); issues.push('出餐达标率'+mpStore.rate+'%，仍有提升空间');
-      actions.push('① 抽查超15分钟订单录屏/截图，还原超时原因'); }
     if(mpStore.avg > 15 && mpStore.max > 15) { actions.push('① 最长出餐'+mpStore.max+'分钟——排查是否为特定品类（如鲜果现切/奶盖手打）导致，可优化预制流程'); }
   }
   if(mtStore){
@@ -3604,7 +3576,6 @@ function renderMpDetail(store, body){
       <div class="drawer-stats cols3">
         <div class="drawer-stat"><div class="drawer-stat-label">平均出餐时长</div><div class="drawer-stat-val" style="color:#C8873A">${store.avg}<span style="font-size:11px;font-weight:400"> 分钟</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">最长出餐时长</div><div class="drawer-stat-val">${store.max||'--'}<span style="font-size:11px;font-weight:400"> 分钟</span></div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">出餐达标率</div><div class="drawer-stat-val" style="color:${store.rate>=95?'#3B6D11':store.rate>=90?'#854F0B':'#A32D2D'}">${store.rate}<span style="font-size:11px;font-weight:400">%</span></div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">超 SLA</div><div class="drawer-stat-val" style="color:${store.avg>15?'#A32D2D':'#3B6D11'}">${store.avg>15?'超时':'正常'}</div></div>
       </div>
     </div>
@@ -4154,18 +4125,16 @@ function calcRealMetrics(){
   }
 
   // 小程序 KPI：仅日期筛选用每日汇总，组织筛选用门店数据
-  let mpOrd, mpAvgCook, mpAvgRate;
+  let mpOrd, mpAvgCook;
   if(mpDayFiltered.length > 0){
     mpOrd = mpDayFiltered.reduce((a,d)=>a+(d.orders||0),0);
     const totalOrders = mpOrd;
     mpAvgCook = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0),0)/totalOrders) : 0;
-    mpAvgRate = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalOrders) : 0;
   } else if(ds && de && !hasOrgFilter){
-    mpOrd = 0; mpAvgCook = 0; mpAvgRate = 0;
+    mpOrd = 0; mpAvgCook = 0;
   } else {
     mpOrd = mp.reduce((a,s)=>a+(s.orders||0),0);
     mpAvgCook = mp.length ? (mp.reduce((a,s)=>a+(s.avg||0),0)/mp.length) : 0;
-    mpAvgRate = mp.length ? (mp.reduce((a,s)=>a+(s.rate||0),0)/mp.length) : 0;
   }
 
   // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
@@ -4182,7 +4151,6 @@ function calcRealMetrics(){
   const mpMetrics = [
     {label:'小程序门店', val: mpStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
     {label:'平均出餐时长', val: mpAvgCook.toFixed(1), unit:'分钟', sub:'', dir:'', ref:''},
-    {label:'出餐达标率', val: mpAvgRate.toFixed(1)+'%', unit:'', sub:'超15min', dir:'', ref:''},
   ];
 
   // 美团 KPI：仅日期筛选用每日汇总，组织筛选用过滤门店汇总
@@ -4250,7 +4218,6 @@ function calcRealMetrics(){
 
     var prevMpOrd = prevMpDay.reduce(function(a,d){return a+(d.orders||0);},0);
     var prevMpCook = prevMpOrd > 0 ? (prevMpDay.reduce(function(a,d){return a+(d.orders||0)*(d.avg_cook||0);},0)/prevMpOrd) : null;
-    var prevMpRate = prevMpOrd > 0 ? (prevMpDay.reduce(function(a,d){return a+(d.orders||0)*(d.rate||0);},0)/prevMpOrd) : null;
     var prevMpStore = prevMpDay.length > 0 ? (prevMpDay[prevMpDay.length-1].store_count||null) : null;
 
     var prevMtStCount = prevMtDay.reduce(function(a,d){return a+(d.store_count||0);},0);
@@ -4260,7 +4227,6 @@ function calcRealMetrics(){
 
     var d1 = prevDelta(mpStoreCount, prevMpStore, 'store'); if(d1.s){mpMetrics[0].sub=d1.s;mpMetrics[0].dir=d1.d;mpMetrics[0].ref=refLabel;}
     var d2 = prevDelta(mpAvgCook, prevMpCook, 'cook'); if(d2.s){mpMetrics[1].sub=d2.s;mpMetrics[1].dir=d2.d;mpMetrics[1].ref=refLabel;}
-    var d3 = prevDelta(mpAvgRate, prevMpRate, 'rate'); if(d3.s){mpMetrics[2].sub=d3.s;mpMetrics[2].dir=d3.d;mpMetrics[2].ref=refLabel;}
   }
 
   const mtMetrics = [
@@ -5206,13 +5172,12 @@ function updateInfoBar(){
     const orders = mpFiltered.reduce((a,d)=>a+(d.orders||0),0);
     const totalO = orders || 1;
     const cook = (mpFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0),0)/totalO).toFixed(1);
-    const rate = (mpFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalO).toFixed(1);
-    txt += `　|　均出餐${cook}min　达标率${rate}%`;
+    txt += `　|　均出餐${cook}min`;
   } else if(ds && de){
     // 日期已选但无匹配数据 → 显示该时段无数据
     txt += `　|　小程序${ds}~${de} 无数据`;
   } else if(EMBEDDED_DATA.mp_summary){
-    txt += `　|　均出餐${EMBEDDED_DATA.mp_summary.avg_cook_time}min　达标率${EMBEDDED_DATA.mp_summary['达标率']}%`;
+    txt += `　|　均出餐${EMBEDDED_DATA.mp_summary.avg_cook_time}min`;
   }
   document.getElementById('data-range-text').textContent = txt;
 }
@@ -5222,7 +5187,7 @@ function applyRealData(jsonData){
   const genDate = jsonData.generated_at || jsonData.meituan_latest_date || '';
   let infoText = `数据更新：${genDate}　美团${jsonData.mt_stores.length}家　小程序${jsonData.mp_stores.length}家`;
   if(jsonData.mp_summary){
-    infoText += `　|　均出餐${jsonData.mp_summary.avg_cook_time}min　达标率${jsonData.mp_summary['达标率']}%`;
+    infoText += `　|　均出餐${jsonData.mp_summary.avg_cook_time}min`;
   }
   document.getElementById('data-range-text').textContent = infoText;
 
