@@ -3757,9 +3757,10 @@ function renderMtHourlyCook(store){
 }
 
 function renderMarketBrandRank(){
-  // 市场+品牌合并排名：聚合并展示所有市场和品牌
-  const mpStores=filterStores(STORE_MP);
-  const mtStores=filterStores(STORE_MT);
+  // 日期筛选：只聚合选中日期范围内有数据的门店
+  var dateFiltered = getDateFilteredStoreCodes();
+  var mpStores = filterStores(STORE_MP).filter(function(s){ return !dateFiltered || dateFiltered.has(s.code); });
+  var mtStores = filterStores(STORE_MT).filter(function(s){ return !dateFiltered || dateFiltered.has(s.code); });
   const mkColors={'湖南':'#639922','湖北':'#EF9F27','江苏':'#667eea','重庆':'#E8321A'};
   const brdColors={'鸳央咖啡':'#EF9F27','墨柠':'#667eea','昼夜':'#E8321A'};
 
@@ -3846,7 +3847,9 @@ function renderMarketBrandRank(){
 }
 
 function renderRegionMgrRank(){
-  const mpStores=filterStores(STORE_MP).filter(s=>s.region_mgr&&s.region_mgr.trim()), mtStores=filterStores(STORE_MT).filter(s=>s.region_mgr&&s.region_mgr.trim());
+  var dateFiltered = getDateFilteredStoreCodes();
+  var mpStores = filterStores(STORE_MP).filter(function(s){ return s.region_mgr&&s.region_mgr.trim() && (!dateFiltered || dateFiltered.has(s.code)); });
+  var mtStores = filterStores(STORE_MT).filter(function(s){ return s.region_mgr&&s.region_mgr.trim() && (!dateFiltered || dateFiltered.has(s.code)); });
   const kmap={};
 
   var rankDays = 7;
@@ -3855,49 +3858,42 @@ function renderRegionMgrRank(){
     rankDays = Math.max(1, Math.round((d2-d1)/86400000)+1);
   }
 
-  mpStores.forEach(s=>{
-    const k=s.region_mgr;
-    if(!kmap[k])kmap[k]={regionMgr:s.region_mgr,market:s.market,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    kmap[k].mpRev+=s.revenue; kmap[k].cookSum+=s.avg; kmap[k].cookCnt++; kmap[k].mpOrd+=(s.orders||0);
+  mpStores.forEach(function(s){
+    var k = s.region_mgr;
+    if(!kmap[k]) kmap[k] = {regionMgr:s.region_mgr, market:s.market, cookSum:0, cookCnt:0, scoreSum:0, scoreCnt:0, ratingSum:0, ratingCnt:0, storeSet:new Set()};
+    kmap[k].cookSum += s.avg; kmap[k].cookCnt++;
     kmap[k].storeSet.add(s.name);
   });
-  mtStores.forEach(s=>{
-    const k=s.region_mgr;
-    if(!kmap[k])kmap[k]={regionMgr:s.region_mgr,market:s.market,mpRev:0,mtRev:0,mpOrd:0,mtOrd:0,cookSum:0,cookCnt:0,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,storeSet:new Set()};
-    kmap[k].mtRev+=s.revenue; kmap[k].scoreSum+=s.shop_score; kmap[k].scoreCnt++;
-    kmap[k].ratingSum+=(s.exp_score||0); kmap[k].ratingCnt++;
-    kmap[k].mtOrd+=(s.orders||0);
+  mtStores.forEach(function(s){
+    var k = s.region_mgr;
+    if(!kmap[k]) kmap[k] = {regionMgr:s.region_mgr, market:s.market, cookSum:0, cookCnt:0, scoreSum:0, scoreCnt:0, ratingSum:0, ratingCnt:0, storeSet:new Set()};
+    kmap[k].scoreSum += s.shop_score; kmap[k].scoreCnt++;
+    kmap[k].ratingSum += (s.exp_score||0); kmap[k].ratingCnt++;
     kmap[k].storeSet.add(s.name);
   });
 
-  let rows=Object.values(kmap).map(m=>{
-    var stCnt = m.storeSet.size;
+  var rows = Object.values(kmap).map(function(m){
     return {
-    ...m, totalRev:m.mpRev+m.mtRev, totalOrd:m.mpOrd+m.mtOrd,
-    avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
-    avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
-    avgRating:m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
-    dailyRev: stCnt>0 ? Math.round((m.mpRev+m.mtRev)/stCnt/rankDays) : 0,
-    dailyTC: stCnt>0 ? Math.round((m.mpOrd+m.mtOrd)/stCnt/rankDays*10)/10 : 0,
-    storeCount: stCnt,
+    regionMgr: m.regionMgr, market: m.market,
+    avgCook: m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
+    avgScore: m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
+    avgRating: m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
+    storeCount: m.storeSet.size,
   }});
 
-  const st=mgmtSortState.region;
-  const getVal=(r,k)=>{
-    if(k==='rev')return r.dailyRev;
-    if(k==='tc')return r.dailyTC;
-    if(k==='cook')return r.avgCook;
-    if(k==='score')return r.avgScore;
-    if(k==='rating')return r.avgRating;
+  var st = mgmtSortState.region;
+  var getVal = function(r,k){
+    if(k==='cook') return r.avgCook;
+    if(k==='score') return r.avgScore;
+    if(k==='rating') return r.avgRating;
     return 0;
   };
-  rows.sort((a,b)=>{
-    const va=getVal(a,st.key),vb=getVal(b,st.key);
+  rows.sort(function(a,b){
+    var va = getVal(a,st.key), vb = getVal(b,st.key);
     return st.dir==='asc'?va-vb:vb-va;
   });
 
-  const rc=i=>i<3?`rank-${i+1}`:'rank-n';
-  const fmtRev=v=>(v/10000).toFixed(1)+'万';
+  var rc = function(i){ return i<3?'rank-'+(i+1):'rank-n'; };
 
   const t=document.getElementById('region-mgr-rank-container');
   if(!rows.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的大区数据</div>';return;}
@@ -3920,7 +3916,9 @@ function renderRegionMgrRank(){
 }
 
 function renderAreaMgrRank(){
-  const mpStores=filterStores(STORE_MP).filter(s=>s.area_mgr&&s.area_mgr.trim()), mtStores=filterStores(STORE_MT).filter(s=>s.area_mgr&&s.area_mgr.trim());
+  var dateFiltered = getDateFilteredStoreCodes();
+  var mpStores = filterStores(STORE_MP).filter(function(s){ return s.area_mgr&&s.area_mgr.trim() && (!dateFiltered || dateFiltered.has(s.code)); });
+  var mtStores = filterStores(STORE_MT).filter(function(s){ return s.area_mgr&&s.area_mgr.trim() && (!dateFiltered || dateFiltered.has(s.code)); });
   const map={};
 
   var rankDays = 7;
@@ -3929,41 +3927,34 @@ function renderAreaMgrRank(){
     rankDays = Math.max(1, Math.round((d2-d1)/86400000)+1);
   }
 
-  mtStores.forEach(s=>{
-    const k=s.area_mgr;
-    if(!map[k])map[k]={market:s.market,regionMgr:s.region_mgr,areaMgr:s.area_mgr,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,ordCnt:0,revSum:0,storeSet:new Set()};
-    map[k].scoreSum+=s.shop_score; map[k].scoreCnt++;
-    map[k].ratingSum+=(s.exp_score||0); map[k].ratingCnt++;
-    map[k].ordCnt+=(s.orders||0); map[k].revSum+=s.revenue;
+  mtStores.forEach(function(s){
+    var k = s.area_mgr;
+    if(!map[k]) map[k] = {market:s.market, regionMgr:s.region_mgr, areaMgr:s.area_mgr, scoreSum:0, scoreCnt:0, ratingSum:0, ratingCnt:0, cookSum:0, cookCnt:0, storeSet:new Set()};
+    map[k].scoreSum += s.shop_score; map[k].scoreCnt++;
+    map[k].ratingSum += (s.exp_score||0); map[k].ratingCnt++;
     map[k].storeSet.add(s.name);
   });
-  mpStores.forEach(s=>{
-    const k=s.area_mgr;
-    if(!map[k])map[k]={market:s.market,regionMgr:s.region_mgr,areaMgr:s.area_mgr,scoreSum:0,scoreCnt:0,ratingSum:0,ratingCnt:0,ordCnt:0,revSum:0,cookSum:0,cookCnt:0,storeSet:new Set()};
-    map[k].revSum+=s.revenue; map[k].ordCnt+=(s.orders||0);
-    if(map[k].cookSum===undefined)map[k].cookSum=0,map[k].cookCnt=0;
-    map[k].cookSum+=s.avg; map[k].cookCnt++;
+  mpStores.forEach(function(s){
+    var k = s.area_mgr;
+    if(!map[k]) map[k] = {market:s.market, regionMgr:s.region_mgr, areaMgr:s.area_mgr, scoreSum:0, scoreCnt:0, ratingSum:0, ratingCnt:0, cookSum:0, cookCnt:0, storeSet:new Set()};
+    map[k].cookSum += s.avg; map[k].cookCnt++;
     map[k].storeSet.add(s.name);
   });
 
-  let list=Object.values(map).map(m=>{
-    var stCnt = m.storeSet.size;
+  var list = Object.values(map).map(function(m){
     return {
-    ...m,
-    avgScore:m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
-    avgRating:m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
-    avgCook:m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
-    dailyRev: stCnt>0 ? Math.round(m.revSum/stCnt/rankDays) : 0,
-    dailyTC: stCnt>0 ? Math.round(m.ordCnt/stCnt/rankDays*10)/10 : 0,
+    market: m.market, regionMgr: m.regionMgr, areaMgr: m.areaMgr,
+    avgScore: m.scoreCnt?Math.round(m.scoreSum/m.scoreCnt*10)/10:0,
+    avgRating: m.ratingCnt?Math.round(m.ratingSum/m.ratingCnt*100)/100:0,
+    avgCook: m.cookCnt?Math.round(m.cookSum/m.cookCnt*10)/10:0,
+    storeCount: m.storeSet.size,
   }});
 
-  const st=mgmtSortState.area;
-  const getVal=(r,k)=>{
-    if(k==='rev')return r.dailyRev;
-    if(k==='tc')return r.dailyTC;
-    if(k==='cook')return r.avgCook||0;
-    if(k==='score')return r.avgScore;
-    if(k==='rating')return r.avgRating;
+  var st = mgmtSortState.area;
+  var getVal = function(r,k){
+    if(k==='cook') return r.avgCook||0;
+    if(k==='score') return r.avgScore;
+    if(k==='rating') return r.avgRating;
     return 0;
   };
   list.sort((a,b)=>{
@@ -3972,7 +3963,6 @@ function renderAreaMgrRank(){
   });
 
   const rc=i=>i<3?`rank-${i+1}`:'rank-n';
-  const fmtRev=v=>(v/10000).toFixed(1)+'万';
 
   const t=document.getElementById('area-mgr-rank-container');
   if(!list.length){t.innerHTML='<div class="mgmt-empty">暂无符合筛选条件的区经理数据</div>';return;}
@@ -4156,49 +4146,25 @@ function calcRealMetrics(){
   const ds = gfState.dateStart, de = gfState.dateEnd;
   // 只有当没有任何组织维度筛选时，才使用全局每日汇总；否则用门店数据按筛选器聚合
   const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all';
-  let mpDayFiltered = [], mtDayFiltered = [], perfDayFiltered = [], orderDayFiltered = [];
+  let mpDayFiltered = [], mtDayFiltered = [];
   if(ds && de && !hasOrgFilter){
     mpDayFiltered = MP_DAILY.filter(d => d.date >= ds && d.date <= de);
     mtDayFiltered = MT_DAILY.filter(d => d.date >= ds && d.date <= de);
-    perfDayFiltered = PERF_DAILY.filter(d => d.date >= ds && d.date <= de);
-    orderDayFiltered = ORDER_DAILY.filter(d => d.date >= ds && d.date <= de);
   }
 
-  // 小程序 KPI：
-  // - 仅日期筛选（无组织筛选）→ 用全局每日汇总
-  // - 组织筛选（有/无日期）→ 用过滤后的门店数据
-  // - 日期+无匹配数据 → 显示0（而非 fallback 全部门店）
-  let mpOrd, mpAvgCook, mpAvgRate, mpRevTotal;
+  // 小程序 KPI：仅日期筛选用每日汇总，组织筛选用门店数据
+  let mpOrd, mpAvgCook, mpAvgRate;
   if(mpDayFiltered.length > 0){
     mpOrd = mpDayFiltered.reduce((a,d)=>a+(d.orders||0),0);
     const totalOrders = mpOrd;
     mpAvgCook = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0),0)/totalOrders) : 0;
     mpAvgRate = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalOrders) : 0;
-    // 小程序业绩取 perf_daily 的 mp_revenue
-    mpRevTotal = perfDayFiltered.length>0 ? perfDayFiltered.reduce((a,d)=>a+(d.mp_revenue||0),0) : 0;
-    if(!mpRevTotal && perfDayFiltered.length>0){
-      // 无业绩数据时用美团业绩按门店比例估算（比orders*avg*22更可靠）
-      mtRevTotal = perfDayFiltered.reduce((a,d)=>a+(d.mt_revenue||0),0);
-      var _mpStCnt = mpDayFiltered.length>0 ? (mpDayFiltered[mpDayFiltered.length-1].store_count||0) : mp.length;
-      var _mtStCnt = perfDayFiltered.length>0 ? (perfDayFiltered[mpDayFiltered.length-1]||{}).mt_store_count||0 : mt.length;
-      if(mtRevTotal>0 && _mpStCnt>0 && _mtStCnt>0){
-        // 按门店数比例推算
-        mpRevTotal = mtRevTotal * (_mpStCnt / Math.max(_mtStCnt, _mpStCnt)) * 0.75;
-      } else {
-        // 终极兜底：订单量×均出餐×22
-        mpRevTotal = mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0)*22,0);
-      }
-    }
   } else if(ds && de && !hasOrgFilter){
-    // 仅日期筛选无匹配 → 显示0
-    mpOrd = 0; mpAvgCook = 0; mpAvgRate = 0; mpRevTotal = 0;
+    mpOrd = 0; mpAvgCook = 0; mpAvgRate = 0;
   } else {
-    // 无日期筛选 或 有组织筛选 → 用过滤后的门店汇总
     mpOrd = mp.reduce((a,s)=>a+(s.orders||0),0);
     mpAvgCook = mp.length ? (mp.reduce((a,s)=>a+(s.avg||0),0)/mp.length) : 0;
     mpAvgRate = mp.length ? (mp.reduce((a,s)=>a+(s.rate||0),0)/mp.length) : 0;
-    // 业绩从门店数据源取（gen_data已把业绩附加到门店）
-    mpRevTotal = mp.reduce((a,s)=>a+(s.revenue||0),0);
   }
 
   // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
@@ -4218,23 +4184,17 @@ function calcRealMetrics(){
     {label:'出餐达标率', val: mpAvgRate.toFixed(1)+'%', unit:'', sub:'超15min', dir:'', ref:''},
   ];
 
-  // 美团 KPI：仅日期筛选(无组织)用每日汇总，组织筛选用过滤门店汇总
-  let mtRevTotal, mtAvgScore, mtAvgExp, mtOrdCnt;
+  // 美团 KPI：仅日期筛选用每日汇总，组织筛选用过滤门店汇总
+  let mtAvgScore, mtAvgExp;
   if(mtDayFiltered.length > 0){
-    mtRevTotal = perfDayFiltered.length>0 ? perfDayFiltered.reduce((a,d)=>a+(d.mt_revenue||0),0) : 0;
     const totalStores = mtDayFiltered.reduce((a,d)=>a+(d.store_count||0),0);
     mtAvgScore = totalStores>0 ? (mtDayFiltered.reduce((a,d)=>a+(d.store_count||0)*(d.avg_shop_score||0),0)/totalStores) : 0;
     mtAvgExp = totalStores>0 ? (mtDayFiltered.reduce((a,d)=>a+(d.store_count||0)*(d.avg_exp_score||0),0)/totalStores) : 0;
-    mtOrdCnt = orderDayFiltered.length>0 ? orderDayFiltered.reduce((a,d)=>a+(d.orders||0),0) : mt.reduce((a,s)=>a+(s.orders||0),0);
   } else if(ds && de && !hasOrgFilter){
-    // 仅日期筛选无匹配 → 显示0
-    mtRevTotal = 0; mtAvgScore = 0; mtAvgExp = 0; mtOrdCnt = 0;
+    mtAvgScore = 0; mtAvgExp = 0;
   } else {
-    // 无日期筛选 或 有组织筛选 → 用过滤后的门店汇总
-    mtRevTotal = mt.reduce((a,s)=>a+(s.revenue||0),0);
     mtAvgScore = mt.length ? (mt.reduce((a,s)=>a+(s.shop_score||0),0)/mt.length) : 0;
     mtAvgExp = mt.length ? (mt.reduce((a,s)=>a+(s.exp_score||0),0)/mt.length) : 0;
-    mtOrdCnt = mt.reduce((a,s)=>a+(s.orders||0),0);
   }
 
   // 美团门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
@@ -4599,54 +4559,18 @@ function renderDashboardSummary(){
   var GLOBAL_MT_CODES = mtStores > 0 ? mtCodes : {};
   
   if(hasOrgFilter){
-    // ── 组织筛选模式：营收/订单从全期门店聚合取值（STORE_MP/STORE_MT无日期维度）──
+    // ── 组织筛选模式：营收数据已移除，只保留门店计数 ──
     isStoreMode = true;
-    var validMpNames = {}, validMtNames = {};
-    Object.keys(GLOBAL_MP_CODES).forEach(function(code){
-      var o = CODE_TO_ORG[code];
-      if(o) validMpNames[o.name] = 1;
-    });
-    Object.keys(GLOBAL_MT_CODES).forEach(function(code){
-      var o = CODE_TO_ORG[code];
-      if(o) validMtNames[o.name] = 1;
-    });
-    
-    var mp = filterStores(STORE_MP).filter(function(s){ return validMpNames[s.name]; });
-    var mt = filterStores(STORE_MT).filter(function(s){ return validMtNames[s.name]; });
-    
-    mpTakeout = mp.reduce(function(a,s){return a+(s.revenue||0);},0);
-    mtTakeout = mt.reduce(function(a,s){return a+(s.revenue||0);},0);
-    totalTakeout = mpTakeout + mtTakeout;
-    mpTC = mp.reduce(function(a,s){return a+(s.orders||0);},0);
-    mtTC = mt.reduce(function(a,s){return a+(s.orders||0);},0);
-    totalTC = mpTC + mtTC;
-    totalRevenue = 0;
-    totalAllTC = 0;
+    mpTakeout = 0; mtTakeout = 0; totalTakeout = 0;
+    mpTC = 0; mtTC = 0; totalTC = 0;
+    totalRevenue = 0; totalAllTC = 0;
     days = 1; daysLabel = '门店快照';
   } else {
-    // ── 全局模式：营收/订单从每日汇总取值（日期过滤）──
-    var perfFiltered = PERF_DAILY, orderFiltered = ORDER_DAILY;
-    if(ds && de){
-      perfFiltered = PERF_DAILY.filter(function(d){return d.date >= ds && d.date <= de;});
-      orderFiltered = ORDER_DAILY.filter(function(d){return d.date >= ds && d.date <= de;});
-      daysLabel = ds + ' ~ ' + de;
-    }
-    days = perfFiltered.length || 1;
-    
-    for(var i=0;i<perfFiltered.length;i++){
-      var d = perfFiltered[i];
-      totalTakeout += (d.revenue||0);
-      mpTakeout += (d.mp_revenue||0);
-      mtTakeout += (d.mt_revenue||0);
-      totalRevenue += (d.total_revenue||0);
-    }
-    for(var i=0;i<orderFiltered.length;i++){
-      var d = orderFiltered[i];
-      totalTC += (d.orders||0);
-      totalAllTC += (d.total_orders||0);
-      mpTC += (d.mp_orders||0);
-      mtTC += (d.mt_orders||0);
-    }
+    // ── 全局模式：业绩数据已删除，不再展示 ──
+    if(ds && de) daysLabel = ds + ' ~ ' + de;
+    days = 1;
+    totalTakeout = 0; mpTakeout = 0; mtTakeout = 0; totalRevenue = 0;
+    totalTC = 0; mpTC = 0; mtTC = 0; totalAllTC = 0;
   }
   
   // ── 店日均 ──
@@ -4738,39 +4662,21 @@ function renderDashboardSummary(){
     + '</span>'
     + '</div>';
   
-  // ── 卡片布局：3张卡片（店日均合并到业绩/TC内）──
+  // ── 卡片布局：业绩数据已删除，仅展示门店数 ──
   var cards = [
-    {label:'外卖业绩', vals: [
-      {v: fm(totalTakeout), tag: '外卖总', sub: '日均'+storeDailyRev.toLocaleString()+'元', cls: ''},
-      {v: fm(mpTakeout), tag: '自配送', sub: '日均'+mpStoreDailyRev.toLocaleString()+'元', cls: '#4CAF50'},
-      {v: fm(mtTakeout), tag: '美团', sub: '日均'+mtStoreDailyRev.toLocaleString()+'元', cls: '#FFB300'}
-    ]},
-    {label:'外卖TC', vals: [
-      {v: fm(totalTC), tag: '外卖总', sub: '日均'+storeDailyTC+'单', cls: ''},
-      {v: fm(mpTC), tag: '自配送', sub: '日均'+mpStoreDailyTC+'单', cls: '#4CAF50'},
-      {v: fm(mtTC), tag: '美团', sub: '日均'+mtStoreDailyTC+'单', cls: '#FFB300'}
-    ]},
-    {label:'门店数', vals: [
+    {label:'外卖门店', vals: [
       {v: totalStores+'', tag: '外卖总(去重)', sub: (totalGlobalStores>0?'占大盘'+(totalStores/totalGlobalStores*100).toFixed(1)+'%':''), cls: ''},
       {v: mpStores+'', tag: '有自配门店', sub: '(含双平台)', cls: '#4CAF50'},
       {v: mtStores+'', tag: '有美团门店', sub: '(含双平台)', cls: '#FFB300'}
     ]}
   ];
-  
-  var dimMap = ['业绩','TC','门店数'];
   var cardHtml = '';
   for(var ci=0;ci<cards.length;ci++){
     var c = cards[ci];
-    var cardDim = dimMap[ci];
-    var isCardActive = DASH_PIE_DIMENSION === cardDim;
-    cardHtml += '<div class="m-card dash-card" onclick="setPieDimension(\''+cardDim+'\')"'
-      + ' style="cursor:pointer;transition:all 0.15s;'
-      + (isCardActive ? 'border:2px solid #639922;background:#f9fbf6;box-shadow:0 1px 6px rgba(99,153,34,0.12);' : 'border:2px solid transparent;')
-      + '"'
-      + ' title="点击切换饼图为'+cardDim+'维度">'
+    cardHtml += '<div class="m-card dash-card" style="border:2px solid #639922;background:#f9fbf6;box-shadow:0 1px 6px rgba(99,153,34,0.12);">'
       + '<div class="m-label">'+c.label
       + '<span style="font-size:9px;color:var(--text-muted);font-weight:400"> ('+days+'天)</span>'
-      + (isCardActive ? '<span style="font-size:9px;color:#639922;margin-left:4px">▼</span>' : '')
+      + '<span style="font-size:9px;color:#639922;margin-left:4px">▼</span>'
       + '</div>';
     cardHtml += '<div style="display:flex;gap:8px;margin-top:6px">';
     for(var vi=0;vi<c.vals.length;vi++){
@@ -4787,7 +4693,7 @@ function renderDashboardSummary(){
   // ── 布局：卡片在上 → 下方左饼图（两列）右详情 ──
   document.getElementById('summary-days').innerHTML = titleBar;
   document.getElementById('summary-grid').innerHTML = 
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px">' + cardHtml + '</div>'
+    '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 12px">' + cardHtml + '</div>'
     + '<div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:start">'
     + pieRowHtml
     + (activeData ? renderActiveDetail(activeData, active, days, DASH_PIE_DIMENSION) : '')
@@ -5424,8 +5330,6 @@ function applyRealData(jsonData){
   FULL_PERIOD_ORDERS = (jsonData.mp_summary_full && jsonData.mp_summary_full.total_orders) || 0;
   MP_DAILY = jsonData.mp_daily || [];
   MT_DAILY = jsonData.mt_daily || [];
-  PERF_DAILY = jsonData.perf_daily || [];
-  ORDER_DAILY = jsonData.order_daily || [];
   STORE_DAILY = jsonData.store_daily || {};
   REAL_ALERTS = jsonData.alerts || [];
   MP_HOURLY_BY_STORE = jsonData.mp_hourly_by_store || {};
@@ -5435,7 +5339,7 @@ function applyRealData(jsonData){
       MP_HOURLY[name] = jsonData.mp_hourly_by_store[name];
     });
   }
-  console.log(`[看板] 每日数据: MP ${MP_DAILY.length}天, MT ${MT_DAILY.length}天, 业绩 ${PERF_DAILY.length}天, 订单 ${ORDER_DAILY.length}天, 预警 ${REAL_ALERTS.length}条`);
+  console.log(`[看板] 每日数据: MP ${MP_DAILY.length}天, MT ${MT_DAILY.length}天, 预警 ${REAL_ALERTS.length}条`);
 
   console.log(`[看板] 真实数据加载成功：美团${STORE_MT.length}家 / 小程序${STORE_MP.length}家`);
 }

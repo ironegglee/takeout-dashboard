@@ -189,9 +189,18 @@ for _, r in mt.iterrows():
 
 print(f'美团指标表自带架构: {len(mt_arch)} 门店编码')
 
-# 取最新日期门店
-mt_latest = mt[mt['日期'] == latest].copy()
-print(f'最新日期美团门店数: {len(mt_latest)}')
+# 取近7天门店（避免仅最新单日遗漏当天未开平台的门店）
+mt['日期_dt_only'] = pd.to_datetime(mt['日期_str_raw'], format='%Y-%m-%d')
+mt_max_date = mt['日期_dt_only'].max()
+mt_recent = mt[mt['日期_dt_only'] >= mt_max_date - pd.Timedelta(days=6)].copy()
+# 去重：同一门店取最新日期的数据
+mt_latest_idx = mt_recent.groupby('门店编码')['日期_dt_only'].idxmax()
+# 兼容门店编码为空的回退
+mt_latest_fallback = mt_recent[mt_recent['门店编码'].isna() | (mt_recent['门店编码'].astype(str).str.strip() == '')]
+mt_latest = mt_recent.loc[mt_latest_idx.dropna()]
+if len(mt_latest_fallback) > 0:
+    mt_latest = pd.concat([mt_latest, mt_latest_fallback]).drop_duplicates(subset=['美团门店ID'], keep='last')
+print(f'近7日美团门店数(去重后): {len(mt_latest)}')
 
 # 构建门店明细（仅取"得分"列）
 mt_stores = []
@@ -261,14 +270,16 @@ mt_stores = [s for s in mt_stores if s.get('name') and s.get('brand') and s['bra
 print(f'美团门店匹配: {len(mt_stores)}/{len(mt_latest)}, 未匹配: {mt_unmatched}')
 
 # ═══════════════════════════════════════════
-# 3. 小程序配送数据 (NEW文件「小程序配送数据源」)
+# 3. 小程序配送数据 (OLD+NEW「小程序配送数据源」内存合并)
 # ═══════════════════════════════════════════
 print('\n=== 3. 小程序配送数据 ===')
-df2 = pd.read_excel(NEW_PATH, sheet_name='小程序配送数据源')
+mp_old = pd.read_excel(OLD_PATH, sheet_name='小程序配送数据源')
+mp_new = pd.read_excel(NEW_PATH, sheet_name='小程序配送数据源')
+df2 = pd.concat([mp_old, mp_new], ignore_index=True).drop_duplicates().reset_index(drop=True)
 df2['日期_dt'] = pd.to_datetime(df2['pt(day)'].astype(str), format='%Y%m%d', errors='coerce')
 max_date = df2['日期_dt'].max()
 df2_7d = df2[df2['日期_dt'] >= max_date - pd.Timedelta(days=6)].copy()
-print(f'小程序总订单: {len(df2)} 行, 7日: {len(df2_7d)} 行')
+print(f'小程序总订单: {len(df2)} 行 (OLD+NEW), 7日: {len(df2_7d)} 行, 日期: {df2["日期_dt"].min().date()} ~ {df2["日期_dt"].max().date()}')
 
 def parse_min(v):
     try: return float(v)
@@ -543,7 +554,8 @@ for r in mt_daily:
     r['store_count'] = int(r['store_count'])
 print(f'mt_daily: {len(mt_daily)} 天')
 
-perf_daily_list = []; order_daily_list = []; full_date_range = ''
+# 业绩数据已由用户主动删除，不再生成
+full_date_range = ''
 
 # 日期范围
 mp_date_range = ''
@@ -606,8 +618,6 @@ output = clean_nan({
     'mp_date_range': mp_date_range,
     'mp_daily': mp_daily,
     'mt_daily': mt_daily,
-    'perf_daily': perf_daily_list,
-    'order_daily': order_daily_list,
     'store_daily': store_daily,
     'dashboard_summary': {},
     'mp_hourly_cook': mp_hourly_cook,
@@ -621,6 +631,8 @@ output = clean_nan({
     },
     'mp_summary_full': {
         'total_orders': int(len(df2)),
+        'total_stores': df2['门店代码'].nunique(),
+        'date_range': f'{df2["日期_dt"].min().date()} ~ {df2["日期_dt"].max().date()}',
     },
     'mt_stores': mt_stores,
     'mp_stores': mp_stores,
