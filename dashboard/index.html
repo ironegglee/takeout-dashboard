@@ -1378,6 +1378,9 @@ let rankSortDir = 'desc';    // 预警门店排序方向
 let benchSortKey = 'score';  // 标杆门店排序列（独立于预警门店）
 let benchSortDir = 'desc';   // 标杆门店排序方向（独立于预警门店）
 
+/* 全局 HTML 转义 */
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 /* 下钻抽屉排序状态 */
 const DRILL_SORT={
   market:{key:'avg',dir:'asc'},
@@ -1667,7 +1670,6 @@ function buildReportHTML(){
     marketGroups[mkt][rm][am].push(ms);
   });
 
-  var esc = function(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
   var now = new Date();
   var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
   var filterLabel = getFilterLabel();
@@ -2500,7 +2502,6 @@ function openAlertDetail(alert){
   var label = typeLabelMap[alert.type] || '预警';
   var color = typeColorMap[alert.type] || '#666';
   var icon = typeIconMap[alert.type] || '⚠';
-  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   
   var overlay = document.createElement('div');
   overlay.className = 'store-detail-overlay';
@@ -2833,9 +2834,6 @@ function openRegionDrillDown(region, colorClass){
   for(var i=0;i<regionAlerts.length;i++){
     if(regionAlerts[i].type==="cook") mpCount++; else mtCount++;
   }
-  
-  // Helper for escaping
-  function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   
   // Close existing drawer
   var existing = document.querySelector(".drill-drawer-overlay");
