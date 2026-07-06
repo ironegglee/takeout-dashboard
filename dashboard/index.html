@@ -775,8 +775,12 @@
       <option value="周薇">周薇</option>
     </select>
     <span class="gf-label" style="margin-left:6px">区经理</span>
-    <select class="gf-select" id="gf-area-mgr" onchange="onFilterChange()">
+    <select class="gf-select" id="gf-area-mgr" onchange="onAreaMgrChange()">
       <option value="all">全部区经理</option>
+    </select>
+    <span class="gf-label" style="margin-left:6px">大店长</span>
+    <select class="gf-select" id="gf-leader" onchange="onFilterChange()">
+      <option value="all">全部大店长</option>
     </select>
   </div>
 
@@ -1365,7 +1369,7 @@ const DATA = {
    筛选 & 渲染逻辑
 ================================================================ */
 let charts={};
-const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',city:'all',storeSearch:''};
+const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',leader:'all',city:'all',storeSearch:''};
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
 const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
 let rankSortKey = 'score';   // 预警门店排序列: score(综合), avg(出餐均值), shop_score(店铺分), exp_score(体验分)
@@ -1595,6 +1599,7 @@ function getFilterLabel(){
   }
   if(gfState.regionMgr !== 'all') parts.push(gfState.regionMgr);
   if(gfState.areaMgr !== 'all') parts.push(gfState.areaMgr);
+  if(gfState.leader !== 'all') parts.push(gfState.leader);
   if(gfState.city !== 'all') parts.push(gfState.city);
   var ds = document.getElementById('gf-date-start');
   var de = document.getElementById('gf-date-end');
@@ -1877,14 +1882,30 @@ updateClock();setInterval(updateClock,1000);
 
 function onRegionMgrChange(){
   const r=document.getElementById('gf-region-mgr').value;
-  gfState.regionMgr=r; gfState.areaMgr='all';
+  gfState.regionMgr=r; gfState.areaMgr='all'; gfState.leader='all';
   const s=document.getElementById('gf-area-mgr');
+  const l=document.getElementById('gf-leader');
   if(r==='all'){
     s.innerHTML='<option value="all">全部区经理</option>';
     [...new Set([...STORE_MP,...STORE_MT].map(x=>x.area_mgr))].forEach(a=>{s.innerHTML+=`<option value="${a}">${a}</option>`});
   }else{
-    const l=REGION_MGR_MAP[r]||[];
-    s.innerHTML='<option value="all">全部区经理</option>'+l.map(a=>`<option value="${a}">${a}</option>`).join('');
+    const list=REGION_MGR_MAP[r]||[];
+    s.innerHTML='<option value="all">全部区经理</option>'+list.map(a=>`<option value="${a}">${a}</option>`).join('');
+  }
+  l.innerHTML='<option value="all">全部大店长</option>';
+  onFilterChange();
+}
+
+function onAreaMgrChange(){
+  const a=document.getElementById('gf-area-mgr').value;
+  gfState.areaMgr=a; gfState.leader='all';
+  const l=document.getElementById('gf-leader');
+  if(a==='all'){
+    l.innerHTML='<option value="all">全部大店长</option>';
+    [...new Set([...STORE_MP,...STORE_MT].map(x=>x.leader).filter(Boolean))].forEach(ld=>{l.innerHTML+=`<option value="${ld}">${ld}</option>`});
+  }else{
+    const leaders=[...new Set([...STORE_MP,...STORE_MT].filter(s=>s.area_mgr===a).map(s=>s.leader).filter(Boolean))];
+    l.innerHTML='<option value="all">全部大店长</option>'+leaders.map(ld=>`<option value="${ld}">${ld}</option>`).join('');
   }
   onFilterChange();
 }
@@ -1974,6 +1995,7 @@ function onFilterChange(){
   gfState.marketBrand=document.getElementById('gf-market-brand').value;
   gfState.regionMgr=document.getElementById('gf-region-mgr').value;
   gfState.areaMgr=document.getElementById('gf-area-mgr').value;
+  gfState.leader=document.getElementById('gf-leader').value;
   gfState.city=document.getElementById('gf-city').value;
   gfState.storeSearch=document.getElementById('gf-store-search').value.trim();
   DASH_ACTIVE_MARKET = '大盘';
@@ -1994,6 +2016,7 @@ function renderFilterReminder(){
   }
   if(gfState.regionMgr !== 'all') items.push({label: gfState.regionMgr, field: 'regionMgr'});
   if(gfState.areaMgr !== 'all') items.push({label: gfState.areaMgr, field: 'areaMgr'});
+  if(gfState.leader !== 'all') items.push({label: gfState.leader, field: 'leader'});
   if(gfState.city !== 'all') items.push({label: gfState.city, field: 'city'});
   if(gfState.storeSearch) items.push({label: '🔍 ' + gfState.storeSearch, field: 'storeSearch'});
   if(items.length === 0){
@@ -2117,6 +2140,7 @@ function renderSummaryTags(){
   }
   if(gfState.regionMgr!=='all')t.push({label:gfState.regionMgr,field:'regionMgr'});
   if(gfState.areaMgr!=='all')t.push({label:gfState.areaMgr,field:'areaMgr'});
+  if(gfState.leader!=='all')t.push({label:gfState.leader,field:'leader'});
   if(gfState.city!=='all')t.push({label:gfState.city,field:'city'});
   if(gfState.storeSearch)t.push({label:'🔍 '+gfState.storeSearch,field:'storeSearch'});
   document.getElementById('gf-summary-tags').innerHTML=t.map(x=>`<span class="gf-tag">${x.label}<span class="gf-tag-remove" onclick="clearFilter('${x.field}')">×</span></span>`).join('');
@@ -2126,7 +2150,8 @@ function clearFilter(f){
   if(f==='date'){document.getElementById('gf-date-start').value='';document.getElementById('gf-date-end').value='';gfState.dateStart='';gfState.dateEnd='';updateDateQuickBtns();}
   else if(f==='marketBrand'){document.getElementById('gf-market-brand').value='all';gfState.marketBrand='all';rebuildCitySelect();}
   else if(f==='regionMgr'){document.getElementById('gf-region-mgr').value='all';gfState.regionMgr='all';onRegionMgrChange();return;}
-  else if(f==='areaMgr'){document.getElementById('gf-area-mgr').value='all';gfState.areaMgr='all';}
+  else if(f==='areaMgr'){document.getElementById('gf-area-mgr').value='all';gfState.areaMgr='all';onAreaMgrChange();return;}
+  else if(f==='leader'){document.getElementById('gf-leader').value='all';gfState.leader='all';}
   else if(f==='city'){document.getElementById('gf-city').value='all';gfState.city='all';}
   else if(f==='storeSearch'){clearStoreSearch();return;}
   renderSummaryTags();render();
@@ -2140,6 +2165,7 @@ function filterStores(arr){return arr.filter(s=>{
   }
   if(gfState.regionMgr!=='all'&&s.region_mgr!==gfState.regionMgr)return false;
   if(gfState.areaMgr!=='all'&&s.area_mgr!==gfState.areaMgr)return false;
+  if(gfState.leader!=='all'&&s.leader!==gfState.leader)return false;
   if(gfState.city!=='all'&&s.city!==gfState.city)return false;
   if(gfState.storeSearch){
     const q=gfState.storeSearch.toLowerCase();
@@ -2373,6 +2399,7 @@ function applyOrgFilter(alerts){
   }
   if(gfState.regionMgr !== 'all') filtered = filtered.filter(a => a.region_mgr === gfState.regionMgr);
   if(gfState.areaMgr !== 'all') filtered = filtered.filter(a => a.area_mgr === gfState.areaMgr);
+  if(gfState.leader !== 'all') filtered = filtered.filter(a => a.leader === gfState.leader);
   if(gfState.city !== 'all') filtered = filtered.filter(a => a.city === gfState.city);
   if(gfState.storeSearch){
     const q = gfState.storeSearch.toLowerCase();
@@ -4157,7 +4184,7 @@ function calcRealMetrics(){
   const ds = gfState.dateStart, de = gfState.dateEnd;
   // 只有当没有任何组织维度筛选时，才使用全局每日汇总；否则用门店数据按筛选器聚合
   const hasStoreSearch = gfState.storeSearch && gfState.storeSearch.trim();
-  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all' || hasStoreSearch;
+  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.leader !== 'all' || gfState.city !== 'all' || hasStoreSearch;
   let mpDayFiltered = [], mtDayFiltered = [];
   if(ds && de && !hasOrgFilter){
     mpDayFiltered = MP_DAILY.filter(d => d.date >= ds && d.date <= de);
@@ -5209,7 +5236,7 @@ function updateInfoBar(){
   // 根据日期筛选计算实时小程序汇总（仅无组织筛选时用全局每日数据）
   const ds = gfState.dateStart, de = gfState.dateEnd;
   const hasStoreSearch = gfState.storeSearch && gfState.storeSearch.trim();
-  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.city !== 'all' || hasStoreSearch;
+  const hasOrgFilter = gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all' || gfState.leader !== 'all' || gfState.city !== 'all' || hasStoreSearch;
   let mpFiltered = (ds && de && !hasOrgFilter) ? MP_DAILY.filter(d => d.date >= ds && d.date <= de) : [];
   if(mpFiltered.length > 0){
     const orders = mpFiltered.reduce((a,d)=>a+(d.orders||0),0);
@@ -5390,6 +5417,9 @@ function applyRealData(jsonData){
     const as=document.getElementById('gf-area-mgr');
     const allAm=[...new Set([...STORE_MP,...STORE_MT].map(s=>s.area_mgr).filter(Boolean))];
     as.innerHTML='<option value="all">全部区经理</option>'+allAm.map(a=>`<option value="${a}">${a}</option>`).join('');
+    const ls=document.getElementById('gf-leader');
+    const allLeaders=[...new Set([...STORE_MP,...STORE_MT].map(s=>s.leader).filter(Boolean))].sort();
+    ls.innerHTML='<option value="all">全部大店长</option>'+allLeaders.map(l=>`<option value="${l}">${l}</option>`).join('');
     rebuildMarketBrandSelect();
     rebuildCitySelect();
     renderSummaryTags();
@@ -5443,6 +5473,9 @@ function exportAlertsCSV(){
   if(gfState.areaMgr !== 'all'){
     alerts = alerts.filter(function(a){ return a.area_mgr === gfState.areaMgr; });
   }
+  if(gfState.leader !== 'all'){
+    alerts = alerts.filter(function(a){ return a.leader === gfState.leader; });
+  }
   if(gfState.city !== 'all'){
     alerts = alerts.filter(function(a){ return a.city === gfState.city; });
   }
@@ -5470,7 +5503,7 @@ function exportAlertsCSV(){
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   var ds = gfState.dateStart || '', de = gfState.dateEnd || '';
-  var scope = (gfState.marketBrand!=='all'||gfState.regionMgr!=='all'||gfState.areaMgr!=='all')
+  var scope = (gfState.marketBrand!=='all'||gfState.regionMgr!=='all'||gfState.areaMgr!=='all'||gfState.leader!=='all')
     ? '筛选' : '全局';
   a.href = url;
   a.download = '预警门店_' + scope + '_' + (ds||'all') + '_' + (de||'all') + '.csv';
