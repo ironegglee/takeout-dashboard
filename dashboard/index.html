@@ -1625,12 +1625,8 @@ function buildReportHTML(){
   // 收集全部门店（去重合并）
   var allStores = [];
   var seen = {};
-  STORE_MP.forEach(function(s){
-    if(!seen[s.name]){ seen[s.name]=1; allStores.push(s); }
-  });
-  STORE_MT.forEach(function(s){
-    if(!seen[s.name]){ seen[s.name]=1; allStores.push(s); }
-  });
+  STORE_MP.forEach(function(s){ if(!seen[s.name]){ seen[s.name]=1; allStores.push(s); }});
+  STORE_MT.forEach(function(s){ if(!seen[s.name]){ seen[s.name]=1; allStores.push(s); }});
   var filtered = filterStores(allStores);
 
   // 汇总统计
@@ -1653,184 +1649,166 @@ function buildReportHTML(){
       brand:mp?mp.brand:(mt?mt.brand:''),
       region_mgr:mp?mp.region_mgr:(mt?mt.region_mgr:''),
       area_mgr:mp?mp.area_mgr:(mt?mt.area_mgr:''),
-      city:mp?mp.city:(mt?mt.city:'')};
+      leader:mp?mp.leader:(mt?mt.leader:''),
+      city:mp?mp.city:(mt?mt.city:'') };
   }
 
-  // 按 市场→大区→区经理→门店 分组
-  var marketGroups = {};
+  // 按优先级分组问题门店
+  var probByPrio = {P0:[], P1:[], P2:[]};
   filtered.forEach(function(s){
-    var ms = getMergedStore(s.name);
-    var mkt = ms.market;
-    var rm = ms.region_mgr || '未分配';
-    var am = ms.area_mgr || '未分配';
-    if(!marketGroups[mkt]) marketGroups[mkt] = {};
-    if(!marketGroups[mkt][rm]) marketGroups[mkt][rm] = {};
-    if(!marketGroups[mkt][rm][am]) marketGroups[mkt][rm][am] = [];
-    marketGroups[mkt][rm][am].push(ms);
+    var d = diags[s.name];
+    var p = getStorePriority(d);
+    if(p !== 'OK') probByPrio[p].push({store:getMergedStore(s.name), diag:d});
+  });
+  // 每组内按大区→城市排序
+  ['P0','P1','P2'].forEach(function(p){
+    probByPrio[p].sort(function(a,b){
+      var r = (a.store.region_mgr||'').localeCompare(b.store.region_mgr||'');
+      if(r!==0) return r;
+      return (a.store.city||'').localeCompare(b.store.city||'');
+    });
   });
 
   var now = new Date();
   var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
   var filterLabel = getFilterLabel();
-  var reportTitle = '外卖运营日报 - '+dateStr;
+  var reportTitle = '外卖运营诊断报告 - '+dateStr;
 
   var h = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
   h += '<title>'+reportTitle+'</title>';
   h += '<style>*{margin:0;padding:0;box-sizing:border-box}';
-  h += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f5f3ef;color:#333;line-height:1.6}';
-  h += '.report{max-width:1100px;margin:0 auto;padding:20px}';
-  h += '.header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:24px 28px;border-radius:12px 12px 0 0}';
-  h += '.header h1{font-size:22px;font-weight:700}';
-  h += '.header .sub{font-size:12px;opacity:0.8;margin-top:4px}';
-  h += '.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:#fff;border-bottom:1px solid #eee}';
-  h += '.sum-card{text-align:center;padding:16px 8px;border-right:1px solid #f0ede8}';
-  h += '.sum-card:last-child{border-right:none}';
-  h += '.sum-card .val{font-size:26px;font-weight:800}';
-  h += '.sum-card .lbl{font-size:11px;color:#999;margin-top:2px}';
-  h += '.prio-bar{background:#fff;padding:10px 20px;display:flex;gap:16px;align-items:center;font-size:12px;border-bottom:1px solid #eee}';
-  h += '.prio-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}';
-  h += '.market-block{background:#fff;margin-top:16px;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}';
-  h += '.mkt-hdr{padding:14px 20px;font-size:16px;font-weight:700;border-bottom:2px solid #eee;display:flex;align-items:center;gap:8px}';
-  h += '.mkt-hdr .mkt-badge{font-size:11px;padding:2px 8px;border-radius:10px;color:#fff}';
-  h += '.region-block{padding:0 20px}';
-  h += '.region-hdr{padding:12px 0 8px;font-size:14px;font-weight:600;color:#555;border-bottom:1px dashed #eee;margin-bottom:8px}';
-  h += '.area-block{padding:0 0 0 16px;margin-bottom:8px}';
-  h += '.area-hdr{padding:6px 0 4px;font-size:12px;color:#888;display:flex;align-items:center;gap:8px}';
-  h += '.store-card{border:1px solid #eee;border-radius:8px;padding:14px 16px;margin-bottom:8px;background:#fafaf9}';
-  h += '.sc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}';
-  h += '.sc-name{font-weight:700;font-size:14px}';
-  h += '.sc-prio{font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;color:#fff}';
-  h += '.sc-prio.P0{background:#e74c3c}';
-  h += '.sc-prio.P1{background:#f39c12}';
-  h += '.sc-prio.P2{background:#3498db}';
-  h += '.sc-prio.OK{background:#27ae60}';
-  h += '.sc-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:12px}';
-  h += '.sc-metric{padding:3px 10px;border-radius:12px;font-weight:500}';
-  h += '.sc-metric.good{background:#eaf7e6;color:#3B6D11}';
-  h += '.sc-metric.warn{background:#fff8e6;color:#854F0B}';
-  h += '.sc-metric.bad{background:#fff0f0;color:#A32D2D}';
-  h += '.sc-issues{margin-bottom:6px}';
-  h += '.sc-issue{font-size:12px;color:#A32D2D;padding:3px 0;display:flex;align-items:flex-start;gap:4px}';
-  h += '.sc-actions{margin-top:6px;padding-top:6px;border-top:1px dashed #e0dcd4}';
-  h += '.sc-action{font-size:11px;color:#555;padding:2px 0}';
-  h += '.ok-tags{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0}';
-  h += '.ok-tag{font-size:11px;color:#639922;background:#f0f7e6;padding:2px 8px;border-radius:4px}';
-  h += '.footer{text-align:center;padding:30px;color:#999;font-size:11px}';
-  h += '@media print{.report{max-width:100%}.store-card{break-inside:avoid}.market-block{break-inside:avoid}}';
+  h += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f8f6f3;color:#333;line-height:1.5;font-size:13px}';
+  h += '.report{max-width:960px;margin:0 auto;padding:20px}';
+  h += '.header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:24px 28px;border-radius:12px;margin-bottom:16px}';
+  h += '.header h1{font-size:20px;font-weight:700;margin-bottom:4px}';
+  h += '.header .sub{font-size:12px;opacity:0.75}';
+  h += '.stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}';
+  h += '.stat-card{flex:1;min-width:120px;background:#fff;border-radius:10px;padding:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04)}';
+  h += '.stat-card .val{font-size:24px;font-weight:800}';
+  h += '.stat-card .lbl{font-size:11px;color:#999;margin-top:2px}';
+  h += '.prio-row{display:flex;gap:8px;margin-bottom:16px}';
+  h += '.prio-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center;gap:6px}';
+  h += '.prio-chip.P0{background:#e74c3c}';
+  h += '.prio-chip.P1{background:#f39c12}';
+  h += '.prio-chip.P2{background:#3498db}';
+  h += '.prio-chip.OK{background:#27ae60}';
+  h += '.section{background:#fff;border-radius:10px;padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}';
+  h += '.section-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}';
+  h += '.section-title .dot{width:10px;height:10px;border-radius:50%;display:inline-block}';
+  h += '.quick-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}';
+  h += '.quick-table th{padding:8px 6px;text-align:left;font-weight:600;color:#888;border-bottom:1px solid #eee;font-size:11px}';
+  h += '.quick-table td{padding:7px 6px;border-bottom:1px solid #f5f3f0;vertical-align:top}';
+  h += '.quick-table tr:last-child td{border-bottom:none}';
+  h += '.store-name{font-weight:600;font-size:12px}';
+  h += '.store-meta{font-size:11px;color:#999}';
+  h += '.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;color:#fff}';
+  h += '.badge.P0{background:#e74c3c}';
+  h += '.badge.P1{background:#f39c12}';
+  h += '.badge.P2{background:#3498db}';
+  h += '.metric-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;margin-right:4px}';
+  h += '.metric-tag.bad{background:#fff0f0;color:#A32D2D}';
+  h += '.metric-tag.warn{background:#fff8e6;color:#854F0B}';
+  h += '.issue-txt{font-size:12px;color:#A32D2D;margin-top:4px}';
+  h += '.action-txt{font-size:11px;color:#555;margin-top:2px;padding-left:12px;border-left:2px solid #ddd}';
+  h += '.empty-state{text-align:center;padding:20px;color:#999;font-size:12px}';
+  h += '.footer{text-align:center;padding:20px;color:#999;font-size:11px}';
+  h += '@media print{.report{max-width:100%}.section{break-inside:avoid}}';
   h += '</style></head><body><div class="report">';
 
   // Header
-  h += '<div class="header"><h1>📊 '+reportTitle+'</h1><div class="sub">筛选条件：'+esc(filterLabel)+'　|　小程序 '+totalMp+' 家　美团 '+totalMt+' 家　|　生成时间：'+now.toLocaleString('zh-CN')+'</div></div>';
+  h += '<div class="header"><h1>📊 '+reportTitle+'</h1><div class="sub">筛选：'+esc(filterLabel)+'　|　小程序 '+totalMp+' 家　美团 '+totalMt+' 家　|　生成：'+now.toLocaleString('zh-CN')+'</div></div>';
 
-  // Summary cards
+  // Stats row
   var mpFiltered = filterStores(STORE_MP);
   var mtFiltered = filterStores(STORE_MT);
   var mpAvg = mpFiltered.length>0?(mpFiltered.reduce(function(a,s){return a+s.avg;},0)/mpFiltered.length).toFixed(1):'--';
   var mtShop = mtFiltered.length>0?(mtFiltered.reduce(function(a,s){return a+s.shop_score;},0)/mtFiltered.length).toFixed(1):'--';
   var mtExp = mtFiltered.length>0?(mtFiltered.reduce(function(a,s){return a+s.exp_score;},0)/mtFiltered.length).toFixed(2):'--';
-  h += '<div class="summary">';
-  h += '<div class="sum-card"><div class="val" style="color:#333">'+totalMp+'+'+totalMt+'</div><div class="lbl">小程序+美团门店</div></div>';
-  h += '<div class="sum-card"><div class="val" style="color:#E24B4A">'+mpAvg+'</div><div class="lbl">均出餐时长(分)</div></div>';
-  h += '<div class="sum-card"><div class="val" style="color:#EF9F27">'+mtShop+'</div><div class="lbl">美团店铺分均</div></div>';
-  h += '<div class="sum-card"><div class="val" style="color:#E8321A">'+mtExp+'</div><div class="lbl">美团体验分均</div></div>';
+  h += '<div class="stats-row">';
+  h += '<div class="stat-card"><div class="val" style="color:#333">'+totalMp+'+'+totalMt+'</div><div class="lbl">门店总数</div></div>';
+  h += '<div class="stat-card"><div class="val" style="color:#E24B4A">'+mpAvg+'</div><div class="lbl">均出餐(分)</div></div>';
+  h += '<div class="stat-card"><div class="val" style="color:#EF9F27">'+mtShop+'</div><div class="lbl">店铺分均</div></div>';
+  h += '<div class="stat-card"><div class="val" style="color:#E8321A">'+mtExp+'</div><div class="lbl">体验分均</div></div>';
   h += '</div>';
 
-  // Priority bar
-  h += '<div class="prio-bar"><b>诊断汇总：</b>';
-  h += '<span><span class="prio-dot" style="background:#e74c3c"></span>P0 严重 '+p0+'</span>';
-  h += '<span><span class="prio-dot" style="background:#f39c12"></span>P1 关注 '+p1+'</span>';
-  h += '<span><span class="prio-dot" style="background:#3498db"></span>P2 提示 '+p2+'</span>';
-  h += '<span><span class="prio-dot" style="background:#27ae60"></span>正常 '+ok+'</span>';
-  h += '<span style="margin-left:auto;font-size:11px;color:#999">P0=严重超标 P1=需关注 P2=偏弱 OK=达标</span>';
+  // Priority chips
+  var totalProb = p0+p1+p2;
+  h += '<div class="prio-row">';
+  if(p0>0) h += '<div class="prio-chip P0">● P0 严重 '+p0+'</div>';
+  if(p1>0) h += '<div class="prio-chip P1">● P1 关注 '+p1+'</div>';
+  if(p2>0) h += '<div class="prio-chip P2">● P2 提示 '+p2+'</div>';
+  if(totalProb===0) h += '<div class="prio-chip OK">✅ 全部正常 '+ok+'</div>';
   h += '</div>';
 
-  // Market sections
-  var marketNames = Object.keys(marketGroups).sort();
-  marketNames.forEach(function(mkt){
-    var regions = marketGroups[mkt];
-    h += '<div class="market-block">';
-    h += '<div class="mkt-hdr">🏙 <span>'+esc(mkt)+'</span></div>';
-
-    var regionNames = Object.keys(regions).sort();
-    regionNames.forEach(function(rm){
-      var areas = regions[rm];
-      // Count stores and priorities in this region
-      var regionStoreCount=0, regionP0=0, regionP1=0;
-      var areaNames = Object.keys(areas).sort();
-      areaNames.forEach(function(am){areas[am].forEach(function(ms){regionStoreCount++;var p=getStorePriority(diags[ms.name]);if(p==='P0')regionP0++;if(p==='P1')regionP1++;});});
-      var regionBadge = regionP0>0?'<span style="color:#e74c3c;font-size:11px">'+regionP0+'严重</span> ':'';
-      if(regionP1>0) regionBadge += '<span style="color:#f39c12;font-size:11px">'+regionP1+'关注</span>';
-
-      h += '<div class="region-block">';
-      h += '<div class="region-hdr">👤 '+esc(rm)+'（大区）<span style="font-weight:400;font-size:11px;color:#999">'+regionStoreCount+'家</span> '+regionBadge+'</div>';
-
-      areaNames.forEach(function(am){
-        var stores = areas[am];
-        h += '<div class="area-block"><div class="area-hdr">📍 '+esc(am)+'（区经理）<span style="color:#aaa;font-weight:400">'+stores.length+'家</span></div>';
-
-        // Separate problematic from ok stores
-        var probStores = [], okStores = [];
-        stores.forEach(function(ms){
-          var d = diags[ms.name];
-          if(getStorePriority(d)!=='OK') probStores.push(ms); else okStores.push(ms);
-        });
-
-        // Problematic store cards
-        probStores.forEach(function(ms){
-          var d = diags[ms.name];
-          var prio = getStorePriority(d);
-          h += '<div class="store-card">';
-          h += '<div class="sc-top">';
-          h += '<span class="sc-name">'+esc(ms.name)+'<span style="font-weight:400;font-size:11px;color:#999;margin-left:6px">'+esc(ms.city||'')+'</span></span>';
-          h += '<span class="sc-prio '+prio+'">'+prio+'</span>';
-          h += '</div>';
-
-          // Metrics row with color coding
-          h += '<div class="sc-metrics">';
-          var km = d.keyMetrics;
-          if(km.mp_avg != null){
-            var cls = km.mp_avg>12?'bad':(km.mp_avg>10?'warn':'good');
-            h += '<span class="sc-metric '+cls+'">⏱ 出餐'+km.mp_avg.toFixed(1)+'min</span>';
-          }
-          if(km.mt_shop != null){
-            var cls = km.mt_shop<90?'bad':(km.mt_shop<95?'warn':'good');
-            h += '<span class="sc-metric '+cls+'">🏪 店铺分'+km.mt_shop.toFixed(1)+'</span>';
-          }
-          if(km.mt_exp != null){
-            var cls = km.mt_exp<4.2?'bad':(km.mt_exp<4.6?'warn':'good');
-            h += '<span class="sc-metric '+cls+'">⭐ 体验分'+km.mt_exp.toFixed(2)+'</span>';
-          }
-          h += '</div>';
-
-          // Issues
-          if(d.issues.length>0){
-            h += '<div class="sc-issues">';
-            d.issues.forEach(function(iss){h += '<div class="sc-issue"><span>⚠️</span><span>'+esc(iss)+'</span></div>';});
-            h += '</div>';
-          }
-
-          // Actions
-          if(d.actions.length>0){
-            h += '<div class="sc-actions">';
-            h += '<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:2px">🔧 改善方式</div>';
-            d.actions.forEach(function(act){h += '<div class="sc-action">'+esc(act)+'</div>';});
-            h += '</div>';
-          }
-          h += '</div>';
-        });
-
-        // OK stores as compact tags
-        if(okStores.length>0){
-          h += '<div class="ok-tags">✅ ';
-          okStores.forEach(function(ms){h += '<span class="ok-tag">'+esc(ms.name)+'</span>';});
-          h += '</div>';
-        }
-        h += '</div>';
+  // Quick table of all problematic stores
+  if(totalProb > 0){
+    h += '<div class="section">';
+    h += '<div class="section-title"><span class="dot" style="background:#e74c3c"></span>问题门店速览（共 '+totalProb+' 家）</div>';
+    h += '<table class="quick-table">';
+    h += '<thead><tr><th width="30">#</th><th width="140">门店</th><th width="50">城市</th><th width="50">优先级</th><th width="180">问题指标</th><th>问题描述</th></tr></thead><tbody>';
+    var idx = 1;
+    ['P0','P1','P2'].forEach(function(p){
+      probByPrio[p].forEach(function(item){
+        var s = item.store, d = item.diag;
+        var km = d.keyMetrics;
+        var metrics = '';
+        if(km.mp_avg != null) metrics += '<span class="metric-tag '+(km.mp_avg>15?'bad':'warn')+'">出餐'+km.mp_avg.toFixed(1)+'min</span>';
+        if(km.mt_shop != null) metrics += '<span class="metric-tag '+(km.mt_shop<85?'bad':'warn')+'">店铺分'+km.mt_shop.toFixed(1)+'</span>';
+        if(km.mt_exp != null) metrics += '<span class="metric-tag '+(km.mt_exp<4.0?'bad':'warn')+'">体验分'+km.mt_exp.toFixed(2)+'</span>';
+        h += '<tr>';
+        h += '<td>'+(idx++)+'</td>';
+        h += '<td><div class="store-name">'+esc(s.name)+'</div><div class="store-meta">'+esc(s.region_mgr||'')+' · '+esc(s.area_mgr||'')+'</div></td>';
+        h += '<td>'+esc(s.city||'')+'</td>';
+        h += '<td><span class="badge '+p+'">'+p+'</span></td>';
+        h += '<td>'+metrics+'</td>';
+        h += '<td><div class="issue-txt">'+(d.issues[0]||'')+'</div></td>';
+        h += '</tr>';
       });
+    });
+    h += '</tbody></table></div>';
+  }
+
+  // Detail sections by priority
+  ['P0','P1','P2'].forEach(function(p){
+    var list = probByPrio[p];
+    if(list.length === 0) return;
+    var color = p==='P0'?'#e74c3c':(p==='P1'?'#f39c12':'#3498db');
+    h += '<div class="section">';
+    h += '<div class="section-title"><span class="dot" style="background:'+color+'"></span>'+p+' 问题门店（'+list.length+' 家）</div>';
+    list.forEach(function(item){
+      var s = item.store, d = item.diag;
+      var km = d.keyMetrics;
+      h += '<div style="border:1px solid #f0ece8;border-radius:8px;padding:12px 14px;margin-bottom:8px;background:#fafaf9">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+      h += '<span style="font-weight:700;font-size:13px">'+esc(s.name)+'<span style="font-weight:400;font-size:11px;color:#999;margin-left:6px">'+esc(s.city||'')+' · '+esc(s.region_mgr||'')+'</span></span>';
+      h += '<span class="badge '+p+'">'+p+'</span>';
+      h += '</div>';
+      // Metrics
+      h += '<div style="margin-bottom:6px">';
+      if(km.mp_avg != null) h += '<span class="metric-tag '+(km.mp_avg>15?'bad':'warn')+'">⏱ 出餐 '+km.mp_avg.toFixed(1)+'min</span>';
+      if(km.mt_shop != null) h += '<span class="metric-tag '+(km.mt_shop<85?'bad':'warn')+'">🏪 店铺分 '+km.mt_shop.toFixed(1)+'</span>';
+      if(km.mt_exp != null) h += '<span class="metric-tag '+(km.mt_exp<4.0?'bad':'warn')+'">⭐ 体验分 '+km.mt_exp.toFixed(2)+'</span>';
+      h += '</div>';
+      // Issues
+      d.issues.forEach(function(iss){
+        h += '<div class="issue-txt">⚠️ '+esc(iss)+'</div>';
+      });
+      // Top 2 actions only
+      if(d.actions.length > 0){
+        h += '<div style="margin-top:6px">';
+        d.actions.slice(0,2).forEach(function(act){
+          h += '<div class="action-txt">'+esc(act)+'</div>';
+        });
+        h += '</div>';
+      }
       h += '</div>';
     });
     h += '</div>';
   });
+
+  if(totalProb === 0){
+    h += '<div class="section"><div class="empty-state">✅ 当前筛选条件下所有门店均正常</div></div>';
+  }
 
   h += '<div class="footer">此报告由外卖业务运营看板自动生成 · '+dateStr+' · 数据范围：'+esc(filterLabel)+'</div>';
   h += '</div></body></html>';
