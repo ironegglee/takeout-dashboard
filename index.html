@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-06T14:50:16+08:00">
+<meta name="build-time" content="2026-07-06T15:24:21+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -845,7 +845,7 @@
         <div class="section-label">出餐耗时分布（今日各时段，分钟）</div>
         <div class="heat-row" id="mp-heat"></div>
         <div id="mp-bd-note" style="display:none;font-size:10px;color:#854F0B;margin:2px 0 6px 0;text-align:center">⚠ 出餐耗时分布 / 分段占比为全周期统计数据，不受日期筛选影响</div>
-        <div class="section-label">近7日平均出餐时间趋势</div>
+        <div class="section-label">平均出餐时间趋势</div>
         <div class="legend-row">
           <span><span class="leg-dot" style="background:#C8873A"></span>平均出餐(分钟)</span>
           <span><span class="leg-dot" style="background:#B4B2A9"></span>SLA目标</span>
@@ -870,7 +870,7 @@
       </div>
       <div class="channel-body">
         <div class="score-tree" id="mt-score-tree"></div>
-        <div class="section-label" style="margin-top:14px">近7日评分趋势</div>
+        <div class="section-label" style="margin-top:14px">评分趋势</div>
         <div class="legend-row">
           <span><span class="leg-dot" style="background:#667eea"></span>店铺分</span>
           <span><span class="leg-dot" style="background:#f093fb"></span>综合体验分</span>
@@ -5206,14 +5206,16 @@ function render(){
     mpBdNote.style.display = (ds2 && de2 && (ds2 !== EMBEDDED_DATE_START || de2 !== EMBEDDED_DATE_END)) ? 'block' : 'none';
   }
 
-  // ── 趋势图：始终显示以截止日期为终点的近7日趋势 ──
-  // 即使选择单日，也展示该日往前6天的趋势（共7天）
+  // ── 趋势图：根据用户选择的日期范围显示数据 ──
+  // 当用户选择了日期范围，显示该范围内的全部数据；
+  // 当未选择日期范围（默认全部），显示以截止日期为终点的近7日趋势
   var trendEnd = de2;
+  var trendStart = ds2;
   if(!trendEnd && MP_DAILY.length > 0){
     trendEnd = MP_DAILY[MP_DAILY.length-1].date;
   }
-  var trendStart = '';
-  if(trendEnd){
+  // 未选择开始日期时，默认取近7天
+  if(!trendStart && trendEnd){
     var tEndD = new Date(trendEnd+'T00:00:00');
     var tStartD = new Date(tEndD); tStartD.setDate(tStartD.getDate()-6);
     var p2=function(t){return String(t).padStart(2,'0');};
@@ -5221,7 +5223,6 @@ function render(){
   }
   let trend_mp = MP_DAILY.filter(function(d){ return !!d.date && (!trendStart || d.date >= trendStart) && (!trendEnd || d.date <= trendEnd); });
   trend_mp.sort(function(a,b){ return a.date.localeCompare(b.date); });
-  trend_mp = trend_mp.slice(-7);
   if(trend_mp.length > 0){
     renderMpTrendChart({
       days: trend_mp.map(function(d){ return d.date.slice(5); }),
@@ -5234,7 +5235,6 @@ function render(){
 
   let trend_mt = MT_DAILY.filter(function(d){ return !!d.date && (!trendStart || d.date >= trendStart) && (!trendEnd || d.date <= trendEnd); });
   trend_mt.sort(function(a,b){ return a.date.localeCompare(b.date); });
-  trend_mt = trend_mt.slice(-7);
   if(trend_mt.length > 0){
     renderMtScoreChart({
       days: trend_mt.map(function(d){ return d.date.slice(5); }),
