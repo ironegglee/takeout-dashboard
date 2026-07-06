@@ -2,11 +2,17 @@
 从两个分月数据源按Sheet名读取并内存合并，生成看板JSON。
 v3变更：改为双文件直接读取(避免merge_data.py合并大文件慢/易损坏)，按Sheet名称索引。
 """
-import pandas as pd, sys, json, re, math
+import pandas as pd, sys, json, re, math, traceback
 sys.stdout.reconfigure(encoding='utf-8')
 
-OLD_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源5.31-6.2.xlsx'
-NEW_PATH = 'D:/工作/workbuddy/外卖业务运营看板数据源6.3-7.1.xlsx'
+def _handle_exception(exc_type, exc_value, exc_traceback):
+    with open('C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/_gen_exception.txt', 'w', encoding='utf-8') as f:
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=f)
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
+sys.excepthook = _handle_exception
+
+OLD_PATH = 'data_sources/OLD.xlsx'
+NEW_PATH = 'data_sources/NEW.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
 BRAND_MAP = {
@@ -370,10 +376,8 @@ print('\n=== 7. 预警中心 ===')
 
 alerts = []
 
-# ① 当前北京时间（今天）近7天连续2天出餐时间超过15分钟
-from datetime import datetime as dt_mod
-today = dt_mod.now()
-ref_date = pd.Timestamp(today.strftime('%Y-%m-%d'))
+# ① 用数据最新日作为参考日期（而非当前北京时间，避免数据未更新时窗口错位）
+ref_date = df2['日期_dt'].max()
 cutoff = ref_date - pd.Timedelta(days=7)
 
 print(f'  检测: 出餐超时预警（参考日期={ref_date.date()}，窗口={cutoff.date()}~{ref_date.date()}）...')
