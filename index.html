@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-06T14:21:39+08:00">
+<meta name="build-time" content="2026-07-06T14:50:16+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -754,7 +754,7 @@
       <option value="all">全部市场/品牌</option>
     </select>
     <span class="gf-label" style="margin-left:6px">城市</span>
-    <select class="gf-select" id="gf-city" onchange="onFilterChange()">
+    <select class="gf-select" id="gf-city" onchange="onCityChange()">
       <option value="all">全部城市</option>
     </select>
   </div>
@@ -1179,7 +1179,7 @@ const REGION_MGR_MAP = {
   '瞿兆邦':['周燕辉','曾思','黄兴龙'],
   '张钰':['刘弯弯','刘箭云','林聪','许浩强'],
   '邱汉信':['刘灿','张连化','王毅'],
-  '袁聪':['周斌','李欢','胡乐清','邹伟明'],
+  '袁聪':['周斌','李欢','胡乐清','邹伟明','曹海龙','王婵'],
   '肖湘':['侯望清','王俊','石泽钦'],
   '王婵':['曹海龙','王婵'],
   '周丹':['李曦','林阳阳','张良东','徐乾'],
@@ -1189,7 +1189,7 @@ const REGION_MGR_MAP = {
 const CITY_MARKET_MAP = {
   '长沙':'湖南','株洲':'湖南','湘潭':'湖南','常德':'湖南','衡阳':'湖南','岳阳':'湖南','郴州':'湖南','张家界':'湖南',
   '武汉':'湖北','宜昌':'湖北','襄阳':'湖北','荆州':'湖北','黄石':'湖北',
-  '南京':'江苏','无锡':'江苏','苏州':'江苏','常州':'江苏','南通':'江苏','徐州':'江苏',
+  '南京':'江苏','无锡':'江苏','苏州':'江苏','常州':'江苏','南通':'江苏','徐州':'江苏','淮安':'江苏','扬州':'江苏','泰州':'江苏','镇江':'江苏','宜兴':'江苏','盐城':'江苏','常熟':'江苏',
   '重庆':'重庆',
 };
 
@@ -1861,37 +1861,47 @@ updateClock();setInterval(updateClock,1000);
 function onRegionMgrChange(){
   const r=document.getElementById('gf-region-mgr').value;
   gfState.regionMgr=r; gfState.areaMgr='all'; gfState.leader='all';
-  const s=document.getElementById('gf-area-mgr');
-  const l=document.getElementById('gf-leader');
-  if(r==='all'){
-    s.innerHTML='<option value="all">全部区经理</option>';
-    [...new Set([...STORE_MP,...STORE_MT].map(x=>x.area_mgr))].forEach(a=>{s.innerHTML+=`<option value="${a}">${a}</option>`});
-  }else{
-    const list=REGION_MGR_MAP[r]||[];
-    s.innerHTML='<option value="all">全部区经理</option>'+list.map(a=>`<option value="${a}">${a}</option>`).join('');
-  }
-  l.innerHTML='<option value="all">全部大店长</option>';
+  rebuildAreaMgrSelect();
+  rebuildLeaderSelect();
+  document.getElementById('gf-area-mgr').value='all';
+  document.getElementById('gf-leader').value='all';
   onFilterChange();
 }
 
 function onAreaMgrChange(){
   const a=document.getElementById('gf-area-mgr').value;
   gfState.areaMgr=a; gfState.leader='all';
-  const l=document.getElementById('gf-leader');
-  if(a==='all'){
-    l.innerHTML='<option value="all">全部大店长</option>';
-    [...new Set([...STORE_MP,...STORE_MT].map(x=>x.leader).filter(Boolean))].forEach(ld=>{l.innerHTML+=`<option value="${ld}">${ld}</option>`});
-  }else{
-    const leaders=[...new Set([...STORE_MP,...STORE_MT].filter(s=>s.area_mgr===a).map(s=>s.leader).filter(Boolean))];
-    l.innerHTML='<option value="all">全部大店长</option>'+leaders.map(ld=>`<option value="${ld}">${ld}</option>`).join('');
-  }
+  rebuildLeaderSelect();
+  document.getElementById('gf-leader').value='all';
   onFilterChange();
 }
 
 function onMarketBrandChange(){
   const v=document.getElementById('gf-market-brand').value;
-  gfState.marketBrand=v; gfState.city='all';
-  rebuildCitySelect(); onFilterChange();
+  gfState.marketBrand=v;
+  gfState.city='all'; gfState.regionMgr='all'; gfState.areaMgr='all'; gfState.leader='all';
+  rebuildCitySelect();
+  rebuildRegionMgrSelect();
+  rebuildAreaMgrSelect();
+  rebuildLeaderSelect();
+  document.getElementById('gf-city').value='all';
+  document.getElementById('gf-region-mgr').value='all';
+  document.getElementById('gf-area-mgr').value='all';
+  document.getElementById('gf-leader').value='all';
+  onFilterChange();
+}
+
+function onCityChange(){
+  const v=document.getElementById('gf-city').value;
+  gfState.city=v;
+  gfState.regionMgr='all'; gfState.areaMgr='all'; gfState.leader='all';
+  rebuildRegionMgrSelect();
+  rebuildAreaMgrSelect();
+  rebuildLeaderSelect();
+  document.getElementById('gf-region-mgr').value='all';
+  document.getElementById('gf-area-mgr').value='all';
+  document.getElementById('gf-leader').value='all';
+  onFilterChange();
 }
 
 function rebuildMarketBrandSelect(){
@@ -1919,6 +1929,66 @@ function rebuildCitySelect(){
   }
   const s=document.getElementById('gf-city');
   s.innerHTML='<option value="all">全部城市</option>'+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function rebuildRegionMgrSelect(){
+  const all=[...STORE_MP,...STORE_MT];
+  const mb=gfState.marketBrand;
+  const city=gfState.city;
+  const regions=[...new Set(all.filter(s=>{
+    if(mb!=='all'){
+      if(mb.startsWith('mkt:')&&s.market!==mb.slice(4))return false;
+      if(mb.startsWith('brd:')&&s.brand!==mb.slice(4))return false;
+    }
+    if(city!=='all'&&s.city!==city)return false;
+    return true;
+  }).map(s=>s.region_mgr).filter(Boolean))].sort();
+  const sel=document.getElementById('gf-region-mgr');
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">全部大区</option>'+regions.map(r=>`<option value="${r}">${r}</option>`).join('');
+  if(regions.includes(cur))sel.value=cur;else sel.value='all';
+}
+
+function rebuildAreaMgrSelect(){
+  const all=[...STORE_MP,...STORE_MT];
+  const mb=gfState.marketBrand;
+  const city=gfState.city;
+  const region=gfState.regionMgr;
+  const areas=[...new Set(all.filter(s=>{
+    if(mb!=='all'){
+      if(mb.startsWith('mkt:')&&s.market!==mb.slice(4))return false;
+      if(mb.startsWith('brd:')&&s.brand!==mb.slice(4))return false;
+    }
+    if(city!=='all'&&s.city!==city)return false;
+    if(region!=='all'&&s.region_mgr!==region)return false;
+    return true;
+  }).map(s=>s.area_mgr).filter(Boolean))].sort();
+  const sel=document.getElementById('gf-area-mgr');
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">全部区经理</option>'+areas.map(a=>`<option value="${a}">${a}</option>`).join('');
+  if(areas.includes(cur))sel.value=cur;else sel.value='all';
+}
+
+function rebuildLeaderSelect(){
+  const all=[...STORE_MP,...STORE_MT];
+  const mb=gfState.marketBrand;
+  const city=gfState.city;
+  const region=gfState.regionMgr;
+  const area=gfState.areaMgr;
+  const leaders=[...new Set(all.filter(s=>{
+    if(mb!=='all'){
+      if(mb.startsWith('mkt:')&&s.market!==mb.slice(4))return false;
+      if(mb.startsWith('brd:')&&s.brand!==mb.slice(4))return false;
+    }
+    if(city!=='all'&&s.city!==city)return false;
+    if(region!=='all'&&s.region_mgr!==region)return false;
+    if(area!=='all'&&s.area_mgr!==area)return false;
+    return true;
+  }).map(s=>s.leader).filter(Boolean))].sort();
+  const sel=document.getElementById('gf-leader');
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">全部大店长</option>'+leaders.map(l=>`<option value="${l}">${l}</option>`).join('');
+  if(leaders.includes(cur))sel.value=cur;else sel.value='all';
 }
 
 // ── 快捷日期选择 ──
@@ -2126,11 +2196,11 @@ function renderSummaryTags(){
 
 function clearFilter(f){
   if(f==='date'){document.getElementById('gf-date-start').value='';document.getElementById('gf-date-end').value='';gfState.dateStart='';gfState.dateEnd='';updateDateQuickBtns();}
-  else if(f==='marketBrand'){document.getElementById('gf-market-brand').value='all';gfState.marketBrand='all';rebuildCitySelect();}
-  else if(f==='regionMgr'){document.getElementById('gf-region-mgr').value='all';gfState.regionMgr='all';onRegionMgrChange();return;}
-  else if(f==='areaMgr'){document.getElementById('gf-area-mgr').value='all';gfState.areaMgr='all';onAreaMgrChange();return;}
+  else if(f==='marketBrand'){document.getElementById('gf-market-brand').value='all';gfState.marketBrand='all';gfState.city='all';gfState.regionMgr='all';gfState.areaMgr='all';gfState.leader='all';rebuildCitySelect();rebuildRegionMgrSelect();rebuildAreaMgrSelect();rebuildLeaderSelect();document.getElementById('gf-city').value='all';document.getElementById('gf-region-mgr').value='all';document.getElementById('gf-area-mgr').value='all';document.getElementById('gf-leader').value='all';}
+  else if(f==='regionMgr'){document.getElementById('gf-region-mgr').value='all';gfState.regionMgr='all';gfState.areaMgr='all';gfState.leader='all';onRegionMgrChange();return;}
+  else if(f==='areaMgr'){document.getElementById('gf-area-mgr').value='all';gfState.areaMgr='all';gfState.leader='all';onAreaMgrChange();return;}
   else if(f==='leader'){document.getElementById('gf-leader').value='all';gfState.leader='all';}
-  else if(f==='city'){document.getElementById('gf-city').value='all';gfState.city='all';}
+  else if(f==='city'){document.getElementById('gf-city').value='all';gfState.city='all';gfState.regionMgr='all';gfState.areaMgr='all';gfState.leader='all';rebuildRegionMgrSelect();rebuildAreaMgrSelect();rebuildLeaderSelect();document.getElementById('gf-region-mgr').value='all';document.getElementById('gf-area-mgr').value='all';document.getElementById('gf-leader').value='all';}
   else if(f==='storeSearch'){clearStoreSearch();return;}
   renderSummaryTags();render();
 }
@@ -5392,14 +5462,11 @@ function applyRealData(jsonData){
   updateDateQuickBtns();
 
   function doRender(){
-    const as=document.getElementById('gf-area-mgr');
-    const allAm=[...new Set([...STORE_MP,...STORE_MT].map(s=>s.area_mgr).filter(Boolean))];
-    as.innerHTML='<option value="all">全部区经理</option>'+allAm.map(a=>`<option value="${a}">${a}</option>`).join('');
-    const ls=document.getElementById('gf-leader');
-    const allLeaders=[...new Set([...STORE_MP,...STORE_MT].map(s=>s.leader).filter(Boolean))].sort();
-    ls.innerHTML='<option value="all">全部大店长</option>'+allLeaders.map(l=>`<option value="${l}">${l}</option>`).join('');
     rebuildMarketBrandSelect();
     rebuildCitySelect();
+    rebuildRegionMgrSelect();
+    rebuildAreaMgrSelect();
+    rebuildLeaderSelect();
     renderSummaryTags();
     render('today');
   }
