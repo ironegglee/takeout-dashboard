@@ -11,8 +11,9 @@ def _handle_exception(exc_type, exc_value, exc_traceback):
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
 sys.excepthook = _handle_exception
 
-OLD_PATH = 'data_sources/OLD.xlsx'
-NEW_PATH = 'data_sources/NEW.xlsx'
+OLD_PATH = 'data_sources/5月.xlsx'
+MID_PATH = 'data_sources/6月.xlsx'
+NEW_PATH = 'data_sources/7月.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
 BRAND_MAP = {
@@ -107,7 +108,7 @@ print('=== 流式 gen_data.py v4 ===')
 print('\n=== 1. 读取架构 ===')
 
 def read_arch_openpyxl(filepath):
-    """用 openpyxl 读取架构数据"""
+    """用 openpyxl 读取架构数据（统一9列：美团ID,门店编码,门店名称,市场,品牌,城市,大区,区域,大店）"""
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
     ws = wb['美团架构数据源']
     rows = list(ws.iter_rows(min_row=1, values_only=True))
@@ -116,22 +117,11 @@ def read_arch_openpyxl(filepath):
     if not rows:
         return {}, {}, {}
     
-    header = rows[0]
-    ncols = len(header)
-    
-    # 判断列结构
-    if ncols >= 11:
-        # 11列版本：美团ID_raw,美团账号,美团密码,门店编码,门店名称,市场,品牌,城市,大区,区域,大店
-        idx_map = {
-            '美团ID': 0, '门店编码': 3, '门店名称': 4, '市场': 5, '品牌': 6,
-            '城市': 7, '大区': 8, '区域': 9, '大店': 10
-        }
-    else:
-        # 6列版本：美团ID,门店编码,门店名称,市场,品牌,城市（无大区/区域/大店）
-        idx_map = {
-            '美团ID': 0, '门店编码': 1, '门店名称': 2, '市场': 3, '品牌': 4,
-            '城市': 5, '大区': None, '区域': None, '大店': None
-        }
+    # 9列统一格式
+    idx_map = {
+        '美团ID': 0, '门店编码': 1, '门店名称': 2, '市场': 3, '品牌': 4,
+        '城市': 5, '大区': 6, '区域': 7, '大店': 8
+    }
     
     by_mtid, by_name, by_code = {}, {}, {}
     for row in rows[1:]:
@@ -145,9 +135,9 @@ def read_arch_openpyxl(filepath):
         mtid = str(int(mtid_val)) if mtid_val is not None and str(mtid_val).replace('.','').isdigit() else ''
         
         city = str(row[idx_map['城市']]).strip() if row[idx_map['城市']] is not None else ''
-        region = str(row[idx_map['大区']]).strip() if idx_map['大区'] is not None and row[idx_map['大区']] is not None else ''
-        area = str(row[idx_map['区域']]).strip() if idx_map['区域'] is not None and row[idx_map['区域']] is not None else ''
-        leader = str(row[idx_map['大店']]).strip() if idx_map['大店'] is not None and row[idx_map['大店']] is not None else ''
+        region = str(row[idx_map['大区']]).strip() if row[idx_map['大区']] is not None else ''
+        area = str(row[idx_map['区域']]).strip() if row[idx_map['区域']] is not None else ''
+        leader = str(row[idx_map['大店']]).strip() if row[idx_map['大店']] is not None else ''
         
         brand_raw = row[idx_map['品牌']]
         brand = normalize_brand(brand_raw)
@@ -172,21 +162,35 @@ def read_arch_openpyxl(filepath):
     
     return by_mtid, by_name, by_code
 
-arch_by_mtid, arch_by_name, arch_by_code = read_arch_openpyxl(NEW_PATH)
-print(f'NEW架构: {len(arch_by_mtid)} 门店(有美团ID)')
+# 按优先级读取架构：7月 > 6月 > 5月（后加载的覆盖前面的）
+arch_by_mtid, arch_by_name, arch_by_code = {}, {}, {}
 
-old_mtid, old_name, old_code = read_arch_openpyxl(OLD_PATH)
-added = 0
-for mtid, info in old_mtid.items():
-    if mtid not in arch_by_mtid:
-        arch_by_mtid[mtid] = info; added += 1
-for name, info in old_name.items():
-    if name not in arch_by_name:
-        arch_by_name[name] = info
-for code, info in old_code.items():
-    if code not in arch_by_code:
-        arch_by_code[code] = info
-print(f'OLD补充: +{added} 门店, 合并后: {len(arch_by_mtid)} 门店(有美团ID)')
+# 5月（优先级最低，最后合并）
+m5_mtid, m5_name, m5_code = read_arch_openpyxl(OLD_PATH)
+print(f'5月架构: {len(m5_mtid)} 门店(有美团ID)')
+
+# 6月（覆盖5月）
+m6_mtid, m6_name, m6_code = read_arch_openpyxl(MID_PATH)
+print(f'6月架构: {len(m6_mtid)} 门店(有美团ID)')
+
+# 7月（最高优先级）
+m7_mtid, m7_name, m7_code = read_arch_openpyxl(NEW_PATH)
+print(f'7月架构: {len(m7_mtid)} 门店(有美团ID)')
+
+# 按优先级合并：5月 → 6月覆盖 → 7月覆盖
+for mtid, info in m5_mtid.items(): arch_by_mtid[mtid] = info
+for name, info in m5_name.items(): arch_by_name[name] = info
+for code, info in m5_code.items(): arch_by_code[code] = info
+
+for mtid, info in m6_mtid.items(): arch_by_mtid[mtid] = info
+for name, info in m6_name.items(): arch_by_name[name] = info
+for code, info in m6_code.items(): arch_by_code[code] = info
+
+for mtid, info in m7_mtid.items(): arch_by_mtid[mtid] = info
+for name, info in m7_name.items(): arch_by_name[name] = info
+for code, info in m7_code.items(): arch_by_code[code] = info
+
+print(f'合并后: {len(arch_by_mtid)} 门店(有美团ID)')
 
 brand_counts = {}
 for info in arch_by_mtid.values():
@@ -217,16 +221,17 @@ def row_to_dict(row, header_idx):
     """将一行转为 {列名: 值} 字典（用于MP部分，MP表头无重复列名）"""
     return {k: (row[v] if v < len(row) else None) for k, v in header_idx.items()}
 
-# 读取两个文件
-old_header, old_mt_rows = read_mt_sheet(OLD_PATH)
-new_header, new_mt_rows = read_mt_sheet(NEW_PATH)
+# 读取三个文件
+m5_header, m5_mt_rows = read_mt_sheet(OLD_PATH)
+m6_header, m6_mt_rows = read_mt_sheet(MID_PATH)
+m7_header, m7_mt_rows = read_mt_sheet(NEW_PATH)
 
-print(f'OLD美团指标: {len(old_mt_rows)} 行, NEW: {len(new_mt_rows)} 行')
-print(f'NEW表头列数: {len(new_header)}, OLD表头列数: {len(old_header)}')
+print(f'5月美团指标: {len(m5_mt_rows)} 行, 6月: {len(m6_mt_rows)} 行, 7月: {len(m7_mt_rows)} 行')
+print(f'7月表头列数: {len(m7_header)}, 6月: {len(m6_header)}, 5月: {len(m5_header)}')
 
-# mt_header_idx: {列名: 索引}，基于NEW文件的表头
-# 注意：重复列名只保留最后一次出现的索引（与pandas行为一致）
-mt_header_idx = make_header_index(new_header)
+# mt_header_idx: {列名: 索引}，基于最新文件（7月）的表头
+# 三个文件表头结构一致，用7月的即可
+mt_header_idx = make_header_index(m7_header)
 
 # 为了方便从行元组读值，提供一个安全访问函数
 def col_val(row, header_idx, col_name, default=None):
@@ -236,37 +241,31 @@ def col_val(row, header_idx, col_name, default=None):
         return default
     return row[idx]
 
-# 合并去重：用 (日期, 门店id) 作为唯一键，NEW 覆盖 OLD
+# 合并去重：用 (日期, 门店id) 作为唯一键，7月 > 6月 > 5月
 # 存储为 { (date_str, mtid): row_tuple }，不转为 dict，避免重复列名问题
 mt_data = {}
-MIN_MT_COLS = max(len(new_header), len(old_header))  # 行元组最少要有这么多列
+MIN_MT_COLS = max(len(m7_header), len(m6_header), len(m5_header))
 
-# 处理 OLD 文件
-od_cnt = 0
-for row in old_mt_rows:
-    # 补齐行长度（有些行可能列数不够）
-    if len(row) < MIN_MT_COLS:
-        row = row + (None,) * (MIN_MT_COLS - len(row))
-    date_str = parse_date_str(col_val(row, mt_header_idx, '日期'))
-    mtid_raw = col_val(row, mt_header_idx, '门店id')
-    mtid = str(int(mtid_raw)) if mtid_raw is not None and str(mtid_raw).replace('.','').isdigit() else ''
-    if date_str and mtid:
-        mt_data[(date_str, mtid)] = row
-        od_cnt += 1
+def process_mt_rows(rows, label):
+    """处理一批MT行，写入 mt_data"""
+    cnt = 0
+    for row in rows:
+        if len(row) < MIN_MT_COLS:
+            row = row + (None,) * (MIN_MT_COLS - len(row))
+        date_str = parse_date_str(col_val(row, mt_header_idx, '日期'))
+        mtid_raw = col_val(row, mt_header_idx, '门店id')
+        mtid = str(int(mtid_raw)) if mtid_raw is not None and str(mtid_raw).replace('.','').isdigit() else ''
+        if date_str and mtid:
+            mt_data[(date_str, mtid)] = row
+            cnt += 1
+    return cnt
 
-# 处理 NEW 文件（覆盖 OLD）
-nw_cnt = 0
-for row in new_mt_rows:
-    if len(row) < MIN_MT_COLS:
-        row = row + (None,) * (MIN_MT_COLS - len(row))
-    date_str = parse_date_str(col_val(row, mt_header_idx, '日期'))
-    mtid_raw = col_val(row, mt_header_idx, '门店id')
-    mtid = str(int(mtid_raw)) if mtid_raw is not None and str(mtid_raw).replace('.','').isdigit() else ''
-    if date_str and mtid:
-        mt_data[(date_str, mtid)] = row  # NEW 覆盖 OLD
-        nw_cnt += 1
+# 5月 → 6月覆盖 → 7月覆盖
+n5 = process_mt_rows(m5_mt_rows, '5月')
+n6 = process_mt_rows(m6_mt_rows, '6月')
+n7 = process_mt_rows(m7_mt_rows, '7月')
 
-print(f'OLD写入: {od_cnt}, NEW写入: {nw_cnt}, 合并后: {len(mt_data)} 条')
+print(f'5月写入: {n5}, 6月写入: {n6}, 7月写入: {n7}, 合并后: {len(mt_data)} 条')
 
 # 提取所有日期
 all_mt_dates = sorted(set(k[0] for k in mt_data.keys()))
@@ -418,25 +417,32 @@ def read_mp_sheet(filepath):
         return [], []
     return rows[0], rows[1:]
 
-old_mp_header, old_mp_rows = read_mp_sheet(OLD_PATH)
-new_mp_header, new_mp_rows = read_mp_sheet(NEW_PATH)
+m5_mp_header, m5_mp_rows = read_mp_sheet(OLD_PATH)
+m6_mp_header, m6_mp_rows = read_mp_sheet(MID_PATH)
+m7_mp_header, m7_mp_rows = read_mp_sheet(NEW_PATH)
 
-mp_header_idx = make_header_index(new_mp_header)
-print(f'OLD小程序配送: {len(old_mp_rows)} 行, NEW: {len(new_mp_rows)} 行')
+mp_header_idx = make_header_index(m7_mp_header)
+print(f'5月小程序配送: {len(m5_mp_rows)} 行, 6月: {len(m6_mp_rows)} 行, 7月: {len(m7_mp_rows)} 行')
 
-# 合并去重：用 (订单编码) 作为唯一键
+# 合并去重：用 (订单编码) 作为唯一键，7月 > 6月 > 5月
 mp_data = {}  # {order_code: row_dict}
-for row in old_mp_rows:
+for row in m5_mp_rows:
     d = row_to_dict(row, mp_header_idx)
     order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
     if order_code:
         mp_data[order_code] = d
 
-for row in new_mp_rows:
+for row in m6_mp_rows:
     d = row_to_dict(row, mp_header_idx)
     order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
     if order_code:
-        mp_data[order_code] = d  # NEW 覆盖 OLD
+        mp_data[order_code] = d
+
+for row in m7_mp_rows:
+    d = row_to_dict(row, mp_header_idx)
+    order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
+    if order_code:
+        mp_data[order_code] = d
 
 print(f'合并去重后: {len(mp_data)} 条订单')
 
@@ -539,7 +545,7 @@ print(f'近7天小程序门店数: {len(mp_store_7d)}')
 # 出餐耗时时段分布（需要小时列）
 # 先找到小时列索引
 hour_col = None
-for i, h in enumerate(new_mp_header):
+for i, h in enumerate(m7_mp_header):
     if h and '小时' in str(h):
         hour_col = i
         break
