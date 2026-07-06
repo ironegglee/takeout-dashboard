@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-06T15:24:21+08:00">
+<meta name="build-time" content="2026-07-06T16:31:24+08:00">
 <meta name="version" content="v2.10">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -5207,14 +5207,22 @@ function render(){
   }
 
   // ── 趋势图：根据用户选择的日期范围显示数据 ──
-  // 当用户选择了日期范围，显示该范围内的全部数据；
+  // 当用户选择单日（start===end），显示该日往前7天的趋势
+  // 当用户选择日期范围（start≠end），显示该范围内的全部数据
   // 当未选择日期范围（默认全部），显示以截止日期为终点的近7日趋势
   var trendEnd = de2;
   var trendStart = ds2;
   if(!trendEnd && MP_DAILY.length > 0){
     trendEnd = MP_DAILY[MP_DAILY.length-1].date;
   }
-  // 未选择开始日期时，默认取近7天
+  // 单日选择：显示该日往前7天
+  if(trendStart && trendEnd && trendStart === trendEnd){
+    var tEndD = new Date(trendEnd+'T00:00:00');
+    var tStartD = new Date(tEndD); tStartD.setDate(tStartD.getDate()-6);
+    var p2=function(t){return String(t).padStart(2,'0');};
+    trendStart = tStartD.getFullYear()+'-'+p2(tStartD.getMonth()+1)+'-'+p2(tStartD.getDate());
+  }
+  // 未选择日期时，默认取近7天
   if(!trendStart && trendEnd){
     var tEndD = new Date(trendEnd+'T00:00:00');
     var tStartD = new Date(tEndD); tStartD.setDate(tStartD.getDate()-6);
