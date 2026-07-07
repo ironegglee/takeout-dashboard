@@ -1,4 +1,4 @@
-import openpyxl, json, sys
+import openpyxl, json, sys, gc
 from datetime import datetime, timedelta
 import math
 import traceback
@@ -11,9 +11,12 @@ def _handle_exception(exc_type, exc_value, exc_traceback):
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
 sys.excepthook = _handle_exception
 
-OLD_PATH = 'data_sources/5月.xlsx'
-MID_PATH = 'data_sources/6月.xlsx'
-NEW_PATH = 'data_sources/7月.xlsx'
+# 数据源统一从 D:\工作\workbuddy\ 读取 —— 这是唯一权威数据源目录
+# 不要使用 data_sources/ 或其他副本
+SRC_DIR = 'D:/工作/workbuddy'
+OLD_PATH = f'{SRC_DIR}/外卖业务运营看板数据源5月.xlsx'
+MID_PATH = f'{SRC_DIR}/外卖业务运营看板数据源6月.xlsx'
+NEW_PATH = f'{SRC_DIR}/外卖业务运营看板数据源7月.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
 BRAND_MAP = {
@@ -407,42 +410,49 @@ print(f'美团门店匹配: {len(mt_stores)}/{len(recent_mt)}, 未匹配: {mt_un
 # ═══════════════════════════════════════════
 print('\n=== 3. 读取小程序配送数据 ===')
 
-def read_mp_sheet(filepath):
-    """逐行读取小程序配送数据源"""
+def read_mp_header(filepath):
+    """读取小程序配送数据源的表头"""
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
     ws = wb['小程序配送数据源']
-    rows = list(ws.iter_rows(min_row=1, values_only=True))
+    header = None
+    for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
+        header = row
+        break
     wb.close()
-    if not rows:
-        return [], []
-    return rows[0], rows[1:]
+    return header
 
-m5_mp_header, m5_mp_rows = read_mp_sheet(OLD_PATH)
-m6_mp_header, m6_mp_rows = read_mp_sheet(MID_PATH)
-m7_mp_header, m7_mp_rows = read_mp_sheet(NEW_PATH)
+def process_mp_file(filepath, mp_data, mp_header_idx):
+    """流式处理小程序配送数据文件，逐个读取行，不保留整个列表"""
+    wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+    ws = wb['小程序配送数据源']
+    count = 0
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        d = row_to_dict(row, mp_header_idx)
+        order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
+        if order_code:
+            mp_data[order_code] = d
+            count += 1
+    wb.close()
+    return count
 
+# 读取表头（以7月为准）
+m7_mp_header = read_mp_header(NEW_PATH)
 mp_header_idx = make_header_index(m7_mp_header)
-print(f'5月小程序配送: {len(m5_mp_rows)} 行, 6月: {len(m6_mp_rows)} 行, 7月: {len(m7_mp_rows)} 行')
 
 # 合并去重：用 (订单编码) 作为唯一键，7月 > 6月 > 5月
 mp_data = {}  # {order_code: row_dict}
-for row in m5_mp_rows:
-    d = row_to_dict(row, mp_header_idx)
-    order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
-    if order_code:
-        mp_data[order_code] = d
 
-for row in m6_mp_rows:
-    d = row_to_dict(row, mp_header_idx)
-    order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
-    if order_code:
-        mp_data[order_code] = d
+m5_count = process_mp_file(OLD_PATH, mp_data, mp_header_idx)
+print(f'5月小程序配送处理: {m5_count} 条')
+gc.collect()
 
-for row in m7_mp_rows:
-    d = row_to_dict(row, mp_header_idx)
-    order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
-    if order_code:
-        mp_data[order_code] = d
+m6_count = process_mp_file(MID_PATH, mp_data, mp_header_idx)
+print(f'6月小程序配送处理: {m6_count} 条')
+gc.collect()
+
+m7_count = process_mp_file(NEW_PATH, mp_data, mp_header_idx)
+print(f'7月小程序配送处理: {m7_count} 条')
+gc.collect()
 
 print(f'合并去重后: {len(mp_data)} 条订单')
 
@@ -740,7 +750,7 @@ for mp_name, cook_info in over15_stores.items():
             'area_mgr': info['area_mgr'],
             'leader': info['leader'],
             'msg': f'连续2天出餐超15分钟（{bad_dates[0]}~{bad_dates[-1]}），峰值 {cook_info["max"]} 分钟',
-            'detail': f'峰值出餐 {cook_info["max"]} 分钟 | 日均 {cook_info["avg"]} 分钟 | 超时日期: {",".join(bad_dates)}',
+            'detail': f'日均出餐 {cook_info["avg"]} 分钟 | 峰值 {cook_info["max"]} 分钟 | 超时日期: {",".join(bad_dates)}',
             'max_cook': cook_info['max'],
             'avg_cook': cook_info['avg'],
             'alert_dates': bad_dates,
@@ -785,9 +795,9 @@ for s in mt_stores:
         
         if low_exp_dims:
             problem_str = '; '.join([f"{d['name']}{d['val']}分" for d in low_exp_dims])
-            detail = f'综合体验分 {exp_score:.2f} 分 | 问题维度: {problem_str}'
+            detail = f'综合体验分{exp_score:.2f}分; {problem_str}'
         else:
-            detail = f'综合体验分 {exp_score:.2f} 分'
+            detail = f'综合体验分{exp_score:.2f}分'
         
         alerts.append({
             'type': 'rating',
