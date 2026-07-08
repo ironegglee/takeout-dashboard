@@ -2617,18 +2617,13 @@ function openAlertDetail(alert){
   if(alert.type==='cook'){
     // 直接使用 avg_cook 字段（平均值）
     var avgCook = alert.avg_cook;
-    var maxCook = alert.max_cook;
     if(!avgCook){
       var am = (alert.detail||'').match(/日均出餐\s*([\d.]+)\s*分/);
       avgCook = am ? am[1] : null;
     }
-    if(!maxCook){
-      var mm = (alert.detail||'').match(/峰值\s*([\d.]+)\s*分/);
-      maxCook = mm ? mm[1] : null;
-    }
     mainVal = avgCook || '--';
     mainLabel = '平均出餐时长（分钟）';
-    mainSub = maxCook ? '峰值 '+maxCook+' 分钟' : '';
+    mainSub = '';
   } else if(alert.type==='shop'){
     mainVal = alert.shop_score ? alert.shop_score+' 分' : '--';
     mainLabel = '店铺分总分';
@@ -2887,8 +2882,6 @@ function openRegionDrillDown(region, colorClass){
       if(a.avg_cook!=null) return a.avg_cook+" 分钟";
       var m = (a.detail||"").match(/日均出餐\s*([\d.]+)\s*分/);
       if(m) return m[1]+" 分钟";
-      var m2 = (a.detail||"").match(/峰值\s*([\d.]+)\s*分/);
-      if(m2) return m2[1]+" 分钟";
       return (a.msg||"");
     }
     if(a.type==="shop"){
