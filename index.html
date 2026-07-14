@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-14T11:04:41+08:00">
+<meta name="build-time" content="2026-07-14T18:42:46+08:00">
 <meta name="version" content="v2.10.1">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -3951,9 +3951,9 @@ function renderMarketBrandRank(){
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="mk-name"><span class="mk-dot" style="background:${dotColor}"></span>${r.name}</span></td>
           <td class="col-type">${typeTag}</td>
-          <td class="dim">${r.avgCook}分</td>
-          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.name}','${r.type}')">${r.avgScore.toFixed(1)}</td>
-          <td class="num">${r.avgRating.toFixed(2)}</td>
+          <td class="dim"${r.avgCook>15?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${r.avgCook}分</td>
+          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.name}','${r.type}')"${r.avgScore<95?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${r.avgScore.toFixed(1)}</td>
+          <td class="num"${r.avgRating<4.6?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${r.avgRating.toFixed(2)}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -4021,9 +4021,9 @@ function renderRegionMgrRank(){
         <tr class="clickable" onclick="drillRegionMgr('${r.regionMgr}')" title="点击查看${r.regionMgr}大区详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="num">${r.regionMgr}</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px">${r.market}</span></td>
-          <td class="dim">${r.avgCook}分</td>
-          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.regionMgr}','region')">${r.avgScore.toFixed(1)}</td>
-          <td class="num">${r.avgRating.toFixed(2)}</td>
+          <td class="dim"${r.avgCook>15?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${r.avgCook}分</td>
+          <td class="num clickable" onclick="event.stopPropagation();drillScore('${r.regionMgr}','region')"${r.avgScore<95?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${r.avgScore.toFixed(1)}</td>
+          <td class="num"${r.avgRating<4.6?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${r.avgRating.toFixed(2)}</td>
         </tr>`).join('')}</tbody>
     </table>`;
   updateMgmtSortArrows('region');
@@ -4090,9 +4090,9 @@ function renderAreaMgrRank(){
         <tr class="clickable" onclick="drillAreaMgr('${m.areaMgr}','${m.market}')" title="点击查看${m.areaMgr}区经理详情">
           <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
           <td><span class="num">${m.areaMgr}</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px">${m.market}·${m.regionMgr}</span></td>
-          <td class="dim">${m.avgCook||'-'}${m.avgCook?'分':''}</td>
-          <td class="num clickable" onclick="event.stopPropagation();drillScore('${m.areaMgr}','area')">${m.avgScore.toFixed(1)}</td>
-          <td class="num">${m.avgRating.toFixed(2)}</td>
+          <td class="dim"${m.avgCook>15?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${m.avgCook||'-'}${m.avgCook?'分':''}</td>
+          <td class="num clickable" onclick="event.stopPropagation();drillScore('${m.areaMgr}','area')"${m.avgScore<95?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${m.avgScore.toFixed(1)}</td>
+          <td class="num"${m.avgRating<4.6?' style="color:#d32f2f !important;font-weight:600 !important;"':''}>${m.avgRating.toFixed(2)}</td>
         </tr>`).join('')}</tbody>
     </table>`;
   updateMgmtSortArrows('area');
@@ -4178,9 +4178,9 @@ function renderSingleStore(){
           '</td>'+
           '<td style="font-size:11px;'+red+'">'+s.market+'</td>'+
           '<td style="font-size:11px;'+red+'">'+s.city+'</td>'+
-          '<td class="dim"'+redTd(anyWarn)+'>'+(s.avg||'-')+(s.avg?'分':'')+'</td>'+
-          '<td class="num"'+redTd(anyWarn)+'>'+(s.shop_score?s.shop_score.toFixed(1):'-')+'</td>'+
-          '<td class="num"'+redTd(anyWarn)+'>'+(s.exp_score?s.exp_score.toFixed(2):'-')+'</td>'+
+          '<td class="dim"'+redTd(cookWarn)+'>'+(s.avg||'-')+(s.avg?'分':'')+'</td>'+
+          '<td class="num"'+redTd(shopWarn)+'>'+(s.shop_score?s.shop_score.toFixed(1):'-')+'</td>'+
+          '<td class="num"'+redTd(expWarn)+'>'+(s.exp_score?s.exp_score.toFixed(2):'-')+'</td>'+
         '</tr>';
       }).join('')}</tbody>
     </table>`;
