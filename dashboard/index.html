@@ -2660,8 +2660,13 @@ function openAlertDetail(alert){
     mainLabel = '平均出餐时长（分钟）';
     mainSub = '';
   } else if(alert.type==='shop'){
-    mainVal = alert.shop_score ? alert.shop_score+' 分' : '--';
+    mainVal = alert.shop_score != null ? alert.shop_score+' 分' : '--';
     mainLabel = '店铺分总分';
+    if(alert.is_zero_score){
+      mainSub = '⚠ 数据异常：总分为0，请核实数据源';
+    } else if(alert.shop_score < 95){
+      mainSub = '低于95分预警线';
+    }
   } else if(alert.type==='rating'){
     var m = (alert.msg||'').match(/([\d.]+)\s*分/);
     mainVal = m ? m[1]+' 分' : '--';
@@ -2754,6 +2759,13 @@ function openAlertDetail(alert){
     cardHtml += '</div>';
   }
   
+  // 数据日期（店铺分预警：显示数据对应日期，区分当日/周期）
+  if(alert.type === 'shop' && alert.data_date){
+    var dp2 = alert.data_date.split('-');
+    var dl2 = (dp2.length===3) ? parseInt(dp2[1])+'月'+parseInt(dp2[2])+'日' : alert.data_date;
+    cardHtml += '<div style="margin:0 24px 12px;padding:6px 10px;border-radius:6px;background:#f5f5f5;font-size:11px;color:var(--text-muted);text-align:center">📅 数据日期：'+dl2+'</div>';
+  }
+
   // Footer
   cardHtml += '<div style="padding:12px 24px;border-top:1px solid var(--border);text-align:right">';
   cardHtml += '<button onclick="var m=this.closest(\'.store-detail-overlay\');if(m){m.parentNode.removeChild(m);alertDetailModal=null;}" style="padding:6px 20px;border-radius:6px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;color:var(--text-secondary)" onmouseover="this.style.background=\'#f5f4f1\'" onmouseout="this.style.background=\'var(--card)\'">关闭详情</button>';
@@ -2793,7 +2805,16 @@ function renderAlerts(){
         }
         return false;
       }
-      // shop/rating alerts have no daily dimension, keep all (org filter already applied)
+      if(a.type === 'shop'){
+        // 店铺分预警：按 data_date 过滤
+        // - 当日(ds===de)：仅显示 data_date 匹配当日的预警
+        // - 周期(ds!==de)：显示 data_date 在周期内的预警（取周期内最后一天的总分）
+        var dd = a.data_date || '';
+        if(dd) return dd >= ds && dd <= de;
+        // 无 data_date 的旧数据保留（兼容）
+        return true;
+      }
+      // rating alerts have no daily dimension, keep all (org filter already applied)
       return true;
     });
   }

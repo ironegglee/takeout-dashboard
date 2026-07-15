@@ -369,6 +369,7 @@ for code, info in recent_mt.items():
     shop_score = safe_float(col_val(row, mt_header_idx, '店铺分'))
     exp_score = safe_float(col_val(row, mt_header_idx, '综合体验分'))
     
+    data_date = info['date']  # 该条数据的日期
     mt_stores.append({
         'code': code,
         'name': arch_info['arch_name'],
@@ -377,6 +378,7 @@ for code, info in recent_mt.items():
         'region_mgr': arch_info['region_mgr'], 'area_mgr': arch_info['area_mgr'],
         'leader': arch_info['leader'], 'channel': 'mt',
         'shop_score': shop_score, 'exp_score': exp_score,
+        'data_date': data_date,
         'shop_dims': {
             'peak_hours': safe_float(col_val(row, mt_header_idx, '高峰营业时长得分')),
             'quality_rate': safe_float(col_val(row, mt_header_idx, '优质商品率得分')),
@@ -758,28 +760,46 @@ for mp_name, cook_info in over15_stores.items():
 
 print(f'  出餐超时预警: {len(alerts)} 条')
 
-# ② 店铺分预警
+# ② 店铺分预警 —— 方案A：按总分判定，阈值 < 95
+# - 总分 < 95 即触发，不再检查子维度
+# - 总分 = 0：若门店存在于数据源，视为真实偏差，正常触发（标记 is_zero_score=true）
+# - 区分：数据源中不存在的门店已被 mt_stores 过滤，不会进入此处
 for s in mt_stores:
-    low_dims = []
-    for dim_name in ['peak_hours','quality_rate','reject_rate','reply_rate','merchant_rating',
-                      'menu_rich','decor_rich','service_rich','cook_report','base_hours']:
-        dim_val = s.get('shop_dims', {}).get(dim_name, 0)
-        if dim_val < 80:
-            low_dims.append({'name': dim_labels.get(dim_name, dim_name), 'val': dim_val})
-    if low_dims:
-        msg = f'{len(low_dims)}项低于80分'
+    shop_score = s.get('shop_score', 0)
+    
+    if shop_score < 95:
+        # 构建子维度详情（仅供参考，不作为触发条件）
+        dim_detail_parts = []
+        low_dims = []
+        for dim_name in ['peak_hours','quality_rate','reject_rate','reply_rate','merchant_rating',
+                          'menu_rich','decor_rich','service_rich','cook_report','base_hours']:
+            dim_val = s.get('shop_dims', {}).get(dim_name, 0)
+            dim_label = dim_labels.get(dim_name, dim_name)
+            status_mark = '⚠' if dim_val < 80 else '✓'
+            dim_detail_parts.append(f'{dim_label}{dim_val}分{status_mark}')
+            if dim_val < 80:
+                low_dims.append({'name': dim_label, 'val': dim_val})
+        
+        is_zero = (shop_score == 0)
+        if is_zero:
+            msg = f'店铺分 0 分（数据异常，低于95分）'
+        else:
+            msg = f'店铺分 {shop_score} 分（低于95分）'
+        
         alerts.append({
             'type': 'shop',
             'store': s['name'], 'brand': s['brand'], 'market': s['market'],
             'city': s['city'], 'region_mgr': s['region_mgr'],
             'area_mgr': s['area_mgr'], 'leader': s['leader'],
             'msg': msg,
-            'detail': '; '.join([f"{d['name']}{d['val']}分" for d in low_dims]),
-            'shop_score': s.get('shop_score', 0),
+            'detail': '; '.join(dim_detail_parts),
+            'shop_score': shop_score,
             'low_dims': low_dims,
+            'data_date': s.get('data_date', ''),
+            'is_zero_score': is_zero,
         })
 
-print(f'  店铺分预警: {sum(1 for a in alerts if a["type"]=="shop")} 条')
+print(f'  店铺分预警: {sum(1 for a in alerts if a["type"]=="shop")} 条（其中0分异常: {sum(1 for a in alerts if a["type"]=="shop" and a.get("is_zero_score"))} 条）')
 
 # ③ 综合体验分预警
 for s in mt_stores:
