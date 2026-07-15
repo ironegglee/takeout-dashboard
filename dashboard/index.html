@@ -1545,7 +1545,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
   merged.forEach((s, i) => {
     const avgCell = s.mp_avg != null ? `${s.mp_avg}分` : ``;
     const shopCell = s.mt_shop_score != null ? s.mt_shop_score.toFixed(1) : ``;
-    const mrtCell = s.mt_merchant_rating != null ? s.mt_merchant_rating.toFixed(1) : ``;
+    const expCell = s.mt_exp_score != null ? s.mt_exp_score.toFixed(2) : ``;
     const totalRev = (s.mp_revenue || 0) + (s.mt_revenue || 0);
 
     let platformTag = '';
@@ -1557,7 +1557,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
       <td><span class="rank-badge ${i < 3 ? 'rank-' + (i + 1) : 'rank-n'}">${i + 1}</span></td>
       <td>${s.name}</td><td>${platformTag}</td><td class="dim">${s.city}</td>
       <td style="font-weight:500">${avgCell}</td><td style="font-weight:500">${shopCell}</td>
-      <td style="font-weight:500">${mrtCell}</td></tr>`;
+      <td style="font-weight:500">${expCell}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;

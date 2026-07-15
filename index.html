@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-15T13:57:55+08:00">
+<meta name="build-time" content="2026-07-15T14:43:23+08:00">
 <meta name="version" content="v2.10.1">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -1545,7 +1545,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
   merged.forEach((s, i) => {
     const avgCell = s.mp_avg != null ? `${s.mp_avg}分` : ``;
     const shopCell = s.mt_shop_score != null ? s.mt_shop_score.toFixed(1) : ``;
-    const mrtCell = s.mt_merchant_rating != null ? s.mt_merchant_rating.toFixed(1) : ``;
+    const expCell = s.mt_exp_score != null ? s.mt_exp_score.toFixed(2) : ``;
     const totalRev = (s.mp_revenue || 0) + (s.mt_revenue || 0);
 
     let platformTag = '';
@@ -1557,7 +1557,7 @@ function renderUnifiedDrillTable(drillType, mpStores, mtStores){
       <td><span class="rank-badge ${i < 3 ? 'rank-' + (i + 1) : 'rank-n'}">${i + 1}</span></td>
       <td>${s.name}</td><td>${platformTag}</td><td class="dim">${s.city}</td>
       <td style="font-weight:500">${avgCell}</td><td style="font-weight:500">${shopCell}</td>
-      <td style="font-weight:500">${mrtCell}</td></tr>`;
+      <td style="font-weight:500">${expCell}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;
