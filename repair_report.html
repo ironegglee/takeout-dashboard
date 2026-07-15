@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机械臂自动奶茶机 - 报修统计报告</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { text-align: center; color: #1a1a2e; margin-bottom: 5px; font-size: 28px; }
+.subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 14px; }
+.card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.card h2 { color: #1a1a2e; margin-bottom: 16px; font-size: 20px; border-left: 4px solid #e74c3c; padding-left: 12px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; color: white; text-align: center; }
+.stat-card.red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.stat-card.orange { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.stat-card.green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+.stat-card.blue { background: linear-gradient(135deg, #3498db, #2980b9); }
+.stat-value { font-size: 36px; font-weight: bold; }
+.stat-label { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+th { background: #f8f9fa; color: #666; font-weight: 600; position: sticky; top: 0; }
+tr:hover { background: #f8f9ff; }
+.bar-container { display: flex; align-items: center; gap: 8px; }
+.bar { height: 20px; border-radius: 4px; min-width: 4px; }
+.bar.p0 { background: #e74c3c; }
+.bar.p1 { background: #f39c12; }
+.bar.p2 { background: #3498db; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+.tag-danger { background: #ffeaea; color: #e74c3c; }
+.tag-warning { background: #fff3e0; color: #f39c12; }
+.tag-info { background: #e8f4fd; color: #3498db; }
+.summary { padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #f39c12; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🔧 机械臂自动奶茶机 — 报修统计报告</h1>
+<p class="subtitle">数据来源：钉钉「机械臂自动奶茶机-报修群【外部】」| 统计周期：2026.06.13 ~ 2026.07.09</p>
+
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">858</div><div class="stat-label">群聊消息总数</div></div>
+    <div class="stat-card red"><div class="stat-value">262</div><div class="stat-label">报修相关消息</div></div>
+    <div class="stat-card orange"><div class="stat-value">200</div><div class="stat-label">首次报修记录</div></div>
+    <div class="stat-card blue"><div class="stat-value">9.7</div><div class="stat-label">日均报修消息</div></div>
+    <div class="stat-card green"><div class="stat-value">31</div><div class="stat-label">涉及门店数</div></div>
+</div>
+
+
+<div class="card">
+<h2>📊 核心摘要</h2>
+<div class="summary">
+<p>📅 报修最密集日：<strong>2026-07-06（24 条）</strong></p>
+<p>🏪 报修最多门店：<strong>（未识别门店）（208 条）</strong></p>
+<p>🔍 最多问题类型：<strong>其他（72 次）</strong></p>
+<p>👥 主要报告人：<strong>张子鹏(25次)、刘震宇(16次)、陈志丹(11次)、姜李(11次)、陈子轩(10次)</strong></p>
+<p>⚠️ 注意：数据仅覆盖 6/13 起，6/1-6/12 因组织权限限制未能获取。</p>
+</div>
+</div>
+
+
+<div class="card">
+<h2>📅 每日报修趋势</h2>
+<table>
+<tr><th>日期</th><th>报修消息数</th><th>趋势</th></tr>
+
+<tr><td>2026-06-13</td><td>2</td><td><div class="bar-container"><div class="bar p2" style="width:8.333333333333332%"></div><span>2</span></div></td></tr>
+<tr><td>2026-06-14</td><td>3</td><td><div class="bar-container"><div class="bar p2" style="width:12.5%"></div><span>3</span></div></td></tr>
+<tr><td>2026-06-15</td><td>8</td><td><div class="bar-container"><div class="bar p1" style="width:33.33333333333333%"></div><span>8</span></div></td></tr>
+<tr><td>2026-06-16</td><td>11</td><td><div class="bar-container"><div class="bar p1" style="width:45.83333333333333%"></div><span>11</span></div></td></tr>
+<tr><td>2026-06-17</td><td>10</td><td><div class="bar-container"><div class="bar p1" style="width:41.66666666666667%"></div><span>10</span></div></td></tr>
+<tr><td>2026-06-18</td><td>3</td><td><div class="bar-container"><div class="bar p2" style="width:12.5%"></div><span>3</span></div></td></tr>
+<tr><td>2026-06-20</td><td>20</td><td><div class="bar-container"><div class="bar p0" style="width:83.33333333333334%"></div><span>20</span></div></td></tr>
+<tr><td>2026-06-21</td><td>15</td><td><div class="bar-container"><div class="bar p0" style="width:62.5%"></div><span>15</span></div></td></tr>
+<tr><td>2026-06-22</td><td>1</td><td><div class="bar-container"><div class="bar p2" style="width:4.166666666666666%"></div><span>1</span></div></td></tr>
+<tr><td>2026-06-23</td><td>4</td><td><div class="bar-container"><div class="bar p2" style="width:16.666666666666664%"></div><span>4</span></div></td></tr>
+<tr><td>2026-06-24</td><td>4</td><td><div class="bar-container"><div class="bar p2" style="width:16.666666666666664%"></div><span>4</span></div></td></tr>
+<tr><td>2026-06-26</td><td>21</td><td><div class="bar-container"><div class="bar p0" style="width:87.5%"></div><span>21</span></div></td></tr>
+<tr><td>2026-06-27</td><td>8</td><td><div class="bar-container"><div class="bar p1" style="width:33.33333333333333%"></div><span>8</span></div></td></tr>
+<tr><td>2026-06-28</td><td>13</td><td><div class="bar-container"><div class="bar p1" style="width:54.166666666666664%"></div><span>13</span></div></td></tr>
+<tr><td>2026-06-29</td><td>6</td><td><div class="bar-container"><div class="bar p2" style="width:25.0%"></div><span>6</span></div></td></tr>
+<tr><td>2026-06-30</td><td>13</td><td><div class="bar-container"><div class="bar p1" style="width:54.166666666666664%"></div><span>13</span></div></td></tr>
+<tr><td>2026-07-01</td><td>10</td><td><div class="bar-container"><div class="bar p1" style="width:41.66666666666667%"></div><span>10</span></div></td></tr>
+<tr><td>2026-07-02</td><td>17</td><td><div class="bar-container"><div class="bar p0" style="width:70.83333333333334%"></div><span>17</span></div></td></tr>
+<tr><td>2026-07-03</td><td>18</td><td><div class="bar-container"><div class="bar p0" style="width:75.0%"></div><span>18</span></div></td></tr>
+<tr><td>2026-07-04</td><td>6</td><td><div class="bar-container"><div class="bar p2" style="width:25.0%"></div><span>6</span></div></td></tr>
+<tr><td>2026-07-05</td><td>16</td><td><div class="bar-container"><div class="bar p0" style="width:66.66666666666666%"></div><span>16</span></div></td></tr>
+<tr><td>2026-07-06</td><td>24</td><td><div class="bar-container"><div class="bar p0" style="width:100.0%"></div><span>24</span></div></td></tr>
+<tr><td>2026-07-07</td><td>5</td><td><div class="bar-container"><div class="bar p2" style="width:20.833333333333336%"></div><span>5</span></div></td></tr>
+<tr><td>2026-07-08</td><td>19</td><td><div class="bar-container"><div class="bar p0" style="width:79.16666666666666%"></div><span>19</span></div></td></tr>
+<tr><td>2026-07-09</td><td>5</td><td><div class="bar-container"><div class="bar p2" style="width:20.833333333333336%"></div><span>5</span></div></td></tr>
+</table></div>
+
+<div class="card">
+<h2>🏪 门店报修次数排名</h2>
+<table>
+<tr><th>排名</th><th>门店</th><th>报修次数</th><th>占比</th></tr>
+
+<tr><td>1</td><td>（未识别门店）</td><td>208</td><td>79.4%</td></tr>
+<tr><td>2</td><td>星悦店</td><td>6</td><td>2.3%</td></tr>
+<tr><td>3</td><td>珠江星环店</td><td>6</td><td>2.3%</td></tr>
+<tr><td>4</td><td>万象天地店</td><td>3</td><td>1.1%</td></tr>
+<tr><td>5</td><td>金茂览秀城</td><td>3</td><td>1.1%</td></tr>
+<tr><td>6</td><td>苦行万里店</td><td>3</td><td>1.1%</td></tr>
+<tr><td>7</td><td>7mall店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>8</td><td>星悦A区店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>9</td><td>友阿百货店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>10</td><td>冰口打不开或者关不上的门店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>11</td><td>新大陆店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>12</td><td>新大陆银座店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>13</td><td>金马店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>14</td><td>茶颜有阿店</td><td>2</td><td>0.8%</td></tr>
+<tr><td>15</td><td>壹方城店</td><td>1</td><td>0.4%</td></tr>
+<tr><td>16</td><td>接明天上午安排一名人员在店</td><td>1</td><td>0.4%</td></tr>
+<tr><td>17</td><td>目前不是单个门店</td><td>1</td><td>0.4%</td></tr>
+<tr><td>18</td><td>Cocopark店</td><td>1</td><td>0.4%</td></tr>
+<tr><td>19</td><td>深圳湾万象城店</td><td>1</td><td>0.4%</td></tr>
+<tr><td>20</td><td>深圳coco店</td><td>1</td><td>0.4%</td></tr>
+</table></div>
+
+<div class="card">
+<h2>🔍 问题类型分布</h2>
+<table>
+<tr><th>问题类型</th><th>出现次数</th><th>占比</th></tr>
+
+<tr><td>其他</td><td>72</td><td>27.5%</td></tr>
+<tr><td>机械臂故障/卡顿/暂停</td><td>68</td><td>26.0%</td></tr>
+<tr><td>电源/重启</td><td>45</td><td>17.2%</td></tr>
+<tr><td>杯贴机/贴标机故障</td><td>45</td><td>17.2%</td></tr>
+<tr><td>落杯器/出杯/抓杯问题</td><td>26</td><td>9.9%</td></tr>
+<tr><td>制冰机/落冰机故障</td><td>21</td><td>8.0%</td></tr>
+<tr><td>漏水/溢水</td><td>16</td><td>6.1%</td></tr>
+<tr><td>奶茶机/加热问题</td><td>15</td><td>5.7%</td></tr>
+<tr><td>传感器/探头故障</td><td>8</td><td>3.1%</td></tr>
+<tr><td>显示屏/主板故障</td><td>5</td><td>1.9%</td></tr>
+<tr><td>异响/噪音</td><td>4</td><td>1.5%</td></tr>
+<tr><td>搅拌/加料</td><td>3</td><td>1.1%</td></tr>
+<tr><td>网络故障</td><td>2</td><td>0.8%</td></tr>
+</table></div>
+
+<div class="card">
+<h2>📝 报修报告人排名</h2>
+<table>
+<tr><th>排名</th><th>报告人</th><th>报修次数</th></tr>
+
+<tr><td>1</td><td>张子鹏</td><td>25</td></tr>
+<tr><td>2</td><td>刘震宇</td><td>16</td></tr>
+<tr><td>3</td><td>陈志丹</td><td>11</td></tr>
+<tr><td>4</td><td>姜李</td><td>11</td></tr>
+<tr><td>5</td><td>陈子轩</td><td>10</td></tr>
+<tr><td>6</td><td>陈泽瑞</td><td>7</td></tr>
+<tr><td>7</td><td>新大陆大宝贝</td><td>7</td></tr>
+<tr><td>8</td><td>赵永庚</td><td>7</td></tr>
+<tr><td>9</td><td>何文龙</td><td>6</td></tr>
+<tr><td>10</td><td>^_^</td><td>6</td></tr>
+<tr><td>11</td><td>何浪</td><td>6</td></tr>
+<tr><td>12</td><td>杨志刚</td><td>5</td></tr>
+<tr><td>13</td><td>张家荣</td><td>5</td></tr>
+<tr><td>14</td><td>江少</td><td>5</td></tr>
+<tr><td>15</td><td>919</td><td>4</td></tr>
+</table></div>
+
+<div class="card">
+<h2>📋 报修明细（前100条首次报告）</h2>
+<table>
+<tr><th>时间</th><th>门店</th><th>报告人</th><th>问题分类</th><th>内容</th></tr>
+
+<tr><td style="white-space:nowrap">2026-06-13 14:23:19</td><td>未知</td><td>何文龙</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@机械臂大少爷的仆人 伙伴，给信息部客服打电话</td></tr>
+<tr><td style="white-space:nowrap">2026-06-13 14:23:37</td><td>未知</td><td>何文龙</td><td><span class="tag tag-danger">网络故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">能安排来修网络</td></tr>
+<tr><td style="white-space:nowrap">2026-06-14 10:25:18</td><td>未知</td><td>李辉</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">好几天了。老是出错麻烦看一下@刘文权</td></tr>
+<tr><td style="white-space:nowrap">2026-06-14 11:05:25</td><td>未知</td><td>李桃丽</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">裕园小区这个问题每天上午频繁出现@刘文权 @杨卓</td></tr>
+<tr><td style="white-space:nowrap">2026-06-14 14:03:11</td><td>未知</td><td>周亚</td><td><span class="tag tag-danger">制冰机/落冰机故障/漏水/溢水</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@杨志刚 裕园的去冰又超级溢杯了   不去冰的8分</td></tr>
+<tr><td style="white-space:nowrap">2026-06-15 10:06:43</td><td>未知</td><td>何文龙</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@张子鹏 张工，视频完把故障情况反馈一下</td></tr>
+<tr><td style="white-space:nowrap">2026-06-15 10:24:42</td><td>接明天上午安排一名人员在店</td><td>919</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个问题这家门店已经连续好几天频繁出现，如果无法在事后解决这个问题 那就直接明天上午安排一名人员在店@杨卓(杨卓)</td></tr>
+<tr><td style="white-space:nowrap">2026-06-15 10:38:40</td><td>未知</td><td>李桃丽</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">对只有上午11点半之前断</td></tr>
+<tr><td style="white-space:nowrap">2026-06-15 21:26:20</td><td>未知</td><td>陈泽瑞</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">重启也没用</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 10:21:40</td><td>未知</td><td>周亚</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">主要是太频繁了   早上一般一个人  本来没单也搞得好忙</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 10:26:05</td><td>未知</td><td>919</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">如果需要时间解决要怎么去解决这个问题，至少在群里有个回复让门店心里有个底 而不是天天这样重启，一早上出现这么多次，门店又只有一个人他们很难保证运营</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 10:36:11</td><td>未知</td><td>吴棕泽</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@周亚 @919 伙伴，不好意思，这个问题其实我们内部也一直在排查，但由于是偶发性的问题，所以花的时间稍微久了些，实在抱歉；目前已锁定偶发断连的原因，今天会发一</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 13:21:36</td><td>7mall店</td><td>陈子轩</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/落杯器/出杯/抓杯问题</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">7mall，做大杯冰茶，推杯机卡掉，直接死机掉杯。</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 14:52:40</td><td>万象天地店</td><td>^_^</td><td><span class="tag tag-danger">奶茶机/加热问题</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@刘文权 你好，深圳万象天地茶叶子店蒸汽机连续两天都有问题，没办法进入自动化，导致超时免单，昨天维修人员没有解决成功，麻烦今晚进行处理一下</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 15:32:30</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">先重启恢复，我们内部查找下原因</td></tr>
+<tr><td style="white-space:nowrap">2026-06-16 15:32:55</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">是今天出现的，还是最近都在频繁发生</td></tr>
+<tr><td style="white-space:nowrap">2026-06-17 08:36:33</td><td>未知</td><td>陈泽瑞</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">第一次已经重启过了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-17 08:36:37</td><td>未知</td><td>陈泽瑞</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">还是报错</td></tr>
+<tr><td style="white-space:nowrap">2026-06-17 10:08:52</td><td>未知</td><td>杜文佳</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@张子鹏 怎么断开咖啡机？</td></tr>
+<tr><td style="white-space:nowrap">2026-06-17 18:50:43</td><td>未知</td><td>杜文佳</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">机械臂相互撞机</td></tr>
+<tr><td style="white-space:nowrap">2026-06-17 20:13:28</td><td>未知</td><td>新大陆大宝贝</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">还解决嘛？</td></tr>
+<tr><td style="white-space:nowrap">2026-06-17 20:24:57</td><td>未知</td><td>苏美琳</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">最好是端午节机械臂不要出岔子哦[微笑]</td></tr>
+<tr><td style="white-space:nowrap">2026-06-18 12:58:52</td><td>未知</td><td>黄琪</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">请问什么时候能解决 本来就忙 一出问题又耽误时间 全部卡着出不去</td></tr>
+<tr><td style="white-space:nowrap">2026-06-18 13:17:50</td><td>未知</td><td>黄琪</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">麻烦来个人来看下</td></tr>
+<tr><td style="white-space:nowrap">2026-06-18 14:56:06</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个不转动，只能一直补单条杯通道，请问怎么解决？</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 13:28:26</td><td>未知</td><td>栗子🌰</td><td><span class="tag tag-danger">落杯器/出杯/抓杯问题</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">[图片消息](mediaId=@lQDPKeMDerHONfPNBQDNA8Cwkw4Jq0aORDsKCn4_vWrKAQ)[图片消息](mediaId=@l</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 14:11:40</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">电源/重启/搅拌/加料</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">功夫门店，有段时间没有补充纸杯，导致全部瘫痪。重启两次全部没用，奶昔机转杆也不下来，现在全部在手动制作。</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 14:37:22</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">我门店大排长龙，才搞好，现在又坏了，十五杯全部退款</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 17:36:57</td><td>未知</td><td>傅苏敏</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@机械臂大少爷的仆人 门店名称</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 17:52:00</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个杯型做不了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 17:53:23</td><td>未知</td><td>张子鹏</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@陈子轩 就这种杯型会出问题，其他的不会对吧</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 17:54:06</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这是怎么，我现在重启电源了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 17:57:44</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个650ml杯型老是出问题，这五天出现7次了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 18:04:41</td><td>未知</td><td>张子鹏</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@陈子轩 是刚换杯贴纸吗</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 18:08:10</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">650ml杯现在好了，但是杯贴又出问题了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 18:57:41</td><td>Cocopark店</td><td>^_^</td><td><span class="tag tag-danger">落杯器/出杯/抓杯问题</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">深圳福田Cocopark内机械手有问题，无法抓取杯子</td></tr>
+<tr><td style="white-space:nowrap">2026-06-20 19:44:11</td><td>未知</td><td>^_^</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">推出自动化了，后台应该可以看到故障记录的</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 00:52:29</td><td>未知</td><td>何文龙</td><td><span class="tag tag-danger">传感器/探头故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@刘文权 刘工帮忙判断一下，传感器擦过了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 00:55:41</td><td>未知</td><td>刘文权</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">重启一下系统</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 01:07:01</td><td>未知</td><td>刘文权</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">系统重启过了是吧</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 01:08:00</td><td>未知</td><td>刘文权</td><td><span class="tag tag-danger">传感器/探头故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">我帮你把雪克位感应器先屏蔽吧，需要上门查</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 01:15:04</td><td>未知</td><td>^_^</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">但是还是动不了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 01:20:23</td><td>未知</td><td>刘文权</td><td><span class="tag tag-danger">异响/噪音</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个问题不会影响跑自动化能正常跑，有伙伴到了让检查一下</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 13:14:24</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">我们这边找一下解决办法，先把咖啡机屏蔽正常做其他订单吧</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 13:18:01</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">有空的话在电柜里把咖啡机单独重启一下，有个写着咖啡机的单独空开打下来</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 14:01:23</td><td>万象天地店</td><td>^_^</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">今天万象天地的杯贴出问题，很多饮品的杯贴掉下去了，或者出现不贴杯的情况，导致超时免单的</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 14:04:06</td><td>未知</td><td>赵永庚</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">问题还是贴标机的贴标推杆没推</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 14:37:01</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/落杯器/出杯/抓杯问题</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这是今天的，650ml还是会卡，不知道是不是抓杯运行有问题。</td></tr>
+<tr><td style="white-space:nowrap">2026-06-21 14:42:27</td><td>未知</td><td>陈子轩</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">机械臂大少爷的仆人称已修好咖啡机，指出该问题会经常发生，提出当前解决方案为通过视频方式处理同类情况。</td></tr>
+<tr><td style="white-space:nowrap">2026-06-22 13:06:58</td><td>未知</td><td>何浪</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个杯帖机这里松动了，麻烦需要尽快上门维修一下</td></tr>
+<tr><td style="white-space:nowrap">2026-06-23 09:45:02</td><td>未知</td><td>新大陆大宝贝</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/显示屏/主板故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">怎么一直显示内测机械臂碰撞刚刚才重启的@刘震宇</td></tr>
+<tr><td style="white-space:nowrap">2026-06-23 09:57:53</td><td>未知</td><td>919</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">近期好像很多门店都出现机械臂模块的问题，这个是软件问题还是硬件问题啊@杨志刚(杨志刚) @刘文权 @张子鹏</td></tr>
+<tr><td style="white-space:nowrap">2026-06-24 13:46:37</td><td>未知</td><td>栗子🌰</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">[图片消息](mediaId=@lQDPKeOL5zkYa7_NBQDNA8Cw7SUvGWUvElIKD6ioI_dVAg)[图片消息](mediaId=@l</td></tr>
+<tr><td style="white-space:nowrap">2026-06-24 15:37:02</td><td>未知</td><td>^_^</td><td><span class="tag tag-danger">奶茶机/加热问题</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">[图片消息](mediaId=@lQDPJv_pHGnKBW_NBQDNA8CwVfvHX9KoMScKD8HeuygvAQ)[图片消息](mediaId=@l</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 08:36:49</td><td>未知</td><td>刘奕</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">新品不贴杯贴</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 09:19:53</td><td>星悦店</td><td>杨志刚</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@星悦 是不是杯贴机那端你们把设备推靠墙了？不能靠墙的</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 09:22:58</td><td>未知</td><td>杨志刚</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">杯贴机太靠墙了，你们店之前也出现过，应该是伙伴搞卫生的时候把设备往里面推了一些</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:06:57</td><td>未知</td><td>星悦</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">可是我这个也没有点位 [语音消息](mediaId=@lR_PJwCW0w86TI8AALDi6DEvp7NYSAoSCcn_ztoA) 注意：如需下载使用dw</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:35:57</td><td>星悦店</td><td>张子鹏</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：星悦店 到店时间：线上对接 报修内容：外侧机械臂没在起始位置 异常模块：机械臂 是否解决：是 解决方式：拖动机械臂4号位置拖到正确起始位置 门店确认人：门</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:43:35</td><td>未知</td><td>杨志刚</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">断了？</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:43:41</td><td>未知</td><td>何浪</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@张子鹏 过来一下门店吧，机械臂师傅不会搞，我现在来店里，昨天不知道换了什么全是故障</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:48:54</td><td>未知</td><td>919</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@张子鹏 昨天晚上换完零部件没有试跑嘛 虽然近期门店维修之后的试跑视频没要求发，但是这个流程该走还得走吧</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:49:19</td><td>未知</td><td>姜心悦</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">导致那个就运行不了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 10:52:19</td><td>未知</td><td>何浪</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@919 机械臂师傅从其他店拿了个控制器过来，测试看是不是控制器问题，后面越跑越乱</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 12:25:39</td><td>星悦A区店</td><td>刘震宇</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：星悦A区店 到店时间：11：54 报修内容：内侧机械臂点位变动 异常模块：机械臂 是否解决：解决 解决方式：换回控制器 门店确认人：何浪</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 12:32:25</td><td>深圳湾万象城店</td><td>蒋成</td><td><span class="tag tag-danger">制冰机/落冰机故障/漏水/溢水</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：深圳湾万象城店 到店时间：9.00 报修内容：落冰机冷凝水管 异常模块：落冰机 是否解决：解决 解决方式：贴保温棉 门店确认人：彭萱</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 12:39:00</td><td>未知</td><td>何浪</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">又坏了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 12:42:03</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个先重启吧，换回了原来的控制器</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 12:48:31</td><td>未知</td><td>何浪</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">麻烦尽快出一个解决方案吧</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 12:49:03</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">待会儿过来，找到解决办法了，把新控制器点位问题解决掉，处理的话大概十分钟左右</td></tr>
+<tr><td style="white-space:nowrap">2026-06-26 20:08:23</td><td>星悦A区店</td><td>刘震宇</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：星悦A区店 到店时间：12：50 报修内容：内侧机械臂掉使能 异常模块：机械臂 是否解决：暂时解决（待持续观察） 解决方式：更换新控制器 门店确认人：待明</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 10:40:48</td><td>未知</td><td>新大陆大宝贝</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">[图片消息](mediaId=@lQDPD4U2fsibIUfNEEDNDDCwokP0SsgKDQ8KE1sAO_erAA)[图片消息](mediaId=@l</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 10:52:28</td><td>未知</td><td>何文龙</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@刘震宇(长沙区域＋刘震宇) @吴棕泽 今天哪位伙伴在值班？连线调整一下标签</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 10:55:35</td><td>未知</td><td>张子鹏</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@新大陆大宝贝 是刚换的杯帖纸吗</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 10:58:19</td><td>未知</td><td>新大陆大宝贝</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">杯贴前天就换了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 14:35:39</td><td>珠江星环店</td><td>张子鹏</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：珠江星环 到店时间：1点45分 报修内容：内侧机械臂撞洗杯器 异常模块：机械臂 是否解决：己解决 解决方式：调整内侧机械臂点位 门店确认人：何昆</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 17:58:28</td><td>未知</td><td>新大陆大宝贝</td><td><span class="tag tag-danger">制冰机/落冰机故障/漏水/溢水</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">这个去冰的量不对吧，每一杯都溢杯了@杨志刚</td></tr>
+<tr><td style="white-space:nowrap">2026-06-27 22:25:10</td><td>未知</td><td>高高子</td><td><span class="tag tag-danger">制冰机/落冰机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@杨志刚 刚哥，生亦如夏花650ml麻烦少3颗冰块，偷摘一颗梅加3颗冰块谢谢</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 03:16:58</td><td>未知</td><td>张子鹏</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@何浪 已更换内侧机械臂明天麻烦注意一下 [视频]</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 10:23:30</td><td>未知</td><td>赵永庚</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">单点清洗 - 重启系统</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 11:39:19</td><td>未知</td><td>张家荣</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">第一次重启电源后好了之后这是第二次</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 11:43:38</td><td>未知</td><td>赵永庚</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">贴标机的行程上有没有异物</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 11:59:59</td><td>深圳coco店</td><td>周力</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：深圳coco park 到店时间：10:30 报修内容：贴标机推杆超时 异常模块：贴标机 是否解决：解决 解决方式：螺丝掉落重新上螺丝 门店确认人：店员</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 12:06:36</td><td>壹方城茶颜悦色店</td><td>魏玄</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：壹方城茶颜悦色 到店时间：11:10 报修内容：贴标机Y轴运动超时 异常模块：贴标机 是否解决：解决 解决方式：固定直线导轨后面的线 门店确认人：伍洪福</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 13:28:05</td><td>未知</td><td>何浪</td><td><span class="tag tag-danger">电源/重启</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">重启3次了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 15:46:44</td><td>金茂览秀城</td><td>张子鹏</td><td><span class="tag tag-danger">落杯器/出杯/抓杯问题/杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：金茂览秀城 到店时间：线上对接 报修内容：贴标机Y轴运动超时 异常模块：贴标机Y轴 是否解决：解决 解决方式：抓杯的时候2号杯会掉落调整了分杯器 门店确认</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 18:44:50</td><td>未知</td><td>李嘉植</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">金轮星光名座镖局这个杯贴还是没有调整好</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 18:45:06</td><td>未知</td><td>李嘉植</td><td><span class="tag tag-danger">其他</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">直接粘杯口了，可以再调整一下吗</td></tr>
+<tr><td style="white-space:nowrap">2026-06-28 23:20:51</td><td>星悦店</td><td>张子鹏</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：星悦 到店时间：19：40 报修内容：搬运机械手超时 异常模块：搬运机械手上下电缸 是否解决：解决 解决方式：更换电缸 门店确认人：店员</td></tr>
+<tr><td style="white-space:nowrap">2026-06-29 12:27:08</td><td>未知</td><td>苏美琳</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/漏水/溢水</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@何文龙 您好 可以安排人过来排查一下吗 机械臂底下一直漏水 不知道是哪里漏</td></tr>
+<tr><td style="white-space:nowrap">2026-06-29 17:25:16</td><td>未知</td><td>刘嘉洁</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">我的杯贴机卡了一张我搞不出来的纸</td></tr>
+<tr><td style="white-space:nowrap">2026-06-29 20:10:12</td><td>未知</td><td>陈泽瑞</td><td><span class="tag tag-danger">落杯器/出杯/抓杯问题/杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">有一杯不贴，有一杯贴到别的杯子上去了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-29 20:10:26</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">刚换的杯贴纸吗？</td></tr>
+<tr><td style="white-space:nowrap">2026-06-29 20:27:43</td><td>未知</td><td>刘震宇</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">今晚会来调整机械臂的速度，贴标问题一并看一下</td></tr>
+<tr><td style="white-space:nowrap">2026-06-30 04:28:30</td><td>友阿百货店</td><td>刘震宇</td><td><span class="tag tag-danger">杯贴机/贴标机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">门店：友阿百货店 到店时间：22：29 报修内容：3号杯贴标异常 异常模块：杯贴机 是否解决：解决 解决方式：调整撕纸位置 门店确认人：陈泽瑞</td></tr>
+<tr><td style="white-space:nowrap">2026-06-30 08:47:25</td><td>未知</td><td>黄璇</td><td><span class="tag tag-danger">制冰机/落冰机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">友阿百货茶叶子做杯只出冰不出茶汤啊，直接跳过出茶汤了</td></tr>
+<tr><td style="white-space:nowrap">2026-06-30 09:55:42</td><td>未知</td><td>江少</td><td><span class="tag tag-danger">制冰机/落冰机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">@慧灵-长沙售后-张子鹏 @慧灵-长沙-刘文权 我的落冰器怎么关不起来了？</td></tr>
+<tr><td style="white-space:nowrap">2026-06-30 09:56:32</td><td>未知</td><td>雷亚明</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">卡住了，你手动往回给它推一点</td></tr>
+<tr><td style="white-space:nowrap">2026-06-30 10:25:22</td><td>金茂店</td><td>老婆带我见过十勤版</td><td><span class="tag tag-danger">制冰机/落冰机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">金茂lg怎么不打开，落冰口</td></tr>
+<tr><td style="white-space:nowrap">2026-06-30 10:29:11</td><td>冰口打不开或者关不上的门店</td><td>雷亚明</td><td><span class="tag tag-danger">机械臂故障/卡顿/暂停/制冰机/落冰机故障</span></td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">伙伴 大家好，机械臂门店昨晚批量升级了落冰机程序，提升了出冰速度和精准度，但是有个别门店升级后需要手动改一下设置参数。存在落冰口打不开或者关不上的门店，请联系添</td></tr>
+</table></div>
+</div></body></html>

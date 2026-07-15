@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>机械臂报修逐条明细表（去重版）</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; margin: 24px; background: #f8f9fa; }
+  h1 { font-size: 20px; margin-bottom: 12px; }
+  .summary { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.1); font-size: 13px; }
+  th { background: #e9ecef; padding: 10px 8px; text-align: left; border: 1px solid #dee2e6; position: sticky; top: 0; }
+  td { padding: 8px; border: 1px solid #dee2e6; vertical-align: top; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .unknown { background: #f8d7da !important; }
+</style>
+</head>
+<body>
+<h1>机械臂报修逐条明细表（去重版）</h1>
+<div class="summary">
+  <p>统计：共 75 条初始报修（已剔除维修反馈、技术人员消息、30分钟内同一人重复消息）。</p>
+  <p>数据范围：2026-06-01 ~ 2026-07-09（钉钉 API 限制，6/13 前数据可能不完整）。</p>
+</div>
+<table>
+<thead>
+<tr><th>序号</th><th>门店</th><th>报修人</th><th>报修时间</th><th>报修内容</th></tr>
+</thead>
+<tbody>
+
+<tr class="">
+  <td>1</td>
+  <td>茶叶子店</td>
+  <td>陈泽瑞</td>
+  <td>06-01 15:33</td>
+  <td>一直在漏冰</td>
+</tr>
+
+<tr class="">
+  <td>2</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>06-01 16:24</td>
+  <td>落冰超时不出冰，机器不动是为啥</td>
+</tr>
+
+<tr class="">
+  <td>3</td>
+  <td>星悦店</td>
+  <td>老婆带我见过十勤版</td>
+  <td>06-02 15:55</td>
+  <td>星悦A机械臂夹抓什么时候来修一下，奶茶每一杯都会倒出去一部分@张子鹏</td>
+</tr>
+
+<tr class="unknown">
+  <td>4</td>
+  <td>未识别</td>
+  <td>游坤</td>
+  <td>06-03 09:59</td>
+  <td>这个怎么修复</td>
+</tr>
+
+<tr class="unknown">
+  <td>5</td>
+  <td>未识别</td>
+  <td>邓骏</td>
+  <td>06-03 12:47</td>
+  <td>杯贴老是掉</td>
+</tr>
+
+<tr class="unknown">
+  <td>6</td>
+  <td>未识别</td>
+  <td>罗惠</td>
+  <td>06-03 14:52</td>
+  <td>杯口裂了</td>
+</tr>
+
+<tr class="">
+  <td>7</td>
+  <td>万象天地店</td>
+  <td>33</td>
+  <td>06-03 15:37</td>
+  <td>想问下机械臂为什么会无故障暂停？正在制作奶茶会突然暂停，奶茶主控没有任何故障提示，也没有退出自动化，按开启按键也没用！！！昨天出现了2、3次，今天早上出现1次，非常影响我们做单效率。</td>
+</tr>
+
+<tr class="">
+  <td>8</td>
+  <td>深圳多店(壹方城/Cocopark/万象城)</td>
+  <td>^_^</td>
+  <td>06-03 21:17</td>
+  <td>深圳前海壹方城店，机械臂抓夹故障，进入不了自动化，</td>
+</tr>
+
+<tr class="">
+  <td>9</td>
+  <td>功夫店</td>
+  <td>机械臂大少爷的仆人</td>
+  <td>06-04 17:20</td>
+  <td>要重启</td>
+</tr>
+
+<tr class="">
+  <td>10</td>
+  <td>星悦店</td>
+  <td>何浪</td>
+  <td>06-05 16:15</td>
+  <td>星悦这里机械臂有点打杯子</td>
+</tr>
+
+<tr class="unknown">
+  <td>11</td>
+  <td>未识别</td>
+  <td>江少</td>
+  <td>06-07 15:09</td>
+  <td>就没来修好吧@张子鹏 昨天就坏了那个</td>
+</tr>
+
+<tr class="">
+  <td>12</td>
+  <td>裕园店</td>
+  <td>李桃丽</td>
+  <td>06-08 09:44</td>
+  <td>内侧机械臂最近又经常无缘无故断联，一大早又重启三四次了@傅苏敏 @杨志刚</td>
+</tr>
+
+<tr class="">
+  <td>13</td>
+  <td>深圳多店(壹方城/Cocopark/万象城)</td>
+  <td>^_^</td>
+  <td>06-09 09:47</td>
+  <td>蒸汽机无法下移进入自动化（深圳前海壹方城店）</td>
+</tr>
+
+<tr class="">
+  <td>14</td>
+  <td>裕园店</td>
+  <td>李桃丽</td>
+  <td>06-09 10:24</td>
+  <td>晚上来修机械臂不，断的太夸张了，停几分钟来单就断@杨卓 @刘文权</td>
+</tr>
+
+<tr class="">
+  <td>15</td>
+  <td>万象天地店</td>
+  <td>33</td>
+  <td>06-09 12:11</td>
+  <td>万象天地贴杯机有问题</td>
+</tr>
+
+<tr class="unknown">
+  <td>16</td>
+  <td>未识别</td>
+  <td>江少</td>
+  <td>06-10 10:00</td>
+  <td>我已经重启了一次了。</td>
+</tr>
+
+<tr class="">
+  <td>17</td>
+  <td>金茂LG店</td>
+  <td>杜文佳</td>
+  <td>06-10 11:16</td>
+  <td>没有任何问题，然后他就卡着不做单，啥意思呀？</td>
+</tr>
+
+<tr class="">
+  <td>18</td>
+  <td>金茂LG店</td>
+  <td>杜文佳</td>
+  <td>06-10 11:50</td>
+  <td>[裂开]</td>
+</tr>
+
+<tr class="unknown">
+  <td>19</td>
+  <td>未识别</td>
+  <td>刘嘉洁</td>
+  <td>06-11 16:57</td>
+  <td>我落杯贴标机都不自检了？</td>
+</tr>
+
+<tr class="unknown">
+  <td>20</td>
+  <td>未识别</td>
+  <td>刘嘉洁</td>
+  <td>06-11 17:41</td>
+  <td>不知道重启就没事了</td>
+</tr>
+
+<tr class="">
+  <td>21</td>
+  <td>深圳多店(壹方城/Cocopark/万象城)</td>
+  <td>^_^</td>
+  <td>06-11 19:30</td>
+  <td>屏蔽杯贴没有用啊，它的推杆有问题，我还是进入不了自动化
+[语音消息](mediaId=@lR_PJxZvTpPO-XMAALC-Bfdrgz3GLQn_Ovj4D0sA) 注意：如需下载使用dws chat message download-media命令下载</td>
+</tr>
+
+<tr class="">
+  <td>22</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>06-12 10:37</td>
+  <td>都超时了</td>
+</tr>
+
+<tr class="">
+  <td>23</td>
+  <td>金茂LG店</td>
+  <td>杜文佳</td>
+  <td>06-12 10:42</td>
+  <td>金茂LG内外机械臂每天都断联要重启十几次这是正常的吗</td>
+</tr>
+
+<tr class="">
+  <td>24</td>
+  <td>裕园店</td>
+  <td>李桃丽</td>
+  <td>06-13 12:07</td>
+  <td>这个断联的情况我们家也是每天上午频繁出现@杨卓 @刘文权</td>
+</tr>
+
+<tr class="">
+  <td>25</td>
+  <td>功夫店</td>
+  <td>机械臂大少爷的仆人</td>
+  <td>06-13 14:10</td>
+  <td>机械臂这个网不是单独的吗</td>
+</tr>
+
+<tr class="unknown">
+  <td>26</td>
+  <td>未识别</td>
+  <td>919</td>
+  <td>06-15 10:24</td>
+  <td>这个问题这家门店已经连续好几天频繁出现，如果无法在事后解决这个问题
+那就直接明天上午安排一名人员在店@杨卓(杨卓)</td>
+</tr>
+
+<tr class="">
+  <td>27</td>
+  <td>裕园店</td>
+  <td>李桃丽</td>
+  <td>06-15 10:38</td>
+  <td>对只有上午11点半之前断</td>
+</tr>
+
+<tr class="">
+  <td>28</td>
+  <td>茶叶子店</td>
+  <td>陈泽瑞</td>
+  <td>06-15 21:26</td>
+  <td>重启也没用</td>
+</tr>
+
+<tr class="unknown">
+  <td>29</td>
+  <td>未识别</td>
+  <td>919</td>
+  <td>06-16 10:26</td>
+  <td>如果需要时间解决要怎么去解决这个问题，至少在群里有个回复让门店心里有个底
+而不是天天这样重启，一早上出现这么多次，门店又只有一个人他们很难保证运营</td>
+</tr>
+
+<tr class="unknown">
+  <td>30</td>
+  <td>未识别</td>
+  <td>陈子轩</td>
+  <td>06-16 13:21</td>
+  <td>7mall，做大杯冰茶，推杯机卡掉，直接死机掉杯。</td>
+</tr>
+
+<tr class="">
+  <td>31</td>
+  <td>茶叶子店</td>
+  <td>陈泽瑞</td>
+  <td>06-17 08:36</td>
+  <td>还是报错</td>
+</tr>
+
+<tr class="">
+  <td>32</td>
+  <td>金茂LG店</td>
+  <td>杜文佳</td>
+  <td>06-17 18:50</td>
+  <td>机械臂相互撞机</td>
+</tr>
+
+<tr class="">
+  <td>33</td>
+  <td>绿地中心店</td>
+  <td>黄琪</td>
+  <td>06-18 12:58</td>
+  <td>请问什么时候能解决 本来就忙 一出问题又耽误时间 全部卡着出不去</td>
+</tr>
+
+<tr class="unknown">
+  <td>34</td>
+  <td>未识别</td>
+  <td>陈子轩</td>
+  <td>06-20 14:11</td>
+  <td>功夫门店，有段时间没有补充纸杯，导致全部瘫痪。重启两次全部没用，奶昔机转杆也不下来，现在全部在手动制作。</td>
+</tr>
+
+<tr class="unknown">
+  <td>35</td>
+  <td>未识别</td>
+  <td>陈子轩</td>
+  <td>06-20 17:52</td>
+  <td>这个杯型做不了</td>
+</tr>
+
+<tr class="">
+  <td>36</td>
+  <td>深圳多店(壹方城/Cocopark/万象城)</td>
+  <td>^_^</td>
+  <td>06-20 18:57</td>
+  <td>深圳福田Cocopark内机械手有问题，无法抓取杯子</td>
+</tr>
+
+<tr class="">
+  <td>37</td>
+  <td>深圳多店(壹方城/Cocopark/万象城)</td>
+  <td>^_^</td>
+  <td>06-21 01:15</td>
+  <td>但是还是动不了</td>
+</tr>
+
+<tr class="">
+  <td>38</td>
+  <td>深圳多店(壹方城/Cocopark/万象城)</td>
+  <td>^_^</td>
+  <td>06-21 14:01</td>
+  <td>今天万象天地的杯贴出问题，很多饮品的杯贴掉下去了，或者出现不贴杯的情况，导致超时免单的</td>
+</tr>
+
+<tr class="unknown">
+  <td>39</td>
+  <td>未识别</td>
+  <td>陈子轩</td>
+  <td>06-21 14:37</td>
+  <td>这是今天的，650ml还是会卡，不知道是不是抓杯运行有问题。</td>
+</tr>
+
+<tr class="">
+  <td>40</td>
+  <td>新大陆店</td>
+  <td>新大陆大宝贝</td>
+  <td>06-23 09:45</td>
+  <td>怎么一直显示内测机械臂碰撞刚刚才重启的@刘震宇</td>
+</tr>
+
+<tr class="unknown">
+  <td>41</td>
+  <td>未识别</td>
+  <td>919</td>
+  <td>06-23 09:57</td>
+  <td>近期好像很多门店都出现机械臂模块的问题，这个是软件问题还是硬件问题啊@杨志刚(杨志刚) @刘文权 @张子鹏</td>
+</tr>
+
+<tr class="unknown">
+  <td>42</td>
+  <td>未识别</td>
+  <td>星悦</td>
+  <td>06-24 08:11</td>
+  <td>又坏了</td>
+</tr>
+
+<tr class="unknown">
+  <td>43</td>
+  <td>未识别</td>
+  <td>刘奕</td>
+  <td>06-26 08:36</td>
+  <td>新品不贴杯贴</td>
+</tr>
+
+<tr class="unknown">
+  <td>44</td>
+  <td>未识别</td>
+  <td>星悦</td>
+  <td>06-26 09:18</td>
+  <td>碰撞了</td>
+</tr>
+
+<tr class="unknown">
+  <td>45</td>
+  <td>未识别</td>
+  <td>星悦</td>
+  <td>06-26 10:06</td>
+  <td>可是我这个也没有点位
+[语音消息](mediaId=@lR_PJwCW0w86TI8AALDi6DEvp7NYSAoSCcn_ztoA) 注意：如需下载使用dws chat message download-media命令下载</td>
+</tr>
+
+<tr class="">
+  <td>46</td>
+  <td>友阿百货店</td>
+  <td>姜心悦</td>
+  <td>06-26 10:49</td>
+  <td>导致那个就运行不了</td>
+</tr>
+
+<tr class="">
+  <td>47</td>
+  <td>星悦店</td>
+  <td>何浪</td>
+  <td>06-26 12:39</td>
+  <td>又坏了</td>
+</tr>
+
+<tr class="">
+  <td>48</td>
+  <td>新大陆店</td>
+  <td>新大陆大宝贝</td>
+  <td>06-27 10:58</td>
+  <td>杯贴前天就换了</td>
+</tr>
+
+<tr class="">
+  <td>49</td>
+  <td>新大陆店</td>
+  <td>新大陆大宝贝</td>
+  <td>06-27 17:58</td>
+  <td>这个去冰的量不对吧，每一杯都溢杯了@杨志刚</td>
+</tr>
+
+<tr class="">
+  <td>50</td>
+  <td>星悦店</td>
+  <td>何浪</td>
+  <td>06-28 13:28</td>
+  <td>重启3次了</td>
+</tr>
+
+<tr class="unknown">
+  <td>51</td>
+  <td>未识别</td>
+  <td>刘嘉洁</td>
+  <td>06-29 17:25</td>
+  <td>我的杯贴机卡了一张我搞不出来的纸</td>
+</tr>
+
+<tr class="">
+  <td>52</td>
+  <td>茶叶子店</td>
+  <td>陈泽瑞</td>
+  <td>06-29 20:10</td>
+  <td>有一杯不贴，有一杯贴到别的杯子上去了</td>
+</tr>
+
+<tr class="">
+  <td>53</td>
+  <td>茶叶子店</td>
+  <td>黄璇</td>
+  <td>06-30 08:47</td>
+  <td>友阿百货茶叶子做杯只出冰不出茶汤啊，直接跳过出茶汤了</td>
+</tr>
+
+<tr class="unknown">
+  <td>54</td>
+  <td>未识别</td>
+  <td>江少</td>
+  <td>07-01 11:18</td>
+  <td>搞了两三次了，他就直接不动，停在那里@慧灵-长沙售后-张子鹏</td>
+</tr>
+
+<tr class="">
+  <td>55</td>
+  <td>万芙锦园</td>
+  <td>高高子</td>
+  <td>07-02 18:25</td>
+  <td>什么时候修请问一下</td>
+</tr>
+
+<tr class="">
+  <td>56</td>
+  <td>金茂店</td>
+  <td>张家荣</td>
+  <td>07-03 11:59</td>
+  <td>昨天更新后现在这个地方没杯，硬是显示有杯然后卡住了</td>
+</tr>
+
+<tr class="">
+  <td>57</td>
+  <td>新大陆店</td>
+  <td>新大陆大宝贝</td>
+  <td>07-03 14:20</td>
+  <td>这个辛苦帮我解决吧 漏水太严重了@慧灵-长沙-刘文权 @何文龙 @杨志刚 @慧灵-长沙售后-刘震宇 @慧灵-长沙售后-张子鹏 @</td>
+</tr>
+
+<tr class="">
+  <td>58</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>07-03 14:46</td>
+  <td>热饮溢杯很严重，几乎每一杯热饮都会漏</td>
+</tr>
+
+<tr class="">
+  <td>59</td>
+  <td>深圳湾万象城店</td>
+  <td>ke7e</td>
+  <td>07-04 09:10</td>
+  <td>重启了三遍</td>
+</tr>
+
+<tr class="">
+  <td>60</td>
+  <td>新大陆店</td>
+  <td>新大陆大宝贝</td>
+  <td>07-04 09:42</td>
+  <td>不倒杯的传过来把我洗杯位杯子撞飞了</td>
+</tr>
+
+<tr class="">
+  <td>61</td>
+  <td>金茂店</td>
+  <td>金茂店机</td>
+  <td>07-05 10:33</td>
+  <td>没有大冰块，一直显示超时，卡卡卡的响</td>
+</tr>
+
+<tr class="">
+  <td>62</td>
+  <td>7mall外街</td>
+  <td>李雅洁</td>
+  <td>07-05 13:58</td>
+  <td>每一次都要重启</td>
+</tr>
+
+<tr class="">
+  <td>63</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>07-06 08:31</td>
+  <td>现在机械臂又连不上了</td>
+</tr>
+
+<tr class="">
+  <td>64</td>
+  <td>7mall外街</td>
+  <td>李雅洁</td>
+  <td>07-06 11:26</td>
+  <td>不行了卡住了</td>
+</tr>
+
+<tr class="unknown">
+  <td>65</td>
+  <td>未识别</td>
+  <td>刘嘉洁</td>
+  <td>07-06 14:39</td>
+  <td>我们家推杯有问题</td>
+</tr>
+
+<tr class="">
+  <td>66</td>
+  <td>功夫店</td>
+  <td>机械臂大少爷的仆人</td>
+  <td>07-06 15:07</td>
+  <td>这个机械臂无法直接复位</td>
+</tr>
+
+<tr class="">
+  <td>67</td>
+  <td>深圳湾万象城店</td>
+  <td>ke7e</td>
+  <td>07-06 21:32</td>
+  <td>这个料仓温度怎么回事啊 下午就是12度 没有开关仓门也一直降不下来</td>
+</tr>
+
+<tr class="">
+  <td>68</td>
+  <td>深圳湾万象城店</td>
+  <td>ke7e</td>
+  <td>07-06 22:20</td>
+  <td>还是达不到冷藏温度</td>
+</tr>
+
+<tr class="">
+  <td>69</td>
+  <td>新大陆店</td>
+  <td>新大陆大宝贝</td>
+  <td>07-08 09:55</td>
+  <td>不萃热直接出杯了</td>
+</tr>
+
+<tr class="">
+  <td>70</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>07-08 09:57</td>
+  <td>苦行万里路机械臂没有了吗@慧灵-长沙售后-张子鹏</td>
+</tr>
+
+<tr class="">
+  <td>71</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>07-08 10:37</td>
+  <td>目前两个大杯好事多磨和苦行万里路都不出@杨卓</td>
+</tr>
+
+<tr class="">
+  <td>72</td>
+  <td>金马店</td>
+  <td>姜李</td>
+  <td>07-08 11:13</td>
+  <td>热饮溢杯，倒杯时倾斜</td>
+</tr>
+
+<tr class="">
+  <td>73</td>
+  <td>茶叶子店</td>
+  <td>陈泽瑞</td>
+  <td>07-08 11:48</td>
+  <td>什么时候能安排人来修理</td>
+</tr>
+
+<tr class="">
+  <td>74</td>
+  <td>星悦店</td>
+  <td>星悦</td>
+  <td>07-08 14:46</td>
+  <td>星悦贴杯有异常</td>
+</tr>
+
+<tr class="">
+  <td>75</td>
+  <td>金轮星光</td>
+  <td>何昆</td>
+  <td>07-09 12:15</td>
+  <td>卡在这第三次了</td>
+</tr>
+</tbody></table></body></html>

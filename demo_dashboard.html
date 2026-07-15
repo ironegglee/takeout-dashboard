@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奶茶品牌 · 外卖运营数字化看板（示例）</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F6F2;
+    --card: #FFFFFF;
+    --border: rgba(0,0,0,0.08);
+    --text-primary: #1A1A1A;
+    --text-secondary: #5F5E5A;
+    --text-muted: #9B9990;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --mp-primary: #4CAF50;
+    --mp-bg: #E8F5E9;
+    --mt-primary: #FFB300;
+    --mt-bg: #FFF8E1;
+    --green: #3B6D11;
+    --green-bg: #EAF3DE;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --purple: #667eea;
+    --purple-bg: #f0f2ff;
+    --pink: #f5576c;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px; position: sticky; top: 0; z-index: 200;
+  }
+  .header-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+  .header-brand .logo { width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg,#ff9a3c,#ff6b6b); display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700; }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--green-bg); color: var(--green); }
+  .ts { font-size: 12px; color: var(--text-muted); }
+
+  .global-filter-bar {
+    background: #FDFCF8; border-bottom: 1.5px solid #E8E6DF;
+    padding: 10px 32px; display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+    position: sticky; top: 56px; z-index: 150;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .gf-group { display: flex; align-items: center; gap: 8px; }
+  .gf-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; font-weight: 500; }
+  .gf-select {
+    appearance: none; padding: 5px 26px 5px 10px; font-size: 12px; color: var(--text-primary);
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239B9990'/%3E%3C/svg%3E") no-repeat right 8px center;
+    border: 1px solid #D9D6CE; border-radius: 6px; cursor: pointer; outline: none;
+    font-family: inherit; min-width: 90px;
+  }
+  .gf-date-input { padding: 5px 9px; font-size: 12px; font-family: inherit; color: var(--text-primary); border: 1px solid #D9D6CE; border-radius: 6px; outline: none; background: #fff; width: 118px; }
+  .dq-btn { padding: 3px 9px; font-size: 11px; border: 1px solid #D9D6CE; border-radius: 5px; background: #fff; color: #666; cursor: pointer; }
+  .dq-btn.dq-active { background: #C8873A; color: #fff; border-color: #C8873A; }
+
+  .main { max-width: 1320px; margin: 0 auto; padding: 24px 32px 0; }
+
+  /* 场景说明横幅 */
+  .scenario-banner {
+    background: linear-gradient(90deg, #f0f7ff, #fff8f0);
+    border: 1px solid rgba(200,135,58,0.2);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .scenario-icon { width: 40px; height: 40px; border-radius: 10px; background: #C8873A; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .scenario-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .scenario-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* 顶部指标 */
+  .top-metrics { display: grid; grid-template-columns: 1fr 200px 1fr; gap: 12px; margin-bottom: 20px; }
+  .top-metrics-group { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+  .top-metrics-group.mp { border-top: 3px solid var(--mp-primary); }
+  .top-metrics-group.mt { border-top: 3px solid var(--mt-primary); }
+  .top-group-hdr { padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+  .top-group-hdr.mp { color: #2e7d32; background: #f1f8e9; }
+  .top-group-hdr.mt { color: #ef6c00; background: #fff3e0; }
+  .top-group-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 12px 14px; }
+  .top-metrics .total-card-wrap { background: #F4F1EA; border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; text-align: center; }
+  .top-metrics .total-card-wrap .m-val { font-size: 30px; font-weight: 700; color: #1A1A1A; line-height: 1.2; }
+  .top-metrics .total-breakdown { display: flex; gap: 12px; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
+  .dot.mp { background: var(--mp-primary); }
+  .dot.mt { background: var(--mt-primary); }
+
+  .m-card { background: #F7F6F2; border-radius: var(--radius-md); padding: 12px 14px; }
+  .m-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; }
+  .m-val { font-size: 20px; font-weight: 600; line-height: 1.2; }
+  .m-sub { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+  .m-sub.up { color: var(--green); }
+  .m-sub.down { color: var(--red); }
+
+  /* 功能区块 */
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title .badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; background: var(--purple-bg); color: var(--purple); }
+
+  .channel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .channel-panel { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; }
+  .channel-header { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .channel-header.mp { background: var(--mp-bg); }
+  .channel-header.mt { background: var(--mt-bg); }
+  .channel-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+  .channel-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+  .tag-mp { background: #c8e6c9; color: #2e7d32; }
+  .tag-mt { background: #ffecb3; color: #ef6c00; }
+  .channel-body { padding: 18px 20px; }
+
+  /* 图表模拟 */
+  .mini-chart-title { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+  .line-chart { height: 110px; display: flex; align-items: flex-end; gap: 6px; padding-bottom: 24px; position: relative; }
+  .line-chart::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: #e0e0e0; }
+  .bar { flex: 1; border-radius: 3px 3px 0 0; position: relative; transition: opacity 0.2s; }
+  .bar:hover { opacity: 0.8; }
+  .bar span { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+  .bar.mp { background: #81c784; }
+  .bar.mt { background: #ffb74d; }
+
+  .heat-row { display: flex; gap: 3px; margin: 12px 0; }
+  .heat-cell { flex: 1; min-width: 36px; text-align: center; border-radius: 4px; padding: 6px 2px 4px; font-size: 11px; color: white; font-weight: 600; }
+  .heat-cell .hc-time { font-size: 9px; opacity: 0.85; display: block; margin-top: 2px; font-weight: 400; }
+
+  .prog-block { margin-bottom: 12px; }
+  .prog-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .prog-bg { width: 100%; height: 10px; background: #EDEBE6; border-radius: 5px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 5px; }
+
+  /* 排名表格 */
+  .mgmt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .mgmt-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .mgmt-card-header { padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--border); background: #fafafa; }
+  .mgmt-card-body { padding: 12px 16px; max-height: 260px; overflow-y: auto; }
+  .rank-table { width: 100%; border-collapse: collapse; }
+  .rank-table th { font-size: 11px; color: var(--text-muted); font-weight: 400; text-align: left; padding: 0 8px 8px; white-space: nowrap; }
+  .rank-table td { font-size: 12px; padding: 8px; border-top: 1px solid var(--border); vertical-align: middle; }
+  .rank-table tr:hover { background: #fafafa; }
+  .rank-badge { display: inline-flex; width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .rank-1 { background: #FAC775; color: #412402; }
+  .rank-2 { background: #D3D1C7; color: #2C2C2A; }
+  .rank-3 { background: #EF9F27; color: #412402; }
+  .rank-n { background: #EDEBE6; color: var(--text-secondary); }
+  .warn-row td { color: var(--red) !important; font-weight: 600; }
+  .warn-row .rank-badge { color: inherit; }
+  .arch-tag { font-size: 10px; color: var(--text-muted); margin-left: 4px; }
+
+  /* 告警标杆 */
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .alert-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+  .alert-card-header { font-size: 13px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .alert-count { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .alert-pill { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--radius-md); font-size: 12px; margin-bottom: 6px; cursor: pointer; }
+  .alert-pill:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .pill-icon { font-size: 13px; flex-shrink: 0; }
+  .pill-name { font-weight: 500; }
+  .pill-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* 抽屉演示 */
+  .drawer-demo { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+  .drawer-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .drawer-tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); }
+  .drawer-tab.active { background: var(--purple-bg); color: var(--purple); border-color: var(--purple); font-weight: 500; }
+  .drawer-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .drawer-stat { background: #F7F6F2; border-radius: var(--radius-md); padding: 12px; text-align: center; }
+  .drawer-stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+  .drawer-stat-val { font-size: 20px; font-weight: 600; }
+  .score-dim-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .score-dim-card { background: #fff; border: 1px solid #F0ECDE; border-radius: var(--radius-md); padding: 10px; }
+  .dim-name { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+  .dim-value-row { display: flex; align-items: baseline; gap: 4px; }
+  .dim-value { font-size: 16px; font-weight: 600; }
+  .dim-status { font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 500; margin-left: auto; }
+  .status-ok { background: #EAF3DE; color: #3B6D11; }
+  .status-warn { background: #FAEEDA; color: #854F0B; }
+  .status-bad { background: #FCEBEB; color: #A32D2D; }
+
+  /* 交互提示 */
+  .interaction-tip {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #1A1A1A; color: #fff; padding: 12px 16px;
+    border-radius: 10px; font-size: 12px; max-width: 280px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 1000;
+    line-height: 1.6;
+  }
+  .interaction-tip strong { color: #FAC775; }
+
+  /* 需求说明标签 */
+  .purpose-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; padding: 3px 10px; border-radius: 12px;
+    background: #e3f2fd; color: #1565c0; margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <div class="logo">奶</div>
+    <span>奶茶品牌 · 外卖运营数字化看板（示例）</span>
+    <span style="font-size:11px;color:var(--text-muted);background:#f0f0f0;padding:2px 8px;border-radius:10px;">v1.0.0</span>
+  </div>
+  <div class="header-right">
+    <span class="live-badge"><span>●</span> 数据实时同步中</span>
+    <span class="ts">数据更新至 2026-07-10</span>
+  </div>
+</header>
+
+<div class="global-filter-bar">
+  <div class="gf-group">
+    <span class="gf-label">时间</span>
+    <input class="gf-date-input" value="2026/07/08">
+    <span class="gf-label">—</span>
+    <input class="gf-date-input" value="2026/07/10">
+  </div>
+  <div class="gf-group">
+    <div class="date-quick-btns">
+      <button class="dq-btn">昨日</button>
+      <button class="dq-btn dq-active">近7天</button>
+      <button class="dq-btn">近30天</button>
+      <button class="dq-btn">全部</button>
+    </div>
+  </div>
+  <div class="gf-group">
+    <span class="gf-label">市场</span>
+    <select class="gf-select"><option>全部市场</option></select>
+  </div>
+  <div class="gf-group">
+    <span class="gf-label">城市</span>
+    <select class="gf-select"><option>全部城市</option></select>
+  </div>
+  <div class="gf-group">
+    <span class="gf-label">大区</span>
+    <select class="gf-select"><option>全部大区</option></select>
+  </div>
+  <div class="gf-group">
+    <span class="gf-label">门店</span>
+    <input class="gf-select" value="搜索门店..." style="width:140px;">
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- 场景说明 -->
+  <div class="scenario-banner">
+    <div class="scenario-icon">🎯</div>
+    <div>
+      <div class="scenario-title">业务场景：连锁餐饮外卖全域运营监控</div>
+      <div class="scenario-desc">总部运营负责人需要每日掌握全国门店的外卖出餐效率、平台评分、异常门店分布，并快速定位问题责任人。本看板将多平台数据统一汇总，<strong>从“人工逐表核对”升级为“一眼看清、一键下钻”</strong>。</div>
+    </div>
+  </div>
+
+  <!-- 顶部指标 -->
+  <div class="top-metrics">
+    <div class="top-metrics-group mp">
+      <div class="top-group-hdr mp">🛵 自营渠道 · 核心指标：出餐时效</div>
+      <div class="top-group-cards">
+        <div class="m-card">
+          <div class="m-label">接入门店</div>
+          <div class="m-val">312</div>
+          <div class="m-sub up"><span>▲</span> 较上期 +6</div>
+        </div>
+        <div class="m-card">
+          <div class="m-label">平均出餐时长</div>
+          <div class="m-val">11.4<span style="font-size:13px;font-weight:400;"> 分钟</span></div>
+          <div class="m-sub down"><span>▼</span> 较上期 -0.3</div>
+        </div>
+        <div class="m-card">
+          <div class="m-label">15分钟达标率</div>
+          <div class="m-val">76.2%</div>
+          <div class="m-sub up"><span>▲</span> 较上期 +2.1%</div>
+        </div>
+      </div>
+    </div>
+    <div class="total-card-wrap">
+      <div class="m-label">外卖门店总数</div>
+      <div class="m-val">538<span class="m-unit">家</span></div>
+      <div class="total-breakdown">
+        <span><span class="dot mp"></span>自营 312</span>
+        <span><span class="dot mt"></span>第三方 473</span>
+      </div>
+    </div>
+    <div class="top-metrics-group mt">
+      <div class="top-group-hdr mt">🏪 第三方平台 · 核心指标：店铺分+体验分</div>
+      <div class="top-group-cards">
+        <div class="m-card">
+          <div class="m-label">接入门店</div>
+          <div class="m-val">473</div>
+          <div class="m-sub neutral">持平</div>
+        </div>
+        <div class="m-card">
+          <div class="m-label">店铺分均值</div>
+          <div class="m-val">94.2</div>
+          <div class="m-sub down"><span>▼</span> 较上期 -0.4</div>
+        </div>
+        <div class="m-card">
+          <div class="m-label">综合体验分</div>
+          <div class="m-val">4.51</div>
+          <div class="m-sub down"><span>▼</span> 较上期 -0.02</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 渠道对比 -->
+  <div class="section">
+    <div class="section-title">
+      核心功能 ①：双渠道对比分析
+      <span class="badge">业务目的：识别渠道差异，避免只看总体</span>
+    </div>
+    <div class="channel-grid">
+      <div class="channel-panel">
+        <div class="channel-header mp">
+          <div class="channel-label"><span>🛵</span> 自营渠道 <span class="channel-tag tag-mp">品牌自营</span></div>
+          <span style="font-size:12px;color:var(--text-secondary);">核心指标：出餐时效</span>
+        </div>
+        <div class="channel-body">
+          <div class="mini-chart-title">平均出餐时间趋势（分钟）</div>
+          <div class="line-chart">
+            <div class="bar mp" style="height:62%"><span>07-04</span></div>
+            <div class="bar mp" style="height:55%"><span>07-05</span></div>
+            <div class="bar mp" style="height:70%"><span>07-06</span></div>
+            <div class="bar mp" style="height:48%"><span>07-07</span></div>
+            <div class="bar mp" style="height:58%"><span>07-08</span></div>
+            <div class="bar mp" style="height:52%"><span>07-09</span></div>
+            <div class="bar mp" style="height:45%"><span>07-10</span></div>
+          </div>
+          <div class="mini-chart-title" style="margin-top:8px;">今日各时段出餐热力</div>
+          <div class="heat-row">
+            <div class="heat-cell" style="background:#4caf50">8.9<span class="hc-time">08时</span></div>
+            <div class="heat-cell" style="background:#66bb6a">9.8<span class="hc-time">10时</span></div>
+            <div class="heat-cell" style="background:#8bc34a">11.2<span class="hc-time">12时</span></div>
+            <div class="heat-cell" style="background:#cddc39;color:#333">14.5<span class="hc-time">14时</span></div>
+            <div class="heat-cell" style="background:#ff9800">16.8<span class="hc-time">18时</span></div>
+            <div class="heat-cell" style="background:#ff5722">19.2<span class="hc-time">20时</span></div>
+          </div>
+          <div class="prog-block">
+            <div class="prog-header"><span>15分钟达标率</span><span>76.2%</span></div>
+            <div class="prog-bg"><div class="prog-fill" style="width:76.2%;background:var(--mp-primary)"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="channel-panel">
+        <div class="channel-header mt">
+          <div class="channel-label"><span>🏪</span> 第三方平台 <span class="channel-tag tag-mt">外部平台</span></div>
+          <span style="font-size:12px;color:var(--text-secondary);">核心指标：店铺分 · 体验分</span>
+        </div>
+        <div class="channel-body">
+          <div class="score-tree">
+            <div class="score-main-block">
+              <div class="score-main-header">
+                <div class="score-main-title">店铺分 <span class="score-main-badge badge-shop">94.2</span></div>
+                <span class="score-main-target">目标 ≥ 95</span>
+              </div>
+              <div class="score-dim-grid">
+                <div class="score-dim-card">
+                  <div class="dim-name">差评回复率</div>
+                  <div class="dim-value-row"><span class="dim-value">83.5</span><span class="dim-unit">/95</span><span class="dim-status status-warn">预警</span></div>
+                </div>
+                <div class="score-dim-card">
+                  <div class="dim-name">商家评分</div>
+                  <div class="dim-value-row"><span class="dim-value">90.1</span><span class="dim-unit">/95</span><span class="dim-status status-warn">预警</span></div>
+                </div>
+                <div class="score-dim-card">
+                  <div class="dim-name">高峰营业时长</div>
+                  <div class="dim-value-row"><span class="dim-value">99.2</span><span class="dim-unit">/95</span><span class="dim-status status-ok">达标</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="score-main-block">
+              <div class="score-main-header">
+                <div class="score-main-title">综合体验分 <span class="score-main-badge badge-exp">4.51</span></div>
+                <span class="score-main-target">目标 ≥ 4.6</span>
+              </div>
+              <div class="score-dim-grid">
+                <div class="score-dim-card">
+                  <div class="dim-name">商品满意度</div>
+                  <div class="dim-value-row"><span class="dim-value">4.7</span><span class="dim-unit">/4.6</span><span class="dim-status status-ok">达标</span></div>
+                </div>
+                <div class="score-dim-card">
+                  <div class="dim-name">包装满意度</div>
+                  <div class="dim-value-row"><span class="dim-value">4.6</span><span class="dim-unit">/4.6</span><span class="dim-status status-ok">达标</span></div>
+                </div>
+                <div class="score-dim-card">
+                  <div class="dim-name">复购率得分</div>
+                  <div class="dim-value-row"><span class="dim-value">3.6</span><span class="dim-unit">/4.6</span><span class="dim-status status-bad">未达标</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理排名与单店 -->
+  <div class="section">
+    <div class="section-title">
+      核心功能 ②：从汇总到门店的下钻定位
+      <span class="badge">业务目的：快速找到问题门店和责任人</span>
+    </div>
+    <div class="mgmt-row">
+      <div class="mgmt-card">
+        <div class="mgmt-card-header">🏆 管理排名 · 大区维度</div>
+        <div class="mgmt-card-body">
+          <table class="rank-table">
+            <thead><tr><th>#</th><th>大区</th><th>出餐时间</th><th>店铺分</th><th>体验分</th></tr></thead>
+            <tbody>
+              <tr><td><span class="rank-badge rank-1">1</span></td><td>华东大区 <span class="arch-tag">A市场</span></td><td>9.8分</td><td>96.4</td><td>4.72</td></tr>
+              <tr><td><span class="rank-badge rank-2">2</span></td><td>华北大区 <span class="arch-tag">B市场</span></td><td>10.5分</td><td>95.1</td><td>4.65</td></tr>
+              <tr><td><span class="rank-badge rank-3">3</span></td><td>华南大区 <span class="arch-tag">C市场</span></td><td>11.2分</td><td>94.8</td><td>4.58</td></tr>
+              <tr><td><span class="rank-badge rank-n">4</span></td><td>西南大区 <span class="arch-tag">D市场</span></td><td>13.6分</td><td>93.2</td><td>4.51</td></tr>
+              <tr class="warn-row"><td><span class="rank-badge rank-n">5</span></td><td>西北大区 <span class="arch-tag">E市场</span></td><td>16.4分</td><td>92.5</td><td>4.42</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="mgmt-card">
+        <div class="mgmt-card-header">📍 单店数据 · 异常自动标红</div>
+        <div class="mgmt-card-body">
+          <table class="rank-table">
+            <thead><tr><th>#</th><th>门店</th><th>市场</th><th>出餐</th><th>店铺分</th><th>体验分</th></tr></thead>
+            <tbody>
+              <tr><td><span class="rank-badge rank-1">1</span></td><td>星光广场店 <span class="arch-tag">华东·王经理</span></td><td>A市场</td><td>9.2分</td><td>97.2</td><td>4.78</td></tr>
+              <tr><td><span class="rank-badge rank-2">2</span></td><td>滨江新天地店 <span class="arch-tag">华东·李经理</span></td><td>A市场</td><td>9.6分</td><td>96.8</td><td>4.75</td></tr>
+              <tr><td><span class="rank-badge rank-3">3</span></td><td>中央公园店 <span class="arch-tag">华北·张经理</span></td><td>B市场</td><td>10.1分</td><td>96.1</td><td>4.69</td></tr>
+              <tr class="warn-row"><td><span class="rank-badge rank-n">7</span></td><td>大学城店 <span class="arch-tag">西北·赵经理</span></td><td>E市场</td><td>17.5分</td><td>91.8</td><td>4.38</td></tr>
+              <tr class="warn-row"><td><span class="rank-badge rank-n">8</span></td><td>火车站店 <span class="arch-tag">西北·赵经理</span></td><td>E市场</td><td>16.2分</td><td>93.1</td><td>4.41</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 告警标杆 -->
+  <div class="section">
+    <div class="section-title">
+      核心功能 ③：预警+标杆双榜驱动改善
+      <span class="badge">业务目的：让好的被看见，让差的被跟进</span>
+    </div>
+    <div class="bottom-row">
+      <div class="alert-card">
+        <div class="alert-card-header">⚠️ 实时告警 <span class="alert-count">3 项待处理</span></div>
+        <div class="alert-pill" style="background:var(--red-bg)">
+          <span class="pill-icon">!</span>
+          <div><span class="pill-name">西北大区</span> 平均出餐时长 16.4 分钟，超出目标 15 分钟<div class="pill-detail">涉及 12 家门店，建议关注高峰时段产能</div></div>
+        </div>
+        <div class="alert-pill" style="background:var(--amber-bg)">
+          <span class="pill-icon">!</span>
+          <div><span class="pill-name">大学城店</span> 店铺分 91.8，低于 95 分阈值<div class="pill-detail">差评回复率 62%，需提升响应速度</div></div>
+        </div>
+        <div class="alert-pill" style="background:var(--amber-bg)">
+          <span class="pill-icon">!</span>
+          <div><span class="pill-name">火车站店</span> 体验分 4.41，低于 4.6 阈值<div class="pill-detail">复购率得分偏低，建议优化套餐组合</div></div>
+        </div>
+      </div>
+      <div class="alert-card">
+        <div class="alert-card-header">🏅 标杆门店 <span class="alert-count">TOP 3</span></div>
+        <div class="alert-pill" style="background:#e8f5e9">
+          <span class="pill-icon">1</span>
+          <div><span class="pill-name">星光广场店</span> 综合评分 97.2<div class="pill-detail">出餐 9.2 分钟 · 体验 4.78</div></div>
+        </div>
+        <div class="alert-pill" style="background:#e8f5e9">
+          <span class="pill-icon">2</span>
+          <div><span class="pill-name">滨江新天地店</span> 综合评分 96.8<div class="pill-detail">出餐 9.6 分钟 · 体验 4.75</div></div>
+        </div>
+        <div class="alert-pill" style="background:#e8f5e9">
+          <span class="pill-icon">3</span>
+          <div><span class="pill-name">中央公园店</span> 综合评分 96.1<div class="pill-detail">出餐 10.1 分钟 · 体验 4.69</div></div>
+        </div>
+      </div>
+      <div class="alert-card">
+        <div class="alert-card-header">🎯 待改善门店 <span class="alert-count">2 家</span></div>
+        <div class="alert-pill" style="background:var(--red-bg)">
+          <span class="pill-icon">!</span>
+          <div><span class="pill-name">大学城店</span><div class="pill-detail">出餐 17.5 分钟 / 店铺分 91.8 / 体验 4.38</div></div>
+        </div>
+        <div class="alert-pill" style="background:var(--amber-bg)">
+          <span class="pill-icon">!</span>
+          <div><span class="pill-name">火车站店</span><div class="pill-detail">出餐 16.2 分钟 / 店铺分 93.1 / 体验 4.41</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 抽屉演示 -->
+  <div class="section">
+    <div class="section-title">
+      核心功能 ④：门店详情抽屉 · 逐店诊断
+      <span class="badge">业务目的：从“知道有问题”到“知道怎么改”</span>
+    </div>
+    <div class="drawer-demo">
+      <div class="drawer-tabs">
+        <div class="drawer-tab active">🛵 自营渠道数据</div>
+        <div class="drawer-tab">🏪 第三方平台数据</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px;">大学城店 <span style="font-size:12px;color:var(--text-muted);font-weight:400;">西北大区 · E市场 · 赵经理</span></div>
+      <div class="drawer-stats">
+        <div class="drawer-stat"><div class="drawer-stat-label">平均出餐</div><div class="drawer-stat-val" style="color:var(--red)">17.5分</div></div>
+        <div class="drawer-stat"><div class="drawer-stat-label">15分钟达标率</div><div class="drawer-stat-val" style="color:var(--red)">58.3%</div></div>
+        <div class="drawer-stat"><div class="drawer-stat-label">近7天订单</div><div class="drawer-stat-val">1,247</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">改善建议：午高峰（11:30-13:00）出餐积压严重，建议增加备餐人员或优化动线。</div>
+      <div class="mini-chart-title">近7天出餐趋势</div>
+      <div class="line-chart" style="height:80px;">
+        <div class="bar mp" style="height:80%"></div>
+        <div class="bar mp" style="height:70%"></div>
+        <div class="bar mp" style="height:90%"></div>
+        <div class="bar mp" style="height:65%"></div>
+        <div class="bar mp" style="height:75%"></div>
+        <div class="bar mp" style="height:85%"></div>
+        <div class="bar mp" style="height:95%"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="interaction-tip">
+  <strong>交互说明</strong><br>
+  ① 全局筛选可联动所有模块<br>
+  ② 点击管理排名行可下钻到区经理/门店<br>
+  ③ 异常行自动标红，点击门店名打开详情抽屉<br>
+  ④ 每日 11:00 自动刷新数据并推送线上
+</div>
+
+</body>
+</html>

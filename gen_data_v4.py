@@ -311,6 +311,7 @@ cutoff_dt = latest_dt - timedelta(days=6)
 cutoff_str = cutoff_dt.strftime('%Y-%m-%d')
 
 recent_mt = {}  # {code: {date_str, row_tuple}} - 只保留最新日期
+mt_all_records = {}  # {code: [{date, row}, ...]} - 所有日期记录，用于得分字段回退
 for (date_str, mtid), row in mt_data.items():
     if date_str >= cutoff_str:
         code = str(col_val(row, mt_header_idx, '门店编码') or '').strip()
@@ -318,6 +319,9 @@ for (date_str, mtid), row in mt_data.items():
             continue
         if code not in recent_mt or date_str > recent_mt[code]['date']:
             recent_mt[code] = {'date': date_str, 'row': row}
+        if code not in mt_all_records:
+            mt_all_records[code] = []
+        mt_all_records[code].append({'date': date_str, 'row': row})
 
 print(f'近7日美团门店数(去重后): {len(recent_mt)}')
 
@@ -340,6 +344,21 @@ exp_dim_labels = {
     'service_neg': '服务负反馈率', 'food_safety': '食品安全负反馈率',
     'cook_report': '出餐上报/配送准时率',
 }
+
+def get_valid_score(code, field_name):
+    """获取某门店某字段的有效得分，最新日期缺失时回退到历史日期"""
+    # 优先取最新日期
+    if code in recent_mt:
+        val = col_val(recent_mt[code]['row'], mt_header_idx, field_name)
+        if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
+            return safe_float(val)
+    # 回退：按日期倒序查历史有效值
+    if code in mt_all_records:
+        for rec in sorted(mt_all_records[code], key=lambda x: x['date'], reverse=True):
+            val = col_val(rec['row'], mt_header_idx, field_name)
+            if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
+                return safe_float(val)
+    return 0.0
 
 for code, info in recent_mt.items():
     row = info['row']
@@ -382,8 +401,8 @@ for code, info in recent_mt.items():
         'shop_dims': {
             'peak_hours': safe_float(col_val(row, mt_header_idx, '高峰营业时长得分')),
             'quality_rate': safe_float(col_val(row, mt_header_idx, '优质商品率得分')),
-            'reject_rate': safe_float(col_val(row, mt_header_idx, '商家不接单率得分')),
-            'reply_rate': safe_float(col_val(row, mt_header_idx, '差评回复率得分')),
+            'reject_rate': get_valid_score(code, '商家不接单率得分'),
+            'reply_rate': get_valid_score(code, '差评回复率得分'),
             'merchant_rating': safe_float(col_val(row, mt_header_idx, '商家评分得分')),
             'menu_rich': safe_float(col_val(row, mt_header_idx, '菜单丰富度得分')),
             'decor_rich': safe_float(col_val(row, mt_header_idx, '装修丰富度得分')),

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7月外卖门店运营偏差通报（截至7月7日）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: #f5f6fa; color: #2c3e50; line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #2c3e50, #e74c3c); color: #fff; padding: 30px 40px; border-radius: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 24px; margin-bottom: 6px; }
+  .header .sub { font-size: 14px; opacity: .85; }
+
+  /* TOC */
+  .toc { background: #fff; border-radius: 10px; padding: 20px 30px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .toc h3 { font-size: 16px; margin-bottom: 12px; color: #e74c3c; }
+  .toc ul { list-style: none; padding-left: 16px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: #2c3e50; text-decoration: none; font-size: 14px; }
+  .toc a:hover { color: #e74c3c; }
+  .toc-mkt { font-weight: bold; font-size: 15px; margin-top: 8px; }
+  .badge { font-size: 12px; background: #fadbd8; color: #c0392b; padding: 1px 8px; border-radius: 10px; margin-left: 4px; }
+
+  /* Charts */
+  .chart-box { background: #fff; border-radius: 10px; padding: 20px 30px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .chart-box h3 { font-size: 16px; margin-bottom: 12px; color: #2c3e50; }
+  .chart-box img { max-width: 100%; border-radius: 8px; }
+
+  /* Sections */
+  .section { background: #fff; border-radius: 10px; padding: 24px 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #e74c3c; }
+  .section h2 { font-size: 20px; color: #2c3e50; margin-bottom: 16px; }
+
+  /* Summary grid */
+  .summary-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: #f8f9fa; border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 80px; }
+  .stat-card .num { font-size: 22px; font-weight: bold; color: #2c3e50; }
+  .stat-card .label { font-size: 11px; color: #7f8c8d; }
+  .stat-card.alert { background: #fde8e8; }
+  .stat-card.alert .num { color: #e74c3c; }
+
+  /* Problem bar */
+  .problem-bar { background: #fde8e8; border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; font-size: 13px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0 16px; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
+  th { background: #f8f9fa; font-weight: 600; color: #555; font-size: 12px; }
+  tr:hover { background: #fafafa; }
+
+  /* Tags */
+  .red { color: #e74c3c; font-weight: 600; }
+  .zero { color: #bdc3c7; }
+  .dim-tag { display: inline-block; background: #fde8e8; color: #c0392b; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px 3px; }
+  .dim-tag.blue { background: #d6eaf8; color: #2980b9; }
+  h3 { font-size: 15px; margin: 16px 0 8px; color: #555; border-bottom: 2px solid #eee; padding-bottom: 4px; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 20px; color: #95a5a6; font-size: 12px; }
+
+  @media print {
+    body { background: #fff; }
+    .section { box-shadow: none; break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>7月外卖门店运营偏差通报</h1>
+  <div class="sub">数据周期：2026年7月1日 — 7月7日 ｜ 覆盖门店：536家 ｜ 预警总数：494条</div>
+  <div class="sub" style="font-size:12px;margin-top:4px">数据源：D:/工作/workbuddy/ ｜ 生成时间：2026-07-08</div>
+</div>
+
+<div class="toc">
+  <h3>📑 目录</h3>
+  <ul><li class="toc-mkt">湖南<ul><li><a href="#湖南-茶颜悦色">茶颜悦色 <span class="badge">188预警 60低分</span></a></li><li><a href="#湖南-墨柠">墨柠 <span class="badge">53预警 15低分</span></a></li><li><a href="#湖南-鸳央咖啡">鸳央咖啡 <span class="badge">26预警 3低分</span></a></li><li><a href="#湖南-昼夜诗">昼夜诗 <span class="badge">8预警 3低分</span></a></li></ul></li><li class="toc-mkt">江苏<ul><li><a href="#江苏-茶颜悦色">茶颜悦色 <span class="badge">142预警 44低分</span></a></li></ul></li><li class="toc-mkt">湖北<ul><li><a href="#湖北-茶颜悦色">茶颜悦色 <span class="badge">51预警 13低分</span></a></li></ul></li><li class="toc-mkt">重庆<ul><li><a href="#重庆-茶颜悦色">茶颜悦色 <span class="badge">24预警 7低分</span></a></li></ul></li></ul>
+</div>
+
+<div class="chart-box">
+  <h3>📊 各市场品牌问题概览</h3>
+  <img src="chart_overview.png" alt="各市场品牌问题概览">
+</div>
+
+<div class="chart-box">
+  <h3>📊 预警类型分布</h3>
+  <img src="chart_alert_types.png" alt="预警类型分布">
+</div>
+
+<div class="chart-box">
+  <h3>📊 各市场品牌核心病灶 TOP5</h3>
+  <img src="chart_dim_problems.png" alt="核心病灶">
+</div>
+
+<div class="chart-box">
+  <h3>📊 区经理问题密度排行</h3>
+  <img src="chart_area_mgr.png" alt="区经理排行">
+</div>
+
+<div class="section" id="湖南-茶颜悦色">
+<h2>湖南市场 — 茶颜悦色</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">179</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">188</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">32</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">28</div><div class="label">低体验分</div></div>
+<div class="stat-card alert"><div class="num">4</div><div class="label">体验分=0</div></div>
+<div class="stat-card"><div class="num">93.5</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.48</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×149店</span>
+<span class="dim-tag red">消息回复×147店</span>
+<span class="dim-tag red">merchant_rating×76店</span>
+<span class="dim-tag red">service_exp×46店</span>
+<span class="dim-tag red">回复率×43店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>娄底万豪城市广场茶叶子</strong></td><td><span class="red">29.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">product_sat 0.0</span><span class="red dim-tag">pack_sat 0.0</span><span class="red dim-tag">复购率 0.0</span><span class="red dim-tag">消息回复 0.0</span><span class="red dim-tag">service_neg 0.0</span><span class="red dim-tag">食品安全 0.0</span><span class="red dim-tag">出餐上报 0.0</span></td><td>曹倩</td></tr>
+<tr><td>2</td><td><strong>汉寿万达广场一楼茶叶子</strong></td><td><span class="red">74.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">product_sat 0.0</span><span class="red dim-tag">pack_sat 0.0</span><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 3.7</span></td><td>肖佳文</td></tr>
+<tr><td>3</td><td><strong>王府井桃花源游园会店</strong></td><td><span class="red">76.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">product_sat 0.0</span><span class="red dim-tag">pack_sat 0.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.2</span></td><td>吴龙琪</td></tr>
+<tr><td>4</td><td><strong>株洲职教城茶叶子</strong></td><td><span class="red">90.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">消息回复 3.1</span></td><td>张连化</td></tr>
+<tr><td>5</td><td><strong>郴州林邑星城店</strong></td><td><span class="zero">--</span></td><td><span class="red">4.1</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">product_quality 4.1</span><span class="red dim-tag">service_exp 3.9</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.2</span></td><td>吴龙琪</td></tr>
+<tr><td>6</td><td><strong>衡阳南华大学茶叶子</strong></td><td><span class="zero">--</span></td><td><span class="red">4.1</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">product_quality 4.0</span><span class="red dim-tag">service_exp 4.1</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 3.9</span><span class="red dim-tag">食品安全 3.4</span></td><td>吴龙琪</td></tr>
+<tr><td>7</td><td><strong>郴州欢乐海岸店</strong></td><td><span class="zero">--</span></td><td><span class="red">4.2</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">service_exp 3.7</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.5</span><span class="red dim-tag">service_neg 3.9</span></td><td>吴龙琪</td></tr>
+<tr><td>8</td><td><strong>耒阳南正街茶叶子</strong></td><td><span class="zero">--</span></td><td>4.4</td><td>3</td><td><span class="dim-tag blue">出餐10.7分</span><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.6</span><span class="red dim-tag">消息回复 3.5</span></td><td>吴龙琪</td></tr>
+<tr><td>9</td><td><strong>永兴县中心商城茶叶子</strong></td><td><span class="zero">--</span></td><td>4.7</td><td>1</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">消息回复 4.0</span></td><td>吴龙琪</td></tr>
+<tr><td>10</td><td><strong>娄底人文科技学院店</strong></td><td><span class="red">73.0</span></td><td><span class="red">4.2</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">product_quality 4.1</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.7</span></td><td>曹倩</td></tr>
+<tr><td>11</td><td><strong>郴州步步高北湖路店</strong></td><td><span class="red">72.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.6</span></td><td>吴龙琪</td></tr>
+<tr><td>12</td><td><strong>冷水江信和广场一楼茶叶子</strong></td><td><span class="red">74.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">service_exp 3.6</span><span class="red dim-tag">复购率 4.1</span><span class="red dim-tag">消息回复 3.8</span><span class="red dim-tag">service_neg 3.4</span></td><td>曹倩</td></tr>
+<tr><td>13</td><td><strong>资兴嘉华国际城游园会店</strong></td><td><span class="red">74.0</span></td><td>4.4</td><td>3</td><td><span class="dim-tag blue">出餐17.0分</span><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 3.7</span></td><td>吴龙琪</td></tr>
+<tr><td>14</td><td><strong>常德友阿国际外广场店</strong></td><td><span class="red">72.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.3</span><span class="red dim-tag">消息回复 3.6</span></td><td>肖佳文</td></tr>
+<tr><td>15</td><td><strong>常德吾悦广场一楼茶叶子</strong></td><td><span class="red">74.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 3.1</span></td><td>肖佳文</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>吴龙琪</td><td>20</td><td>34</td><td class="red">9</td><td class="red">8</td><td>62.1</td><td>4.16</td></tr>
+<tr><td>肖佳文</td><td>28</td><td>36</td><td class="red">7</td><td class="red">3</td><td>91.5</td><td>4.32</td></tr>
+<tr><td>曹倩</td><td>23</td><td>28</td><td class="red">6</td><td class="red">5</td><td>90.3</td><td>4.22</td></tr>
+<tr><td>曾思</td><td>29</td><td>30</td><td class="red">3</td><td class="red">2</td><td>95.7</td><td>4.50</td></tr>
+<tr><td>张连化</td><td>24</td><td>25</td><td class="red">3</td><td class="red">6</td><td>95.7</td><td>4.27</td></tr>
+</tbody></table>
+</div><div class="section" id="湖南-墨柠">
+<h2>湖南市场 — 墨柠</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">45</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">53</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">9</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">6</div><div class="label">低体验分</div></div>
+<div class="stat-card alert"><div class="num">1</div><div class="label">体验分=0</div></div>
+<div class="stat-card"><div class="num">94.8</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.48</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×35店</span>
+<span class="dim-tag red">消息回复×34店</span>
+<span class="dim-tag red">merchant_rating×18店</span>
+<span class="dim-tag red">service_exp×16店</span>
+<span class="dim-tag red">service_rich×9店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>古德墨柠望城永旺梦乐城店</strong></td><td><span class="red">74.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">product_sat 3.0</span><span class="red dim-tag">pack_sat 3.0</span><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">消息回复 3.3</span></td><td>张良东</td></tr>
+<tr><td>2</td><td><strong>古德墨柠佳兆业广场店</strong></td><td><span class="red">87.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.4</span></td><td>徐乾</td></tr>
+<tr><td>3</td><td><strong>古德墨柠都正街内街店</strong></td><td><span class="red">91.0</span></td><td><span class="red">4.2</span></td><td>2</td><td><span class="red dim-tag">回复率 50.0</span><span class="red dim-tag">product_quality 4.1</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.7</span><span class="red dim-tag">食品安全 4.1</span></td><td>李曦</td></tr>
+<tr><td>4</td><td><strong>古德墨柠河西通程店</strong></td><td>93.0</td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 3.6</span></td><td>林阳阳</td></tr>
+<tr><td>5</td><td><strong>古德墨柠林科大后街店</strong></td><td><span class="red">88.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">service_exp 3.8</span><span class="red dim-tag">消息回复 3.8</span><span class="red dim-tag">service_neg 3.8</span></td><td>林阳阳</td></tr>
+<tr><td>6</td><td><strong>古德墨柠泉塘店</strong></td><td><span class="red">91.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">复购率 3.5</span></td><td>徐乾</td></tr>
+<tr><td>7</td><td><strong>古德墨柠地科家园一楼店</strong></td><td><span class="red">92.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">service_neg 4.0</span></td><td>徐乾</td></tr>
+<tr><td>8</td><td><strong>古德墨柠西中心T3写字楼店</strong></td><td>97.0</td><td><span class="red">4.3</span></td><td>2</td><td><span class="dim-tag blue">出餐15.4分</span><span class="red dim-tag">service_exp 3.7</span><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">service_neg 3.3</span></td><td>张良东</td></tr>
+<tr><td>9</td><td><strong>古德墨柠万家丽家居广场店</strong></td><td><span class="red">90.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 66.0</span><span class="red dim-tag">复购率 3.9</span><span class="red dim-tag">消息回复 4.0</span></td><td>李曦</td></tr>
+<tr><td>10</td><td><strong>古德墨柠龙塘小区店</strong></td><td>96.0</td><td><span class="red">4.2</span></td><td>1</td><td><span class="red dim-tag">service_exp 3.5</span><span class="red dim-tag">product_sat 4.0</span><span class="red dim-tag">消息回复 3.2</span><span class="red dim-tag">service_neg 3.9</span></td><td>徐乾</td></tr>
+<tr><td>11</td><td><strong>古德墨柠阜埠河地铁1号口店</strong></td><td>93.0</td><td>4.4</td><td>2</td><td><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.0</span></td><td>林阳阳</td></tr>
+<tr><td>12</td><td><strong>古德墨柠太平街新胜村口店</strong></td><td>93.0</td><td>4.4</td><td>2</td><td><span class="red dim-tag">回复率 60.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.9</span></td><td>李曦</td></tr>
+<tr><td>13</td><td><strong>古德墨柠星沙吾悦外街店</strong></td><td><span class="red">89.0</span></td><td>4.6</td><td>2</td><td><span class="dim-tag blue">出餐14.6分</span><span class="red dim-tag">拒单率 74.0</span><span class="red dim-tag">复购率 3.1</span></td><td>徐乾</td></tr>
+<tr><td>14</td><td><strong>古德墨柠丰盈西里店</strong></td><td>94.0</td><td>4.4</td><td>2</td><td><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.6</span></td><td>李曦</td></tr>
+<tr><td>15</td><td><strong>古德墨柠雨花亭凯德二楼店</strong></td><td>97.0</td><td><span class="red">4.3</span></td><td>1</td><td><span class="red dim-tag">service_exp 3.3</span><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 3.4</span><span class="red dim-tag">service_neg 3.3</span></td><td>林阳阳</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>徐乾</td><td>19</td><td>23</td><td class="red">4</td><td class="red">2</td><td>95.4</td><td>4.47</td></tr>
+<tr><td>李曦</td><td>7</td><td>11</td><td class="red">2</td><td class="red">1</td><td>94.1</td><td>4.40</td></tr>
+<tr><td>林阳阳</td><td>9</td><td>11</td><td class="red">1</td><td class="red">2</td><td>94.8</td><td>4.49</td></tr>
+<tr><td>张良东</td><td>10</td><td>8</td><td class="red">2</td><td class="red">1</td><td>94.3</td><td>4.09</td></tr>
+</tbody></table>
+</div><div class="section" id="湖南-鸳央咖啡">
+<h2>湖南市场 — 鸳央咖啡</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">31</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">26</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">2</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">1</div><div class="label">低体验分</div></div>
+<div class="stat-card alert"><div class="num">1</div><div class="label">体验分=0</div></div>
+<div class="stat-card"><div class="num">95.6</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.57</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×29店</span>
+<span class="dim-tag red">消息回复×18店</span>
+<span class="dim-tag red">出餐上报×6店</span>
+<span class="dim-tag red">service_rich×5店</span>
+<span class="dim-tag red">service_exp×5店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>鸳央梅溪湖步步高B1层店</strong></td><td><span class="red">74.0</span></td><td><span class="zero">--</span></td><td>3</td><td><span class="dim-tag blue">出餐14.3分</span><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">复购率 4.0</span><span class="red dim-tag">消息回复 3.0</span></td><td>张松滨</td></tr>
+<tr><td>2</td><td><strong>鸳央友阿百货人民路店</strong></td><td><span class="red">84.0</span></td><td>4.6</td><td>1</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.2</span></td><td>张娇</td></tr>
+<tr><td>3</td><td><strong>鸳央方圆荟G层店</strong></td><td>93.0</td><td>4.4</td><td>2</td><td><span class="red dim-tag">复购率 3.6</span><span class="red dim-tag">消息回复 3.4</span></td><td>张娇</td></tr>
+<tr><td>4</td><td><strong>鸳央绿地中心广场店</strong></td><td>97.0</td><td><span class="red">4.3</span></td><td>1</td><td><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 4.0</span></td><td>张娇</td></tr>
+<tr><td>5</td><td><strong>鸳央建鸿达JW万豪店</strong></td><td>95.0</td><td>4.4</td><td>2</td><td><span class="red dim-tag">回复率 66.0</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 4.1</span></td><td>张娇</td></tr>
+<tr><td>6</td><td><strong>鸳央奥林匹克镖局店</strong></td><td>96.0</td><td>4.5</td><td>2</td><td><span class="dim-tag blue">出餐13.9分</span><span class="red dim-tag">复购率 3.2</span><span class="red dim-tag">消息回复 4.0</span></td><td>张松滨</td></tr>
+<tr><td>7</td><td><strong>鸳央旭辉国际一楼店</strong></td><td>98.0</td><td>4.5</td><td>2</td><td><span class="dim-tag blue">出餐13.5分</span><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">消息回复 3.0</span></td><td>张娇</td></tr>
+<tr><td>8</td><td><strong>鸳央金茂悦创新中心一楼店</strong></td><td>97.0</td><td>4.4</td><td>1</td><td><span class="red dim-tag">product_sat 4.0</span><span class="red dim-tag">复购率 3.8</span></td><td>张松滨</td></tr>
+<tr><td>9</td><td><strong>鸳央望城永旺梦乐城店</strong></td><td>97.0</td><td>4.4</td><td>1</td><td><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 3.1</span></td><td>张松滨</td></tr>
+<tr><td>10</td><td><strong>鸳央银盆岭万达广场店</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 4.0</span><span class="red dim-tag">消息回复 3.7</span></td><td>张松滨</td></tr>
+<tr><td>11</td><td><strong>鸳央律政大楼镖局店</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 3.7</span></td><td>张娇</td></tr>
+<tr><td>12</td><td><strong>鸳央北正街镖局店</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.6</span></td><td>张娇</td></tr>
+<tr><td>13</td><td><strong>鸳央汇金天虹店</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">消息回复 4.1</span></td><td>张娇</td></tr>
+<tr><td>14</td><td><strong>鸳央中隆国际广场店</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.8</span></td><td>张娇</td></tr>
+<tr><td>15</td><td><strong>鸳央复地星光店</strong></td><td>94.0</td><td>4.6</td><td>1</td><td><span class="red dim-tag">复购率 4.1</span></td><td>张娇</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>张娇</td><td>17</td><td>14</td><td class="red">1</td><td class="red">1</td><td>95.8</td><td>4.54</td></tr>
+<tr><td>张松滨</td><td>14</td><td>12</td><td class="red">1</td><td class="red">0</td><td>95.4</td><td>4.28</td></tr>
+</tbody></table>
+</div><div class="section" id="湖南-昼夜诗">
+<h2>湖南市场 — 昼夜诗</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">7</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">8</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">2</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">1</div><div class="label">低体验分</div></div>
+<div class="stat-card"><div class="num">94.6</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.51</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×5店</span>
+<span class="dim-tag red">消息回复×5店</span>
+<span class="dim-tag red">service_exp×2店</span>
+<span class="dim-tag red">merchant_rating×2店</span>
+<span class="dim-tag red">service_rich×2店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>昼夜后湖小区店</strong></td><td><span class="red">92.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">product_quality 4.1</span><span class="red dim-tag">product_sat 3.7</span><span class="red dim-tag">pack_sat 3.5</span></td><td>李怡</td></tr>
+<tr><td>2</td><td><strong>昼夜吉联Mall西广场店</strong></td><td><span class="red">88.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.5</span></td><td>李怡</td></tr>
+<tr><td>3</td><td><strong>昼夜中山亭广场店</strong></td><td>96.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.2</span><span class="red dim-tag">消息回复 3.9</span></td><td>李怡</td></tr>
+<tr><td>4</td><td><strong>昼夜荷花路店</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">service_exp 4.1</span><span class="red dim-tag">复购率 3.6</span><span class="red dim-tag">消息回复 3.3</span></td><td>李怡</td></tr>
+<tr><td>5</td><td><strong>昼夜突兀店</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.2</span><span class="red dim-tag">消息回复 4.0</span></td><td>李怡</td></tr>
+<tr><td>6</td><td><strong>昼夜城市生活家店</strong></td><td>93.0</td><td>4.6</td><td>1</td><td><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 4.0</span><span class="red dim-tag">消息回复 4.0</span><span class="red dim-tag">service_neg 4.0</span></td><td>李怡</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>李怡</td><td>7</td><td>8</td><td class="red">2</td><td class="red">1</td><td>94.6</td><td>4.51</td></tr>
+</tbody></table>
+</div><div class="section" id="江苏-茶颜悦色">
+<h2>江苏市场 — 茶颜悦色</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">137</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">142</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">27</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">17</div><div class="label">低体验分</div></div>
+<div class="stat-card alert"><div class="num">2</div><div class="label">体验分=0</div></div>
+<div class="stat-card"><div class="num">94.1</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.51</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×128店</span>
+<span class="dim-tag red">消息回复×79店</span>
+<span class="dim-tag red">merchant_rating×50店</span>
+<span class="dim-tag red">回复率×40店</span>
+<span class="dim-tag red">service_exp×28店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>盐城亭湖宝龙广场茶叶子</strong></td><td><span class="red">46.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">product_sat 0.0</span><span class="red dim-tag">pack_sat 0.0</span><span class="red dim-tag">复购率 0.0</span><span class="red dim-tag">消息回复 0.0</span><span class="red dim-tag">service_neg 0.0</span><span class="red dim-tag">食品安全 0.0</span><span class="red dim-tag">出餐上报 0.0</span></td><td>邹伟明</td></tr>
+<tr><td>2</td><td><strong>扬州邗江新城吾悦茶叶子</strong></td><td><span class="red">75.0</span></td><td><span class="zero">--</span></td><td>2</td><td><span class="red dim-tag">product_quality 0.0</span><span class="red dim-tag">service_exp 0.0</span><span class="red dim-tag">product_sat 3.0</span><span class="red dim-tag">pack_sat 3.0</span><span class="red dim-tag">复购率 4.0</span><span class="red dim-tag">消息回复 3.0</span><span class="red dim-tag">service_neg 3.1</span></td><td>邹伟明</td></tr>
+<tr><td>3</td><td><strong>常州飞龙吾悦广场一楼茶叶子</strong></td><td><span class="red">71.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.3</span><span class="red dim-tag">service_neg 3.9</span></td><td>王俊</td></tr>
+<tr><td>4</td><td><strong>常州钟楼吾悦广场茶叶子</strong></td><td><span class="red">74.0</span></td><td>4.4</td><td>3</td><td><span class="dim-tag blue">出餐15.2分</span><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 3.5</span></td><td>侯望清</td></tr>
+<tr><td>5</td><td><strong>常州九洲新世界茶叶子</strong></td><td><span class="red">74.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.2</span><span class="red dim-tag">消息回复 3.6</span></td><td>王俊</td></tr>
+<tr><td>6</td><td><strong>常州龙城天街一楼茶叶子</strong></td><td><span class="red">74.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.3</span></td><td>王俊</td></tr>
+<tr><td>7</td><td><strong>无锡梅里古镇茶叶子</strong></td><td><span class="red">90.0</span></td><td><span class="red">4.1</span></td><td>2</td><td><span class="red dim-tag">回复率 50.0</span><span class="red dim-tag">product_quality 4.1</span><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">product_sat 4.1</span><span class="red dim-tag">pack_sat 4.1</span><span class="red dim-tag">复购率 3.3</span><span class="red dim-tag">service_neg 3.2</span></td><td>石泽钦</td></tr>
+<tr><td>8</td><td><strong>南通海门大有境一楼茶叶子</strong></td><td>93.0</td><td><span class="red">4.1</span></td><td>2</td><td><span class="red dim-tag">product_quality 4.0</span><span class="red dim-tag">product_sat 3.7</span><span class="red dim-tag">pack_sat 3.7</span><span class="red dim-tag">复购率 3.6</span><span class="red dim-tag">service_neg 3.8</span></td><td>周斌</td></tr>
+<tr><td>9</td><td><strong>南京常发广场茶叶子</strong></td><td><span class="red">88.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">回复率 25.0</span><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">食品安全 4.1</span></td><td>邹伟明</td></tr>
+<tr><td>10</td><td><strong>南京NOWS新座店</strong></td><td><span class="red">92.0</span></td><td><span class="red">4.2</span></td><td>2</td><td><span class="red dim-tag">回复率 50.0</span><span class="red dim-tag">service_exp 3.5</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.4</span><span class="red dim-tag">service_neg 3.6</span></td><td>李欢</td></tr>
+<tr><td>11</td><td><strong>南京宜悦里G66一楼店</strong></td><td><span class="red">87.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">service_neg 4.0</span></td><td>李欢</td></tr>
+<tr><td>12</td><td><strong>淮安楚州万达广场一楼茶叶子</strong></td><td><span class="red">85.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 3.4</span></td><td>邹伟明</td></tr>
+<tr><td>13</td><td><strong>南京南瑞路宜悦里茶叶子</strong></td><td><span class="red">87.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.2</span></td><td>邹伟明</td></tr>
+<tr><td>14</td><td><strong>南通文峰大世界一楼茶叶子</strong></td><td><span class="red">87.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">service_exp 4.1</span><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">消息回复 3.4</span></td><td>周斌</td></tr>
+<tr><td>15</td><td><strong>泰州海陵北路茶叶子</strong></td><td><span class="red">87.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.4</span><span class="red dim-tag">消息回复 4.0</span></td><td>李欢</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>邹伟明</td><td>23</td><td>23</td><td class="red">7</td><td class="red">4</td><td>91.4</td><td>4.13</td></tr>
+<tr><td>李欢</td><td>21</td><td>24</td><td class="red">5</td><td class="red">2</td><td>94.9</td><td>4.50</td></tr>
+<tr><td>王俊</td><td>15</td><td>18</td><td class="red">4</td><td class="red">5</td><td>91.2</td><td>4.43</td></tr>
+<tr><td>曹海龙</td><td>12</td><td>15</td><td class="red">3</td><td class="red">1</td><td>94.0</td><td>4.53</td></tr>
+<tr><td>周斌</td><td>13</td><td>14</td><td class="red">3</td><td class="red">2</td><td>93.5</td><td>4.50</td></tr>
+</tbody></table>
+</div><div class="section" id="湖北-茶颜悦色">
+<h2>湖北市场 — 茶颜悦色</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">83</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">51</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">7</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">6</div><div class="label">低体验分</div></div>
+<div class="stat-card"><div class="num">96.3</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.58</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×51店</span>
+<span class="dim-tag red">消息回复×40店</span>
+<span class="dim-tag red">出餐上报×11店</span>
+<span class="dim-tag red">merchant_rating×11店</span>
+<span class="dim-tag red">回复率×11店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>恩施九立方国际购物中心茶叶子</strong></td><td><span class="red">72.0</span></td><td>4.6</td><td>1</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.8</span></td><td>许浩强</td></tr>
+<tr><td>2</td><td><strong>武汉亚贸广场茶叶子</strong></td><td><span class="red">87.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.8</span></td><td>许浩强</td></tr>
+<tr><td>3</td><td><strong>宜昌兴发广场茶叶子</strong></td><td><span class="red">87.0</span></td><td>4.4</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 3.8</span></td><td>许浩强</td></tr>
+<tr><td>4</td><td><strong>武汉武商MALLC座7楼店</strong></td><td><span class="red">92.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">product_quality 4.0</span><span class="red dim-tag">product_sat 4.0</span><span class="red dim-tag">复购率 3.0</span></td><td>刘弯弯</td></tr>
+<tr><td>5</td><td><strong>黄石万达一楼茶叶子</strong></td><td>98.0</td><td><span class="red">4.3</span></td><td>2</td><td><span class="dim-tag blue">出餐12.9分</span><span class="red dim-tag">消息回复 3.8</span><span class="red dim-tag">食品安全 3.3</span></td><td>林聪</td></tr>
+<tr><td>6</td><td><strong>武汉汉口欧亚达游园会店</strong></td><td>95.0</td><td><span class="red">4.3</span></td><td>1</td><td><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 4.1</span></td><td>林聪</td></tr>
+<tr><td>7</td><td><strong>武汉江宸天街一楼游园会店</strong></td><td>97.0</td><td><span class="red">4.3</span></td><td>1</td><td><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">service_neg 3.8</span></td><td>林聪</td></tr>
+<tr><td>8</td><td><strong>武汉太和里茶叶子</strong></td><td>98.0</td><td><span class="red">4.3</span></td><td>1</td><td><span class="red dim-tag">复购率 3.2</span><span class="red dim-tag">service_neg 4.0</span></td><td>林聪</td></tr>
+<tr><td>9</td><td><strong>利川市三合嘉百货茶叶子</strong></td><td>98.0</td><td>4.4</td><td>2</td><td><span class="red dim-tag">拒单率 0.0</span><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">product_sat 4.0</span><span class="red dim-tag">复购率 3.9</span></td><td>许浩强</td></tr>
+<tr><td>10</td><td><strong>武汉街道口季佳PAI店</strong></td><td><span class="red">88.0</span></td><td>4.6</td><td>1</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.2</span></td><td>许浩强</td></tr>
+<tr><td>11</td><td><strong>武汉鸣笛1988店</strong></td><td>93.0</td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 50.0</span><span class="red dim-tag">复购率 3.3</span></td><td>林聪</td></tr>
+<tr><td>12</td><td><strong>十堰华悦城一楼茶叶子</strong></td><td><span class="red">89.0</span></td><td>4.8</td><td>1</td><td><span class="red dim-tag">回复率 0.0</span></td><td>许浩强</td></tr>
+<tr><td>13</td><td><strong>武汉金地广场茶叶子</strong></td><td>94.0</td><td>4.5</td><td>2</td><td><span class="red dim-tag">复购率 3.5</span><span class="red dim-tag">消息回复 4.1</span></td><td>林聪</td></tr>
+<tr><td>14</td><td><strong>荆州安良百货一楼茶叶子</strong></td><td>94.0</td><td>4.5</td><td>2</td><td><span class="red dim-tag">复购率 4.0</span></td><td>刘弯弯</td></tr>
+<tr><td>15</td><td><strong>武汉汉秀剧场茶叶子</strong></td><td>97.0</td><td>4.4</td><td>1</td><td><span class="red dim-tag">复购率 3.1</span><span class="red dim-tag">消息回复 4.0</span></td><td>刘弯弯</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>许浩强</td><td>24</td><td>15</td><td class="red">5</td><td class="red">1</td><td>95.1</td><td>4.60</td></tr>
+<tr><td>林聪</td><td>32</td><td>21</td><td class="red">1</td><td class="red">4</td><td>96.8</td><td>4.56</td></tr>
+<tr><td>刘弯弯</td><td>27</td><td>15</td><td class="red">1</td><td class="red">1</td><td>96.9</td><td>4.57</td></tr>
+</tbody></table>
+</div><div class="section" id="重庆-茶颜悦色">
+<h2>重庆市场 — 茶颜悦色</h2>
+<div class="summary-grid">
+<div class="stat-card"><div class="num">54</div><div class="label">门店数</div></div>
+<div class="stat-card"><div class="num">24</div><div class="label">预警</div></div>
+<div class="stat-card"><div class="num">6</div><div class="label">低店铺分</div></div>
+<div class="stat-card"><div class="num">1</div><div class="label">低体验分</div></div>
+<div class="stat-card"><div class="num">96.9</div><div class="label">均店铺分</div></div>
+<div class="stat-card"><div class="num">4.60</div><div class="label">均体验分</div></div>
+</div>
+<div class="problem-bar">
+<strong>🔴 共性问题：</strong>
+<span class="dim-tag red">复购率×50店</span>
+<span class="dim-tag red">merchant_rating×7店</span>
+<span class="dim-tag red">回复率×6店</span>
+<span class="dim-tag red">消息回复×4店</span>
+<span class="dim-tag red">product_sat×1店</span>
+</div>
+<h3>⚠️ 重点关注门店</h3>
+<table><thead><tr><th>排名</th><th>门店</th><th>店铺分</th><th>体验分</th><th>预警</th><th>核心病灶</th><th>负责人</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>重庆九街亭子店</strong></td><td><span class="red">92.0</span></td><td><span class="red">4.3</span></td><td>2</td><td><span class="red dim-tag">回复率 50.0</span><span class="red dim-tag">复购率 3.0</span><span class="red dim-tag">消息回复 4.1</span></td><td>王毅</td></tr>
+<tr><td>2</td><td><strong>重庆龙湖新壹街B馆外街店</strong></td><td><span class="red">87.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.1</span></td><td>王毅</td></tr>
+<tr><td>3</td><td><strong>重庆喜盈门外街美食城店</strong></td><td><span class="red">91.0</span></td><td>4.5</td><td>2</td><td><span class="red dim-tag">回复率 50.0</span><span class="red dim-tag">复购率 3.1</span></td><td>刘灿</td></tr>
+<tr><td>4</td><td><strong>重庆蘭亭新都汇A入口店</strong></td><td><span class="red">87.0</span></td><td>4.6</td><td>1</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.5</span></td><td>邱汉信</td></tr>
+<tr><td>5</td><td><strong>重庆大学城熙街二期店</strong></td><td><span class="red">88.0</span></td><td>4.6</td><td>1</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 3.5</span></td><td>刘灿</td></tr>
+<tr><td>6</td><td><strong>重庆磁器口正街店</strong></td><td><span class="red">88.0</span></td><td>4.7</td><td>1</td><td><span class="red dim-tag">回复率 0.0</span><span class="red dim-tag">复购率 4.1</span></td><td>刘灿</td></tr>
+<tr><td>7</td><td><strong>重庆北碚天生丽街茶叶子</strong></td><td>97.0</td><td>4.4</td><td>1</td><td><span class="red dim-tag">product_sat 4.0</span><span class="red dim-tag">复购率 4.0</span></td><td>邱汉信</td></tr>
+<tr><td>8</td><td><strong>重庆星光68二期店</strong></td><td>98.0</td><td>4.4</td><td>1</td><td><span class="red dim-tag">service_exp 4.0</span><span class="red dim-tag">复购率 4.0</span><span class="red dim-tag">消息回复 4.0</span><span class="red dim-tag">service_neg 4.0</span><span class="red dim-tag">食品安全 4.0</span></td><td>王毅</td></tr>
+<tr><td>9</td><td><strong>重庆八一路好吃街店</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.2</span></td><td>王毅</td></tr>
+<tr><td>10</td><td><strong>重庆鲁祖庙茶叶子</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.1</span></td><td>邱汉信</td></tr>
+<tr><td>11</td><td><strong>重庆金港国际店</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.3</span></td><td>邱汉信</td></tr>
+<tr><td>12</td><td><strong>重庆重百大楼新潮商场负一楼店</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.0</span></td><td>刘灿</td></tr>
+<tr><td>13</td><td><strong>重庆巴蜀国潮美食城店</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.0</span></td><td>王毅</td></tr>
+<tr><td>14</td><td><strong>重庆西城天街南门外街茶叶子</strong></td><td>98.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.1</span></td><td>刘灿</td></tr>
+<tr><td>15</td><td><strong>重庆大学城熙街茶叶子</strong></td><td>97.0</td><td>4.5</td><td>1</td><td><span class="red dim-tag">复购率 3.5</span></td><td>刘灿</td></tr>
+</tbody></table>
+<h3>📋 区经理关注</h3>
+<table><thead><tr><th>区经理</th><th>管店</th><th>预警</th><th>低店分</th><th>低体分</th><th>均店分</th><th>均体分</th></tr></thead><tbody>
+<tr><td>刘灿</td><td>21</td><td>10</td><td class="red">3</td><td class="red">0</td><td>96.7</td><td>4.60</td></tr>
+<tr><td>王毅</td><td>18</td><td>8</td><td class="red">2</td><td class="red">1</td><td>96.8</td><td>4.57</td></tr>
+<tr><td>邱汉信</td><td>15</td><td>6</td><td class="red">1</td><td class="red">0</td><td>97.2</td><td>4.63</td></tr>
+</tbody></table>
+</div>
+
+<div class="footer">
+  本报告由看板系统自动生成 ｜ 数据截止 2026-07-07 ｜ 疑问请反馈运营部
+</div>
+
+</div>
+</body>
+</html>
