@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-07-10T15:08:03+08:00">
-<meta name="version" content="v2.10.1">
+<meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.10.1@20260710";
+  var VER = "v2.11.0@20260716";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -5705,6 +5705,404 @@ function exportAlertsCSV(){
 }
 </script>
 
+<!-- ===== 访问统计 ===== -->
+<style>
+  .visit-wrap { max-width:1280px; margin:0 auto 24px; padding:0 20px; }
+  .visit-card { background:var(--card); border-radius:12px; border:1px solid var(--border); overflow:hidden; }
+  .visit-head { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; cursor:pointer; user-select:none; transition:background .15s; }
+  .visit-head:hover { background:#FAFAF8; }
+  .visit-head-left { display:flex; align-items:center; gap:10px; }
+  .visit-head-icon { font-size:18px; }
+  .visit-head-title { font-size:15px; font-weight:700; color:var(--text-primary); }
+  .visit-tag { font-size:11px; color:var(--text-muted); background:#f0f0f0; border-radius:10px; padding:2px 10px; }
+  .visit-tag.api { background:var(--green-bg); color:var(--green); }
+  .visit-arrow { font-size:12px; color:var(--text-muted); transition:transform .2s; }
+  .visit-body { padding:0 20px 20px; }
+  .visit-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  @media(max-width:600px){ .visit-grid { grid-template-columns:1fr; } }
+  .visit-stat { background:#FAFAF8; border-radius:8px; padding:16px; text-align:center; }
+  .visit-stat-val { font-size:28px; font-weight:700; color:var(--text-primary); line-height:1.2; }
+  .visit-stat-val.today { color:#C25A00; }
+  .visit-stat-lbl { font-size:12px; color:var(--text-muted); margin-top:4px; }
+  .visit-chart-box { background:#FAFAF8; border-radius:8px; padding:16px; min-height:220px; position:relative; }
+  .visit-chart-title { font-size:12px; color:var(--text-secondary); margin-bottom:8px; font-weight:500; }
+  .visit-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:180px; gap:8px; }
+  .visit-state-icon { font-size:32px; opacity:.5; }
+  .visit-state-text { font-size:13px; color:var(--text-muted); }
+  .visit-state-retry { font-size:12px; color:#C25A00; cursor:pointer; border:1px solid #C25A00; border-radius:6px; padding:4px 16px; background:transparent; transition:all .15s; }
+  .visit-state-retry:hover { background:#C25A00; color:#fff; }
+  .visit-footer { font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; justify-content:space-between; align-items:center; }
+  .visit-footer-link { color:#C25A00; cursor:pointer; text-decoration:underline; }
+  .visit-spinner { width:28px; height:28px; border:3px solid #E8E6DF; border-top-color:#C25A00; border-radius:50%; animation:visit-spin .7s linear infinite; }
+  @keyframes visit-spin { to { transform:rotate(360deg); } }
+</style>
+
+<div class="visit-wrap">
+  <div class="visit-card">
+    <div class="visit-head" onclick="toggleVisitStats()">
+      <div class="visit-head-left">
+        <span class="visit-head-icon">📊</span>
+        <span class="visit-head-title">访问统计</span>
+        <span class="visit-tag" id="visit-source-tag">本设备</span>
+      </div>
+      <span class="visit-arrow" id="visit-arrow">▼</span>
+    </div>
+    <div class="visit-body" id="visit-body" style="display:none">
+      <div class="visit-grid">
+        <div class="visit-stat">
+          <div class="visit-stat-val today" id="visit-today">--</div>
+          <div class="visit-stat-lbl">今日访问</div>
+        </div>
+        <div class="visit-stat">
+          <div class="visit-stat-val" id="visit-total">--</div>
+          <div class="visit-stat-lbl">累计访问</div>
+        </div>
+        <div class="visit-stat">
+          <div class="visit-stat-val" id="visit-avg">--</div>
+          <div class="visit-stat-lbl">日均访问</div>
+        </div>
+      </div>
+      <div class="visit-chart-box">
+        <div class="visit-chart-title">近14天访问趋势</div>
+        <div id="visit-chart-area" style="position:relative;height:180px">
+          <div class="visit-state" id="visit-loading">
+            <div class="visit-spinner"></div>
+            <div class="visit-state-text">加载中...</div>
+          </div>
+          <div class="visit-state" id="visit-empty" style="display:none">
+            <div class="visit-state-icon">📋</div>
+            <div class="visit-state-text">暂无访问数据，打开看板即开始统计</div>
+          </div>
+          <div class="visit-state" id="visit-error" style="display:none">
+            <div class="visit-state-icon">⚠️</div>
+            <div class="visit-state-text">数据加载失败</div>
+            <button class="visit-state-retry" onclick="renderVisitStats()">重试</button>
+          </div>
+          <canvas id="visit-chart" style="display:none"></canvas>
+        </div>
+      </div>
+      <div class="visit-footer">
+        <span id="visit-source-info">数据来源：本设备浏览器记录</span>
+        <span id="visit-last-update"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   访问统计模块
+   ─ localStorage 本设备统计（零配置即用）
+   ─ 可选 VISIT_API_URL 接入远程API实现跨设备统计
+   ════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  // ── 配置 ──
+  var VISIT_KEY = 'takeout-visits';       // localStorage 访问数据 key
+  var VISITOR_KEY = 'takeout-visitor-id';  // 访客唯一ID
+  var SESSION_KEY = 'takeout-session-counted'; // sessionStorage 本次会话已计数标记
+  var VISIT_API_URL = '';  // 远程API地址，留空则用localStorage。配置后支持跨设备统计
+
+  var visitChart = null;
+  var visitDataLoaded = false;
+
+  // ── 工具函数 ──
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function dateStr(d){
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function todayStr(){ return dateStr(new Date()); }
+
+  // 生成/获取访客ID
+  function getVisitorId(){
+    try {
+      var id = localStorage.getItem(VISITOR_KEY);
+      if(!id){
+        id = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2,8);
+        localStorage.setItem(VISITOR_KEY, id);
+      }
+      return id;
+    } catch(e){ return 'v_unknown'; }
+  }
+
+  // 获取本地访问数据
+  function getLocalVisits(){
+    try {
+      var raw = localStorage.getItem(VISIT_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch(e){ return {}; }
+  }
+
+  // 保存本地访问数据
+  function saveLocalVisits(data){
+    try { localStorage.setItem(VISIT_KEY, JSON.stringify(data)); } catch(e){}
+  }
+
+  // 记录一次访问
+  function recordVisit(){
+    // sessionStorage 防止同会话重复计数
+    try {
+      if(sessionStorage.getItem(SESSION_KEY)) return;
+      sessionStorage.setItem(SESSION_KEY, '1');
+    } catch(e){}
+
+    var today = todayStr();
+    var data = getLocalVisits();
+    if(!data[today]) data[today] = 0;
+    data[today]++;
+    data['_lastVisit'] = today;
+    data['_lastVisitTime'] = new Date().toISOString();
+    saveLocalVisits(data);
+
+    // 远程API同步（如果配置了）
+    if(VISIT_API_URL){
+      try {
+        navigator.sendBeacon(
+          VISIT_API_URL + '/visit',
+          JSON.stringify({ date: today, visitorId: getVisitorId(), ts: Date.now() })
+        );
+      } catch(e){}
+    }
+  }
+
+  // 获取最近N天的访问数据
+  function getLastNDays(n, data){
+    var result = [];
+    var today = new Date();
+    for(var i = n-1; i >= 0; i--){
+      var d = new Date(today);
+      d.setDate(d.getDate() - i);
+      var ds = dateStr(d);
+      result.push({ date: ds, label: pad(d.getMonth()+1)+'/'+pad(d.getDate()), count: data[ds] || 0 });
+    }
+    return result;
+  }
+
+  // 渲染统计面板
+  function renderVisitStats(){
+    var body = document.getElementById('visit-body');
+    if(!body || body.style.display === 'none') return;
+
+    try {
+      var data = getLocalVisits();
+
+      // 如果配置了远程API，尝试获取远程数据
+      if(VISIT_API_URL){
+        fetchRemoteVisits(data);
+        return; // fetchRemoteVisits 会再次调用 renderWith
+      }
+
+      renderWithData(data);
+    } catch(e){
+      showState('error');
+      console.error('[访问统计] 渲染失败:', e);
+    }
+  }
+
+  // 从远程API获取数据
+  function fetchRemoteVisits(localData){
+    showState('loading');
+
+    fetch(VISIT_API_URL + '/visits?days=14', { cache: 'no-store' })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(remoteData){
+        // 合并远程和本地数据（取较大值）
+        var merged = {};
+        var allKeys = Object.keys(remoteData).concat(Object.keys(localData));
+        for(var i=0; i<allKeys.length; i++){
+          var k = allKeys[i];
+          if(k.startsWith('_')) continue;
+          var rv = remoteData[k] || 0;
+          var lv = localData[k] || 0;
+          merged[k] = Math.max(rv, lv);
+        }
+        // 更新标签
+        var tag = document.getElementById('visit-source-tag');
+        if(tag){ tag.textContent = '全网'; tag.classList.add('api'); }
+        var info = document.getElementById('visit-source-info');
+        if(info) info.textContent = '数据来源：远程API（跨设备统计）';
+        renderWithData(merged);
+      })
+      .catch(function(err){
+        console.warn('[访问统计] 远程API失败，使用本地数据:', err);
+        var info = document.getElementById('visit-source-info');
+        if(info) info.textContent = '数据来源：本设备浏览器记录（远程API连接失败）';
+        renderWithData(localData);
+      });
+  }
+
+  // 用给定数据渲染面板
+  function renderWithData(data){
+    var today = todayStr();
+    var todayCount = data[today] || 0;
+
+    // 计算总计和日均
+    var total = 0, dayCount = 0;
+    for(var k in data){
+      if(k.startsWith('_')) continue;
+      total += data[k] || 0;
+      if(data[k] > 0) dayCount++;
+    }
+    var avg = dayCount > 0 ? (total / dayCount).toFixed(1) : '0';
+
+    // 更新数字
+    var elToday = document.getElementById('visit-today');
+    var elTotal = document.getElementById('visit-total');
+    var elAvg = document.getElementById('visit-avg');
+    if(elToday) elToday.textContent = todayCount;
+    if(elTotal) elTotal.textContent = total;
+    if(elAvg) elAvg.textContent = avg;
+
+    // 更新最后更新时间
+    var lastTime = data['_lastVisitTime'];
+    var elLast = document.getElementById('visit-last-update');
+    if(elLast && lastTime){
+      try {
+        var dt = new Date(lastTime);
+        elLast.textContent = '最后访问：' + pad(dt.getHours())+':'+pad(dt.getMinutes());
+      } catch(e){}
+    }
+
+    // 渲染图表或空状态
+    if(total === 0){
+      showState('empty');
+    } else {
+      showState('chart');
+      renderChart(data);
+    }
+
+    visitDataLoaded = true;
+  }
+
+  // 渲染趋势图
+  function renderChart(data){
+    var canvas = document.getElementById('visit-chart');
+    if(!canvas) return;
+
+    var days = getLastNDays(14, data);
+    var labels = days.map(function(d){ return d.label; });
+    var counts = days.map(function(d){ return d.count; });
+
+    if(visitChart){
+      visitChart.destroy();
+      visitChart = null;
+    }
+
+    visitChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '访问次数',
+          data: counts,
+          backgroundColor: counts.map(function(c, i){
+            // 今天高亮
+            if(i === counts.length - 1) return 'rgba(194,90,0,0.8)';
+            return 'rgba(200,135,58,0.45)';
+          }),
+          borderColor: counts.map(function(c, i){
+            if(i === counts.length - 1) return '#C25A00';
+            return 'rgba(200,135,58,0.7)';
+          }),
+          borderWidth: 1,
+          borderRadius: 4,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(26,26,26,0.9)',
+            titleFont: { size: 12 },
+            bodyFont: { size: 12 },
+            padding: 10,
+            cornerRadius: 6,
+            callbacks: {
+              title: function(items){ return days[items[0].dataIndex].date; },
+              label: function(item){ return '访问 ' + item.parsed.y + ' 次'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 }, color: '#9B9990', maxRotation: 0 }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { font: { size: 10 }, color: '#9B9990', precision: 0, stepSize: 1 },
+            grid: { color: 'rgba(0,0,0,0.04)' }
+          }
+        }
+      }
+    });
+  }
+
+  // 切换状态显示
+  function showState(state){
+    var loading = document.getElementById('visit-loading');
+    var empty = document.getElementById('visit-empty');
+    var error = document.getElementById('visit-error');
+    var chart = document.getElementById('visit-chart');
+
+    if(loading) loading.style.display = state === 'loading' ? 'flex' : 'none';
+    if(empty) empty.style.display = state === 'empty' ? 'flex' : 'none';
+    if(error) error.style.display = state === 'error' ? 'flex' : 'none';
+    if(chart) chart.style.display = state === 'chart' ? 'block' : 'none';
+  }
+
+  // 折叠/展开
+  window.toggleVisitStats = function(){
+    var body = document.getElementById('visit-body');
+    var arrow = document.getElementById('visit-arrow');
+    if(body.style.display === 'none'){
+      body.style.display = 'block';
+      arrow.style.transform = 'rotate(0deg)';
+      if(!visitDataLoaded){
+        showState('loading');
+        setTimeout(renderVisitStats, 100);
+      }
+    } else {
+      body.style.display = 'none';
+      arrow.style.transform = 'rotate(-90deg)';
+    }
+  };
+
+  // 初始化
+  function init(){
+    recordVisit();
+
+    // 首次访问自动展开面板
+    var data = getLocalVisits();
+    var hasData = false;
+    for(var k in data){
+      if(!k.startsWith('_') && data[k] > 0){ hasData = true; break; }
+    }
+
+    // 如果有数据，延迟自动展开
+    if(hasData){
+      setTimeout(function(){
+        var body = document.getElementById('visit-body');
+        var arrow = document.getElementById('visit-arrow');
+        if(body){ body.style.display = 'block'; renderVisitStats(); }
+      }, 800);
+    }
+  }
+
+  // 启动
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
 <!-- ===== 更新日志 ===== -->
 <style>
   .changelog-wrap { margin-top: 24px; padding: 0 12px 20px; }
@@ -5727,6 +6125,13 @@ function exportAlertsCSV(){
     <span>更新日志</span>
   </div>
   <div class="changelog-body" id="changelogBody">
+    <div class="changelog-item">
+      <span class="changelog-ver">v2.11.0</span><span class="changelog-time">2026-07-16</span>
+      <ul class="changelog-list">
+        <li>新增：访问统计面板（今日/累计/日均访问量 + 14天趋势图）</li>
+        <li>支持本设备统计（零配置）和远程API跨设备统计（可选）</li>
+      </ul>
+    </div>
     <div class="changelog-item">
       <span class="changelog-ver">v2.10.1</span><span class="changelog-time">2026-07-06</span>
       <ul class="changelog-list">
