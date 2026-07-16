@@ -5804,7 +5804,7 @@ function exportAlertsCSV(){
   var SESSION_KEY = 'takeout-session-counted'; // sessionStorage 本次会话已计数标记
   // Supabase 跨设备统计（免费套餐：500MB存储/5万月活）
   var SUPABASE_URL = 'https://vnczauhkucinrhyxrfwh.supabase.co';
-  var SUPABASE_KEY = 'sb_publishable_2SW9OcdLaoZXOEI-oizY1w_nDiMZRM_';  // anon key，可安全暴露在前端
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuY3phdWhrdWNsbnJoeXhybHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODM1MTYsImV4cCI6MjA5OTc1OTUxNn0.y8RAYYUJ-_Ae619HhcMySIJTC8sHgcdmcK6PQnHI1wg';  // anon key（JWT格式），可安全暴露在前端
 
   var visitChart = null;
   var visitDataLoaded = false;
