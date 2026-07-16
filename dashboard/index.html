@@ -5802,7 +5802,7 @@ function exportAlertsCSV(){
   var VISIT_KEY = 'takeout-visits';       // localStorage 访问数据 key
   var VISITOR_KEY = 'takeout-visitor-id';  // 访客唯一ID
   var SESSION_KEY = 'takeout-session-counted'; // sessionStorage 本次会话已计数标记
-  var VISIT_API_URL = '';  // 远程API地址，留空则用localStorage。配置后支持跨设备统计
+  var VISIT_API_URL = 'https://cyys-visit-counter.540523745.workers.dev';  // 远程API地址，留空则用localStorage。配置后支持跨设备统计
 
   var visitChart = null;
   var visitDataLoaded = false;

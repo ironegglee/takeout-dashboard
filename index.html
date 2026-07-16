@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-16T10:32:51+08:00">
+<meta name="build-time" content="2026-07-16T15:48:23+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -5802,7 +5802,7 @@ function exportAlertsCSV(){
   var VISIT_KEY = 'takeout-visits';       // localStorage 访问数据 key
   var VISITOR_KEY = 'takeout-visitor-id';  // 访客唯一ID
   var SESSION_KEY = 'takeout-session-counted'; // sessionStorage 本次会话已计数标记
-  var VISIT_API_URL = '';  // 远程API地址，留空则用localStorage。配置后支持跨设备统计
+  var VISIT_API_URL = 'https://cyys-visit-counter.540523745.workers.dev';  // 远程API地址，留空则用localStorage。配置后支持跨设备统计
 
   var visitChart = null;
   var visitDataLoaded = false;

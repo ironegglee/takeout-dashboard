@@ -1,0 +1,7 @@
+name = "cyys-visit-counter"
+main = "worker.js"
+compatibility_date = "2025-07-16"
+
+[[kv_namespaces]]
+binding = "VISITS_KV"
+id = "2cebfcca41144def93923288c2a238c2"
