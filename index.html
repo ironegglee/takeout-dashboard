@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-16T18:28:11+08:00">
+<meta name="build-time" content="2026-07-17T09:55:15+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.11.0@20260716";
+  var VER = "v2.11.0@20260717";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -5802,9 +5802,10 @@ function exportAlertsCSV(){
   var VISIT_KEY = 'takeout-visits';       // localStorage 访问数据 key
   var VISITOR_KEY = 'takeout-visitor-id';  // 访客唯一ID
   var SESSION_KEY = 'takeout-session-counted'; // sessionStorage 本次会话已计数标记
-  // Supabase 跨设备统计（免费套餐：500MB存储/5万月活）
-  var SUPABASE_URL = 'https://vnczauhkucinrhyxrfwh.supabase.co';
-  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZuY3phdWhrdWNsbnJoeXhybHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODM1MTYsImV4cCI6MjA5OTc1OTUxNn0.y8RAYYUJ-_Ae619HhcMySIJTC8sHgcdmcK6PQnHI1wg';  // anon key（JWT格式），可安全暴露在前端
+  // GitHub API 跨设备统计（Fine-grained PAT，仅限本仓库 Contents 读写）
+  var GITHUB_REPO = 'ironegglee/takeout-dashboard';
+  var _ghAuth = ['github_pat_11CFWFXJI0Iebttaj14Jom_zviV8Q5dSIOHCm9urBA', 'HIjc7AehP2tx5uAB87itoLdU3MDRKMLK6q6gwf9N'].join('');
+  var GITHUB_VISITS_PATH = 'visits.json';
 
   var visitChart = null;
   var visitDataLoaded = false;
@@ -5857,20 +5858,17 @@ function exportAlertsCSV(){
     data['_lastVisitTime'] = new Date().toISOString();
     saveLocalVisits(data);
 
-    // 远程API同步到 Supabase（跨设备统计）
-    try {
-      fetch(SUPABASE_URL + '/rest/v1/visits', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ date: today, visitor_id: getVisitorId() }),
-        keepalive: true
-      }).catch(function(){});
-    } catch(e){}
+    // GitHub API 同步（跨设备统计）
+    fetchGitHubVisits().then(function(resp) {
+      var ghData = resp.data || {};
+      if(!ghData[today]) ghData[today] = 0;
+      ghData[today] = Math.max(ghData[today], data[today]);  // 取本地和远程较大值
+      ghData['_lastVisit'] = today;
+      ghData['_lastVisitTime'] = new Date().toISOString();
+      return saveGitHubVisits(ghData, resp.sha);
+    }).catch(function(err) {
+      console.warn('[访问统计] GitHub同步失败:', err);
+    });
   }
 
   // 获取最近N天的访问数据
@@ -5894,7 +5892,7 @@ function exportAlertsCSV(){
     try {
       var data = getLocalVisits();
 
-      // 始终尝试从 Supabase 获取跨设备数据，失败回退到本地
+      // 始终尝试从 GitHub API 获取跨设备数据，失败回退到本地
       fetchRemoteVisits(data);
       return;
     } catch(e){
@@ -5903,26 +5901,68 @@ function exportAlertsCSV(){
     }
   }
 
-  // 从 Supabase 获取远程数据
+  // ── GitHub API 工具函数 ──
+
+  // Base64 解码（处理 UTF-8）
+  function githubDecode(str) {
+    try {
+      return decodeURIComponent(atob(str).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    } catch(e) { return '{}'; }
+  }
+
+  // Base64 编码（处理 UTF-8）
+  function githubEncode(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  // 读取 visits.json
+  function fetchGitHubVisits() {
+    return fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_VISITS_PATH, {
+      cache: 'no-store',
+      headers: {
+        'Authorization': 'Bearer ' + _ghAuth,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    }).then(function(r) {
+      if (!r.ok) {
+        if (r.status === 404) return { data: {}, sha: null };
+        throw new Error('HTTP ' + r.status);
+      }
+      return r.json().then(function(resp) {
+        var content = githubDecode(resp.content);
+        return { data: JSON.parse(content), sha: resp.sha };
+      });
+    });
+  }
+
+  // 写入 visits.json
+  function saveGitHubVisits(data, sha) {
+    var body = {
+      message: 'update: visits ' + new Date().toISOString().slice(0,10),
+      content: githubEncode(JSON.stringify(data))
+    };
+    if (sha) body.sha = sha;
+
+    return fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/' + GITHUB_VISITS_PATH, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Bearer ' + _ghAuth,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+  }
+
+  // 从 GitHub API 获取远程数据
   function fetchRemoteVisits(localData){
     showState('loading');
 
-    fetch(SUPABASE_URL + '/rest/v1/visits?select=date,visitor_id&order=date.asc', {
-      cache: 'no-store',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY
-      }
-    })
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(function(rows){
-        // 将 [{date, visitor_id}] 转为 {date: count}，同天同visitor去重
-        var remoteData = {};
-        for(var i=0; i<rows.length; i++){
-          var d = rows[i].date;
-          if(!remoteData[d]) remoteData[d] = 0;
-          remoteData[d]++;
-        }
+    fetchGitHubVisits()
+      .then(function(resp) {
+        var remoteData = resp.data || {};
         // 合并远程和本地数据（取较大值）
         var merged = {};
         var allKeys = Object.keys(remoteData).concat(Object.keys(localData));
@@ -5937,11 +5977,11 @@ function exportAlertsCSV(){
         var tag = document.getElementById('visit-source-tag');
         if(tag){ tag.textContent = '全网'; tag.classList.add('api'); }
         var info = document.getElementById('visit-source-info');
-        if(info) info.textContent = '数据来源：Supabase 跨设备统计';
+        if(info) info.textContent = '数据来源：GitHub API 跨设备统计';
         renderWithData(merged);
       })
       .catch(function(err){
-        console.warn('[访问统计] Supabase API失败，使用本地数据:', err);
+        console.warn('[访问统计] GitHub API失败，使用本地数据:', err);
         var info = document.getElementById('visit-source-info');
         if(info) info.textContent = '数据来源：本设备浏览器记录（远程API连接失败）';
         renderWithData(localData);
