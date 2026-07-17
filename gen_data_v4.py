@@ -442,7 +442,7 @@ def read_mp_header(filepath):
     wb.close()
     return header
 
-def process_mp_file(filepath, mp_data, mp_header_idx):
+def process_mp_file(filepath, mp_data, mp_header_idx, skip_existing=False):
     """流式处理小程序配送数据文件，逐个读取行，不保留整个列表"""
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
     ws = wb['小程序配送数据源']
@@ -451,6 +451,8 @@ def process_mp_file(filepath, mp_data, mp_header_idx):
         d = row_to_dict(row, mp_header_idx)
         order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
         if order_code:
+            if skip_existing and order_code in mp_data:
+                continue
             mp_data[order_code] = d
             count += 1
     wb.close()
@@ -461,18 +463,19 @@ m7_mp_header = read_mp_header(NEW_PATH)
 mp_header_idx = make_header_index(m7_mp_header)
 
 # 合并去重：用 (订单编码) 作为唯一键，7月 > 6月 > 5月
+# 先处理7月（最新），再补充6月和5月的去重数据，减少内存峰值
 mp_data = {}  # {order_code: row_dict}
-
-m5_count = process_mp_file(OLD_PATH, mp_data, mp_header_idx)
-print(f'5月小程序配送处理: {m5_count} 条')
-gc.collect()
-
-m6_count = process_mp_file(MID_PATH, mp_data, mp_header_idx)
-print(f'6月小程序配送处理: {m6_count} 条')
-gc.collect()
 
 m7_count = process_mp_file(NEW_PATH, mp_data, mp_header_idx)
 print(f'7月小程序配送处理: {m7_count} 条')
+gc.collect()
+
+m6_count = process_mp_file(MID_PATH, mp_data, mp_header_idx, skip_existing=True)
+print(f'6月小程序配送处理: {m6_count} 条')
+gc.collect()
+
+m5_count = process_mp_file(OLD_PATH, mp_data, mp_header_idx, skip_existing=True)
+print(f'5月小程序配送处理: {m5_count} 条')
 gc.collect()
 
 print(f'合并去重后: {len(mp_data)} 条订单')
