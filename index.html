@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-17T10:36:37+08:00">
+<meta name="build-time" content="2026-07-17T10:49:34+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -5903,13 +5903,14 @@ function exportAlertsCSV(){
 
   // ── GitHub API 工具函数 ──
 
-  // Base64 解码（处理 UTF-8）
+  // Base64 解码（处理 UTF-8 + GitHub API 返回的换行符）
   function githubDecode(str) {
     try {
-      return decodeURIComponent(atob(str).split('').map(function(c) {
+      var clean = str.replace(/\s/g, '');  // 去除换行符和空白
+      return decodeURIComponent(atob(clean).split('').map(function(c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
-    } catch(e) { return '{}'; }
+    } catch(e) { console.error('[访问统计] base64解码失败:', e); return '{}'; }
   }
 
   // Base64 编码（处理 UTF-8）
