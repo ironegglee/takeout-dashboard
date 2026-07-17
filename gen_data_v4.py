@@ -1,11 +1,15 @@
-import openpyxl, json, sys, gc
+import openpyxl, json, sys, gc, os
 from datetime import datetime, timedelta
 import math
 import traceback
 
 sys.stdout.reconfigure(encoding='utf-8')
 
+_fatal_error = False
+
 def _handle_exception(exc_type, exc_value, exc_traceback):
+    global _fatal_error
+    _fatal_error = True
     with open('C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/_gen_exception.txt', 'w', encoding='utf-8') as f:
         traceback.print_exception(exc_type, exc_value, exc_traceback, file=f)
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -1016,4 +1020,33 @@ fsize = len(json.dumps(output, ensure_ascii=False)) / 1024
 print(f'已输出: {OUT}')
 print(f'大小: {fsize:.0f} KB')
 print(f'美团门店: {len(mt_stores)} | 小程序门店: {len(mp_stores)} | 预警: {len(alerts)} 条')
+
+# ═══════════════════════════════════════════
+# 10. 数据完整性校验
+# ═══════════════════════════════════════════
+errors = []
+
+if _fatal_error:
+    errors.append('捕获到未处理异常，详见 _gen_exception.txt')
+if not os.path.exists(OUT):
+    errors.append('data.json 文件未生成')
+if fsize < 50:
+    errors.append(f'data.json 过小({fsize:.0f}KB)，可能数据不完整')
+if len(mt_stores) < 100:
+    errors.append(f'美团门店数量异常少({len(mt_stores)}家)，预期>=100')
+if len(mp_stores) < 100:
+    errors.append(f'小程序门店数量异常少({len(mp_stores)}家)，预期>=100')
+if len(mp_daily) < 2:
+    errors.append(f'小程序每日汇总天数过少({len(mp_daily)}天)')
+if not full_date_range or '~' not in full_date_range:
+    errors.append('日期范围异常或为空')
+
+if errors:
+    print('\n=== 数据校验失败 ===')
+    for e in errors:
+        print(f'  ❌ {e}')
+    print('请检查数据源文件是否完整，或查看 _gen_exception.txt')
+    sys.exit(1)
+
+print('\n=== 数据校验通过 ===')
 print('Done!')
