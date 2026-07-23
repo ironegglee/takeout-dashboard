@@ -329,6 +329,9 @@
   .score-dim-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
   .score-dim-card { background: #fff; border: 1px solid #F0ECDE; border-radius: var(--radius-md); padding: 8px 10px; transition: box-shadow 0.15s; }
   .score-dim-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .score-dim-card.dim-pending { background: #FBF9F6; border: 1px dashed #D8D3C5; cursor: help; }
+  .score-dim-card.dim-pending:hover { box-shadow: 0 2px 8px rgba(155,153,144,0.15); border-color: #9B9990; }
+  .score-dim-card.dim-pending .dim-name { color: #9B9990; }
   .dim-name { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; white-space: nowrap; }
   .dim-value-row { display: flex; align-items: baseline; gap: 4px; }
   .dim-value { font-size: 16px; font-weight: 600; }
@@ -1088,6 +1091,12 @@ const EMBEDDED_DATA = {"generated_at": "2026-07-08", "meituan_date": "2026-07-08
 const EMBEDDED_DATE_START = "2026-05-01";
 const EMBEDDED_DATE_END = "2026-07-08";
    // 真实汇总 {total_orders,avg_cook_time,达标率}
+
+// 待更新指标：数据源已下线但前端不能直接隐藏（避免误导），统一显示"指标更新中"
+// 来源：gen_data_v4.py 检测 7月数据源最新日期字段有效率 < 5% 时自动写入
+const MT_PENDING_DIMS = new Set(EMBEDDED_DATA.mt_pending_dims || []);
+const MT_PENDING_REASON = EMBEDDED_DATA.mt_pending_reason || '';
+console.log('[MT] 待更新指标:', Array.from(MT_PENDING_DIMS), '原因:', MT_PENDING_REASON);
 
 const STORE_MP = [
   { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',avg:5.2,max:9,rate:98.1,revenue:12800},
@@ -2298,6 +2307,18 @@ function renderBreakdown(d){
 
 function renderMtScoreTree(shopB,expB){
   const dimCard=(d,category)=>{
+    // ── 待更新状态：数据源已下线，UI 显示"指标更新中"，不计入达标判断 ──
+    if(d.pending){
+      return `<div class="score-dim-card dim-pending" title="数据源已下线：${d.pendingReason||MT_PENDING_REASON||'美团指标更新中'}">
+        <div class="dim-name">${d.name} <span style="font-size:9px;opacity:0.3">⏳</span></div>
+        <div class="dim-value-row">
+          <span class="dim-value" style="color:var(--text-muted);font-size:14px">--</span>
+          <span class="dim-unit">${d.unit} / ${d.target}</span>
+          <span class="dim-status" style="background:#F0EEEA;color:#9B9990">指标更新中</span>
+        </div>
+        <div class="dim-bar"><div class="dim-bar-fill" style="width:0%;background:#E0DCD0"></div></div>
+      </div>`;
+    }
     const isNeg=d.target>d.val&&d.name.includes('率')&&d.name.includes('负');
     const status=isNeg?'ok':d.val>=d.target?'ok':d.val>=d.target*0.9?'warn':'bad';
     const statusCls='status-'+status;
@@ -2362,6 +2383,29 @@ var DIM_META = {
 function drillDim(dimName, category){
   var meta = DIM_META[dimName];
   if(!meta) return;
+  // ── pending 状态：指标已下线，弹窗友好提示 ──
+  if(MT_PENDING_DIMS.has(meta.field)){
+    var h = '<div style="background:#fff;border-radius:12px;max-width:520px;margin:0 auto;box-shadow:0 8px 40px rgba(0,0,0,0.15);overflow:hidden">';
+    h += '<div style="background:linear-gradient(135deg,#9B9990,#C8C5BE);color:#fff;padding:16px 20px">';
+    h += '<div style="font-size:16px;font-weight:700">⏳ '+dimName+' · 指标更新中</div>';
+    h += '<div style="font-size:11px;opacity:0.85;margin-top:4px">数据源已下线，暂无可下钻门店</div>';
+    h += '</div>';
+    h += '<div style="padding:24px 20px;text-align:center">';
+    h += '<div style="font-size:36px;margin-bottom:12px">🔄</div>';
+    h += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.7">';
+    h += (MT_PENDING_REASON || '美团平台正在更新本指标的统计口径')+'<br>新数据源恢复前将持续显示"指标更新中"，不会产生预警<br><br>请关注后续公告，恢复后将自动恢复展示与下钻</div>';
+    h += '</div>';
+    h += '<div style="padding:0 20px 20px;text-align:center"><button onclick="document.body.removeChild(alertDetailModal)" style="padding:8px 24px;background:#9B9990;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">知道了</button></div>';
+    h += '</div>';
+    if(alertDetailModal){ try{document.body.removeChild(alertDetailModal);}catch(e){} }
+    alertDetailModal = document.createElement('div');
+    alertDetailModal.className = 'modal-overlay';
+    alertDetailModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    alertDetailModal.onclick = function(e){ if(e.target===alertDetailModal) document.body.removeChild(alertDetailModal); };
+    alertDetailModal.innerHTML = h;
+    document.body.appendChild(alertDetailModal);
+    return;
+  }
   var stores = [], seen = {};
   STORE_MT.forEach(function(s){
     if(seen[s.name]) return;
@@ -3588,7 +3632,11 @@ function openStoreMerged(storeName){
     document.getElementById('drawerBody').appendChild(mtSection);
     // 简单追加美团核心指标
     const sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
-    const dimRow = (name, val, target, max, unit) => {
+    const dimRow = (name, val, target, max, unit, field) => {
+      // ── pending dims: 数据源已下线 ──
+      if(val===null&&field&&MT_PENDING_DIMS.has(field)){
+        return`<div class="detail-dim-row detail-dim-pending"><div class="detail-dim-name" style="color:#9B9990">${name}</div><div class="detail-dim-bar-wrap"><div class="detail-dim-bar-fill" style="width:0;background:#D8D3C5"></div><span class="detail-dim-val" style="color:#9B9990;font-size:11px">指标更新中</span></div><div class="detail-dim-target" style="color:#B8B5AD">暂不展示</div></div>`;
+      }
       if (val == null || isNaN(val)) val = 0;
       const pct = Math.min(100, Math.max(0, val / max * 100));
       const isNeg = (name.includes('负反馈') || name.includes('不接单')) && target < 10;
@@ -3631,23 +3679,23 @@ function openStoreMerged(storeName){
       <div class="drawer-section">
         <div class="drawer-section-title" style="color:#667eea">店铺分 · 六维明细</div>
         <div class="detail-dim-list">
-          ${dimRow('差评回复率得分', sd.reply_rate, 95, 100, '分')}
-          ${dimRow('商家评分得分', sd.merchant_rating, 95, 100, '分')}
-          ${dimRow('高峰营业时长得分', sd.peak_hours, 95, 100, '分')}
-          ${dimRow('商家不接单率', sd.reject_rate, 95, 100, '分')}
-          ${dimRow('基础营业时长得分', sd.base_hours, 95, 100, '分')}
-          ${dimRow('出餐上报/准时率得分', sd.cook_report, 95, 100, '分')}
+          ${dimRow('差评回复率得分', sd.reply_rate, 95, 100, '分', 'reply_rate')}
+          ${dimRow('商家评分得分', sd.merchant_rating, 95, 100, '分', 'merchant_rating')}
+          ${dimRow('高峰营业时长得分', sd.peak_hours, 95, 100, '分', 'peak_hours')}
+          ${dimRow('商家不接单率', sd.reject_rate, 95, 100, '分', 'reject_rate')}
+          ${dimRow('基础营业时长得分', sd.base_hours, 95, 100, '分', 'base_hours')}
+          ${dimRow('出餐上报/准时率得分', sd.cook_report, 95, 100, '分', 'cook_report')}
         </div>
       </div>
       <div class="drawer-section">
         <div class="drawer-section-title" style="color:#f5576c">综合体验分 · 六维明细</div>
         <div class="detail-dim-list">
-          ${dimRow('商品满意度', ed.product_sat, 4.6, 5, '')}
-          ${dimRow('包装满意度', ed.pack_sat, 4.6, 5, '')}
-          ${dimRow('复购率得分', ed.repurchase, 4.6, 5, '分')}
-          ${dimRow('消息回复率得分', ed.msg_reply, 4.6, 5, '分')}
-          ${dimRow('服务负反馈率得分', ed.service_neg, 4.6, 5, '分')}
-          ${dimRow('食安负反馈率得分', ed.food_safety, 4.6, 5, '分')}
+          ${dimRow('商品满意度', ed.product_sat, 4.6, 5, '', 'product_sat')}
+          ${dimRow('包装满意度', ed.pack_sat, 4.6, 5, '', 'pack_sat')}
+          ${dimRow('复购率得分', ed.repurchase, 4.6, 5, '分', 'repurchase')}
+          ${dimRow('消息回复率得分', ed.msg_reply, 4.6, 5, '分', 'msg_reply')}
+          ${dimRow('服务负反馈率得分', ed.service_neg, 4.6, 5, '分', 'service_neg')}
+          ${dimRow('食安负反馈率得分', ed.food_safety, 4.6, 5, '分', 'food_safety')}
         </div>
       </div>
       <div class="drawer-section">
@@ -3788,22 +3836,7 @@ function renderMtDetail(store, body){
   const sd=store.shop_dims || {}, ed=store.exp_dims || {};
   const trend=genStoreTrend(store,true);
 
-  const dimRow=(name,val,target,max,unit)=>{
-    if(val==null||isNaN(val))val=0;
-    const pct=Math.min(100,Math.max(0,val/max*100));
-    const isNeg=(name.includes('负反馈')||name.includes('不接单'))&&target<10;
-    const ok=isNeg?val<=target:val>=target;
-    const barC=ok?'#3B6D11':val>=target*0.85?'#EF9F27':'#E8321A';
-    const fmtV=val>=1?val.toFixed(1):val.toFixed(2);
-    return`<div class="detail-dim-row">
-      <div class="detail-dim-name">${name}</div>
-      <div class="detail-dim-bar-wrap">
-        <div class="detail-dim-bar-fill" style="width:${pct}%;background:${barC}"></div>
-        <span class="detail-dim-val">${fmtV}${unit}</span>
-      </div>
-      <div class="detail-dim-target">目标 ${isNeg?'≤':'≥'} ${target}</div>
-    </div>`;
-  };
+  const dimRow=(name,val,target,max,unit,field)=>{\n    // ── pending dims: 数据源已下线，显示"指标更新中" ──\n    if(val===null&&field&&MT_PENDING_DIMS.has(field)){\n      return`<div class=\"detail-dim-row detail-dim-pending\">\n        <div class=\"detail-dim-name\" style=\"color:#9B9990\">${name}</div>\n        <div class=\"detail-dim-bar-wrap\">\n          <div class=\"detail-dim-bar-fill\" style=\"width:0;background:#D8D3C5\"></div>\n          <span class=\"detail-dim-val\" style=\"color:#9B9990;font-size:11px\">指标更新中</span>\n        </div>\n        <div class=\"detail-dim-target\" style=\"color:#B8B5AD\">暂不展示</div>\n      </div>`;\n    }\n    if(val==null||isNaN(val))val=0;\n    const pct=Math.min(100,Math.max(0,val/max*100));\n    const isNeg=(name.includes('负反馈')||name.includes('不接单'))&&target<10;\n    const ok=isNeg?val<=target:val>=target;\n    const barC=ok?'#3B6D11':val>=target*0.85?'#EF9F27':'#E8321A';\n    const fmtV=val>=1?val.toFixed(1):val.toFixed(2);\n    return`<div class=\"detail-dim-row\">\n      <div class=\"detail-dim-name\">${name}</div>\n      <div class=\"detail-dim-bar-wrap\">\n        <div class=\"detail-dim-bar-fill\" style=\"width:${pct}%;background:${barC}\"></div>\n        <span class=\"detail-dim-val\">${fmtV}${unit}</span>\n      </div>\n      <div class=\"detail-dim-target\">目标 ${isNeg?'≤':'≥'} ${target}</div>\n    </div>`;\n  };
 
   body.innerHTML=`
     <div class="drawer-section">
@@ -3816,23 +3849,23 @@ function renderMtDetail(store, body){
     <div class="drawer-section">
       <div class="drawer-section-title" style="color:#667eea">店铺分 · 六维明细</div>
       <div class="detail-dim-list">
-        ${dimRow('差评回复率得分',sd.reply_rate,95,100,'分')}
-        ${dimRow('商家评分得分',sd.merchant_rating,95,100,'分')}
-        ${dimRow('高峰营业时长得分',sd.peak_hours,95,100,'分')}
-        ${dimRow('商家不接单率',sd.reject_rate,95,100,'分')}
-        ${dimRow('基础营业时长得分',sd.base_hours,95,100,'分')}
-        ${dimRow('出餐上报/准时率得分',sd.cook_report,95,100,'分')}
+        ${dimRow('差评回复率得分',sd.reply_rate,95,100,'分','reply_rate')}
+        ${dimRow('商家评分得分',sd.merchant_rating,95,100,'分','merchant_rating')}
+        ${dimRow('高峰营业时长得分',sd.peak_hours,95,100,'分','peak_hours')}
+        ${dimRow('商家不接单率',sd.reject_rate,95,100,'分','reject_rate')}
+        ${dimRow('基础营业时长得分',sd.base_hours,95,100,'分','base_hours')}
+        ${dimRow('出餐上报/准时率得分',sd.cook_report,95,100,'分','cook_report')}
       </div>
     </div>
     <div class="drawer-section">
       <div class="drawer-section-title" style="color:#f5576c">综合体验分 · 六维明细</div>
       <div class="detail-dim-list">
-        ${dimRow('商品满意度',ed.product_sat,4.6,5,'')}
-        ${dimRow('包装满意度',ed.pack_sat,4.6,5,'')}
-        ${dimRow('复购率得分',ed.repurchase,4.6,5,'分')}
-        ${dimRow('消息回复率得分',ed.msg_reply,4.6,5,'分')}
-        ${dimRow('服务负反馈率得分',ed.service_neg,4.6,5,'分')}
-        ${dimRow('食安负反馈率得分',ed.food_safety,4.6,5,'分')}
+        ${dimRow('商品满意度',ed.product_sat,4.6,5,'','product_sat')}
+        ${dimRow('包装满意度',ed.pack_sat,4.6,5,'','pack_sat')}
+        ${dimRow('复购率得分',ed.repurchase,4.6,5,'分','repurchase')}
+        ${dimRow('消息回复率得分',ed.msg_reply,4.6,5,'分','msg_reply')}
+        ${dimRow('服务负反馈率得分',ed.service_neg,4.6,5,'分','service_neg')}
+        ${dimRow('食安负反馈率得分',ed.food_safety,4.6,5,'分','food_safety')}
       </div>
     </div>
     <div class="drawer-section">
@@ -4506,18 +4539,27 @@ function calcRealMetrics(){
     }
   }
   var mtDimCount = mtForDims.length || 1;
+  // pending 辅助函数：字段是 pending 状态时返回 null 而不是 0
+  const dimVal=(s,field)=>{
+    if(MT_PENDING_DIMS.has(field)) return null;
+    return (s.shop_dims||{})[field] || 0;
+  };
+  const pendingReason=MT_PENDING_REASON;
+
   const mtShopBlock = {
     score: +mtAvgScore.toFixed(1), target:95, max:100,
     dims: [
-      {name:'差评回复率得分',   val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.reply_rate||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'商家评分得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'高峰营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'商家不接单率',   val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.reject_rate||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'基础营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
-      {name:'出餐上报/准时率得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok'},
+      {name:'差评回复率得分',   val:MT_PENDING_DIMS.has('reply_rate')?null:+(mtForDims.reduce((a,s)=>a+dimVal(s,'reply_rate'),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'reply_rate', pending:MT_PENDING_DIMS.has('reply_rate'), pendingReason},
+      {name:'商家评分得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'merchant_rating'},
+      {name:'高峰营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'peak_hours'},
+      {name:'商家不接单率',   val:MT_PENDING_DIMS.has('reject_rate')?null:+(mtForDims.reduce((a,s)=>a+dimVal(s,'reject_rate'),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'reject_rate', pending:MT_PENDING_DIMS.has('reject_rate'), pendingReason},
+      {name:'基础营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'base_hours'},
+      {name:'出餐上报/准时率得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'cook_report'},
     ]
   };
   mtShopBlock.dims.forEach(d=>{
+    // pending 状态不参与达标/预警判断
+    if(d.pending){ d.status='pending'; return; }
     const isNeg = (d.name.includes('负') || d.name.includes('不接单')) && d.target < 10;
     d.status = isNeg ? (d.val <= d.target ? 'ok' : 'warn') : (d.val >= d.target ? 'ok' : 'warn');
   });
@@ -5471,10 +5513,10 @@ function applyRealData(jsonData){
     shop_score: s.shop_score || 0,
     exp_score: s.exp_score || 0,
     shop_dims: {
-      reply_rate: (s.shop_dims && s.shop_dims.reply_rate) || 0,
+      reply_rate: (s.shop_dims && s.shop_dims.reply_rate !== undefined) ? s.shop_dims.reply_rate : 0,  // null=待更新
       merchant_rating: (s.shop_dims && s.shop_dims.merchant_rating) || 0,
       peak_hours: (s.shop_dims && s.shop_dims.peak_hours) || 0,
-      reject_rate: (s.shop_dims && s.shop_dims.reject_rate) || 0,
+      reject_rate: (s.shop_dims && s.shop_dims.reject_rate !== undefined) ? s.shop_dims.reject_rate : 0,  // null=待更新
       base_hours: (s.shop_dims && s.shop_dims.base_hours) || 0,
       cook_report: (s.shop_dims && s.shop_dims.cook_report != null) ? +s.shop_dims.cook_report.toFixed(1) : 0,
       quality_rate: (s.shop_dims && s.shop_dims.quality_rate) || 0,
