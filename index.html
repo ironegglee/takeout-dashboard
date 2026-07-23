@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-23T15:16:38+08:00">
+<meta name="build-time" content="2026-07-23T15:45:35+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -18,7 +18,10 @@
     var old = localStorage.getItem(K);
     if (old && old !== VER) {
       localStorage.setItem(K, VER);
-      location.reload(true);
+      // 现代浏览器已忽略 reload(true) 的缓存绕过，改用时间戳强制刷新
+      var url = new URL(location.href);
+      url.searchParams.set('_v', Date.now());
+      location.replace(url.toString());
       return;
     }
     localStorage.setItem(K, VER);

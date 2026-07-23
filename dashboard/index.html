@@ -12,13 +12,16 @@
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.11.0@20260716";
+  var VER = "v2.11.0@20260723";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
     if (old && old !== VER) {
       localStorage.setItem(K, VER);
-      location.reload(true);
+      // 现代浏览器已忽略 reload(true) 的缓存绕过，改用时间戳强制刷新
+      var url = new URL(location.href);
+      url.searchParams.set('_v', Date.now());
+      location.replace(url.toString());
       return;
     }
     localStorage.setItem(K, VER);

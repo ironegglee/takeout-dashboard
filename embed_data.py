@@ -180,6 +180,14 @@ html = re.sub(r'<meta name="build-time" content="[^"]*"', f'<meta name="build-ti
 html = re.sub(r'var VER\s*=\s*"[^"]*"', f'var VER = "{ver_str}"', html)
 # 更新 version meta 标签
 html = re.sub(r'<meta name="version" content="[^"]*"', f'<meta name="version" content="{CURRENT_VERSION}"', html)
+
+# 同步更新 dashboard/index.html 中的 VER（保持源文件一致）
+with open(SRC_HTML, 'r', encoding='utf-8') as f:
+    src_html_new = f.read()
+src_html_new = re.sub(r'var VER\s*=\s*"[^"]*"', f'var VER = "{ver_str}"', src_html_new)
+with open(SRC_HTML, 'w', encoding='utf-8') as f:
+    f.write(src_html_new)
+
 print(f'build-time: {build_time}')
 print(f'VER: {ver_str}')
 
