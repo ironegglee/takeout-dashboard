@@ -329,6 +329,47 @@ for (date_str, mtid), row in mt_data.items():
 
 print(f'近7日美团门店数(去重后): {len(recent_mt)}')
 
+# ═══════════════════════════════════════════
+# 检测"待更新"指标：最新日期中某字段全空/为0时，视为美团后台已下线该指标
+# 用途：避免看板显示 0.00 未达标 误导一线门店
+# ═══════════════════════════════════════════
+PENDING_DIM_CANDIDATES = {
+    'reply_rate': '差评回复率得分',     # 美团 2026.06 新规已下线
+    'reject_rate': '商家不接单率得分',   # 美团 2026.06 新规已下线
+}
+PENDING_THRESHOLD = 0.05  # 有效率低于 5% 视为"全部没有数据"
+
+mt_pending_dims = []
+if mt_data:
+    # 找最新日期
+    latest_date = max(mt_data.keys(), key=lambda k: k[0])[0]
+    latest_rows = [r for (d, m), r in mt_data.items() if d == latest_date]
+    if latest_rows:
+        for field_key, col_name in PENDING_DIM_CANDIDATES.items():
+            col_idx = mt_header_idx.get(col_name)
+            if col_idx is None:
+                continue
+            total = len(latest_rows)
+            valid = 0
+            for r in latest_rows:
+                v = r[col_idx]
+                if v is None: continue
+                s = str(v).strip()
+                if s == '' or s == '--' or s == 'None': continue
+                try:
+                    fv = float(s)
+                    if fv > 0:
+                        valid += 1
+                except (ValueError, TypeError):
+                    pass
+            rate = valid / total if total else 0
+            if rate < PENDING_THRESHOLD:
+                mt_pending_dims.append(field_key)
+                print(f'  ⏳ 指标待更新: {col_name} (最新日期{latest_date} 有效率{rate*100:.1f}% < {PENDING_THRESHOLD*100:.0f}%)')
+
+mt_pending_dims_set = set(mt_pending_dims)
+print(f'检测到待更新指标: {len(mt_pending_dims)} 个 → {mt_pending_dims}')
+
 # 构建 mt_stores
 mt_stores = []
 mt_unmatched = 0
@@ -405,8 +446,8 @@ for code, info in recent_mt.items():
         'shop_dims': {
             'peak_hours': safe_float(col_val(row, mt_header_idx, '高峰营业时长得分')),
             'quality_rate': safe_float(col_val(row, mt_header_idx, '优质商品率得分')),
-            'reject_rate': get_valid_score(code, '商家不接单率得分'),
-            'reply_rate': get_valid_score(code, '差评回复率得分'),
+            'reject_rate': None if 'reject_rate' in mt_pending_dims_set else get_valid_score(code, '商家不接单率得分'),
+            'reply_rate': None if 'reply_rate' in mt_pending_dims_set else get_valid_score(code, '差评回复率得分'),
             'merchant_rating': safe_float(col_val(row, mt_header_idx, '商家评分得分')),
             'menu_rich': safe_float(col_val(row, mt_header_idx, '菜单丰富度得分')),
             'decor_rich': safe_float(col_val(row, mt_header_idx, '装修丰富度得分')),
@@ -799,7 +840,7 @@ for s in mt_stores:
         low_dims = []
         for dim_name in ['peak_hours','quality_rate','reject_rate','reply_rate','merchant_rating',
                           'menu_rich','decor_rich','service_rich','cook_report','base_hours']:
-            dim_val = s.get('shop_dims', {}).get(dim_name, 0)
+            dim_val = s.get('shop_dims', {}).get(dim_name, 0) or 0
             dim_label = dim_labels.get(dim_name, dim_name)
             status_mark = '⚠' if dim_val < 80 else '✓'
             dim_detail_parts.append(f'{dim_label}{dim_val}分{status_mark}')
@@ -1003,6 +1044,8 @@ output = clean_nan({
     'mt_stores': mt_stores,
     'mp_stores': mp_stores,
     'store_arch': arch_by_code,
+    'mt_pending_dims': mt_pending_dims,  # 待更新指标列表（数据源已下线，前端展示"指标更新中"）
+    'mt_pending_reason': '美团 2026.06 店铺分新规上线，差评回复率/商家不接单率已从新评分体系移除',
     'alerts': alerts,
     'match_summary': {
         'arch_total': len(arch_by_mtid),
