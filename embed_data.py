@@ -75,6 +75,9 @@ if MARKER_END not in html:
 idx_start = html.index(MARKER_START)
 idx_end = html.index(MARKER_END, idx_start)
 
+pending_dims = data.get('mt_pending_dims', [])
+pending_reason = data.get('mt_pending_reason', '')
+
 new_block = MARKER_START + f'''
 
 /* ================================================================
@@ -84,6 +87,8 @@ new_block = MARKER_START + f'''
 const EMBEDDED_DATA = {json.dumps(data, ensure_ascii=False)};
 const EMBEDDED_DATE_START = "{date_start}";
 const EMBEDDED_DATE_END = "{date_end}";
+const MT_PENDING_DIMS = new Set({json.dumps(pending_dims, ensure_ascii=False)});
+const MT_PENDING_REASON = {json.dumps(pending_reason, ensure_ascii=False)};
    // 真实汇总 {{total_orders,avg_cook_time,达标率}}
 
 '''

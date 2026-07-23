@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外卖看板 V1 → V2 效果预览</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F6F2;
+    --card: #FFFFFF;
+    --border: rgba(0,0,0,0.08);
+    --text-primary: #1A1A1A;
+    --text-secondary: #5F5E5A;
+    --text-muted: #9B9990;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --green: #3B6D11; --green-bg: #EAF3DE;
+    --amber: #854F0B; --amber-bg: #FAEEDA;
+    --red: #A32D2D; --red-bg: #FCEBEB;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif; background: var(--bg); color: var(--text-primary); padding: 20px; }
+  .container { max-width: 720px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; color: var(--text-primary); margin-bottom: 4px; }
+  .header .sub { font-size: 12px; color: var(--text-muted); }
+
+  /* 切换按钮 */
+  .toggle-bar { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+  .toggle-btn { padding: 8px 28px; border: 2px solid #E0DCD0; border-radius: 20px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: var(--text-secondary); }
+  .toggle-btn:hover { border-color: #667eea; color: #667eea; }
+  .toggle-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
+
+  /* 版本标签 */
+  .version-tag { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 12px; }
+  .version-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .version-dot.v1 { background: #FFB300; }
+  .version-dot.v2 { background: #4CAF50; }
+
+  /* 总分卡片 */
+  .total-card { background: #fff; border: 1px solid #EDE8DD; border-radius: var(--radius-lg); padding: 20px; text-align: center; margin-bottom: 16px; }
+  .total-card .label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .total-card .score { font-size: 36px; font-weight: 700; color: #3B6D11; line-height: 1; }
+  .total-card .target { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* 店铺分 / 体验分块 */
+  .score-main-block { background: #FDFCF9; border: 1px solid #EDE8DD; border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 12px; }
+  .score-main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .score-main-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .score-main-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 14px; font-weight: 700; color: #fff; }
+  .badge-shop { background: linear-gradient(135deg,#667eea,#764ba2); }
+  .badge-exp { background: linear-gradient(135deg,#f093fb,#f5576c); }
+  .score-main-target { font-size: 11px; color: var(--text-muted); background: #fff; padding: 3px 10px; border-radius: 10px; border: 1px solid #EEE; }
+  .score-dim-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+  .score-dim-card { background: #fff; border: 1px solid #F0ECDE; border-radius: var(--radius-md); padding: 8px 10px; transition: box-shadow 0.15s; position: relative; overflow: hidden; }
+  .score-dim-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .score-dim-card.changed { border-color: #4CAF50; background: #FAFFFA; }
+  .score-dim-card.changed::before { content: "变化"; position: absolute; top: 4px; right: 6px; font-size: 8px; background: #4CAF50; color: #fff; padding: 1px 5px; border-radius: 6px; font-weight: 600; }
+  .score-dim-card.removed { border-color: #F0ECDE; background: #FBF9F6; opacity: 0.45; }
+  .score-dim-card.removed::before { content: "下线"; position: absolute; top: 4px; right: 6px; font-size: 8px; background: var(--amber-bg); color: var(--amber); padding: 1px 5px; border-radius: 6px; font-weight: 600; }
+  .score-dim-card.new { border-color: #4CAF50; background: #FAFFFA; }
+  .score-dim-card.new::before { content: "新增"; position: absolute; top: 4px; right: 6px; font-size: 8px; background: #4CAF50; color: #fff; padding: 1px 5px; border-radius: 6px; font-weight: 600; }
+  .score-dim-card.no-data { border-color: #F0ECDE; background: #fff; border-style: dashed; }
+  .score-dim-card.no-data::before { content: "待补充"; position: absolute; top: 4px; right: 6px; font-size: 8px; background: #F0EEEA; color: #9B9990; padding: 1px 5px; border-radius: 6px; font-weight: 600; }
+  .dim-name { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; white-space: nowrap; }
+  .dim-value-row { display: flex; align-items: baseline; gap: 4px; }
+  .dim-value { font-size: 16px; font-weight: 600; }
+  .dim-unit { font-size: 10px; color: var(--text-muted); }
+  .dim-status { font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 500; margin-left: auto; flex-shrink: 0; }
+  .status-ok { background: #EAF3DE; color: #3B6D11; }
+  .status-warn { background: #FAEEDA; color: #854F0B; }
+  .status-bad { background: #FCEBEB; color: #A32D2D; }
+  .dim-bar { width: 100%; height: 4px; background: #F0EEEA; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .dim-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+
+  /* 变化说明区 */
+  .change-summary { background: #fff; border: 1px solid #4CAF50; border-radius: var(--radius-lg); padding: 16px 18px; margin-top: 16px; }
+  .change-summary h3 { font-size: 13px; color: #3B6D11; margin-bottom: 8px; }
+  .change-summary li { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.6; list-style: inside; }
+
+  /* 移动端适配 */
+  @media (max-width: 600px) {
+    .score-dim-grid { grid-template-columns: 1fr 1fr; gap: 5px; }
+    .score-main-block { padding: 11px 12px; }
+    .score-dim-card { padding: 6px 8px; }
+    .dim-value { font-size: 14px; }
+    .toggle-btn { padding: 6px 20px; font-size: 13px; }
+  }
+
+  /* 渐变模拟 25% 数据缺失的过渡态 */
+  .data-mix-badge { display: inline-block; font-size: 10px; background: #FFF3E0; color: #E65100; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>美团店铺分 · V1→V2 指标调整预览</h1>
+    <div class="sub">茶颜悦色 · 外卖业务运营看板 / 评分体系升级（2026年6月新规）</div>
+  </div>
+
+  <!-- 版本切换 -->
+  <div class="toggle-bar">
+    <button class="toggle-btn active" onclick="switchVersion('v1')" id="btn-v1">📋 现有看板 (V1)</button>
+    <button class="toggle-btn" onclick="switchVersion('v2')" id="btn-v2">🔄 新评分体系 (V2)</button>
+  </div>
+
+  <!-- 看板主体 -->
+  <div id="dashboard-content">
+    <!-- 动态渲染 -->
+  </div>
+
+  <!-- 变化说明 -->
+  <div id="change-summary" class="change-summary" style="display:none">
+    <h3>指标调整明细</h3>
+    <ul>
+      <li>替换指标：<b>差评回复率得分</b> → <b>资质核验得分</b>（新增，无历史数据）</li>
+      <li>替换指标：<b>商家不接单率</b> → <b>后厨环境核验得分</b>（新增，无历史数据）</li>
+      <li>V1 旧指标约 75% 记录仍有值，约 25% 已为 "--"（美团后台过渡期）</li>
+      <li>V2 新指标当前数据源尚未产出，上线后需等待美团更新导出格式</li>
+      <li>其他指标不变：店铺分总量 + 4 项不变指标 + 体验分全部 6 项保持不变</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+// ── 模拟数据 ──
+var DATA = {
+  v1: {
+    shopScore: 93.8,
+    expScore: 4.48,
+    shopDims: [
+      {name:'差评回复率得分',  val:92.5, unit:'分', target:95, max:100},
+      {name:'商家评分得分',    val:95.0, unit:'分', target:95, max:100},
+      {name:'高峰营业时长得分',val:97.2, unit:'分', target:95, max:100},
+      {name:'商家不接单率',    val:88.3, unit:'分', target:95, max:100},
+      {name:'基础营业时长得分',val:94.7, unit:'分', target:95, max:100},
+      {name:'出餐上报/准时率得分',val:91.0, unit:'分', target:95, max:100},
+    ],
+    expDims: [
+      {name:'商品满意度',         val:4.52, unit:'', target:4.6, max:5},
+      {name:'包装满意度',         val:4.60, unit:'', target:4.6, max:5},
+      {name:'复购率得分',         val:4.38, unit:'分', target:4.6, max:5},
+      {name:'消息回复率得分',     val:4.65, unit:'分', target:4.6, max:5},
+      {name:'服务负反馈率得分',   val:4.41, unit:'分', target:4.6, max:5},
+      {name:'食安负反馈率得分',   val:4.55, unit:'分', target:4.6, max:5},
+    ]
+  },
+  v2: {
+    shopScore: 93.8,
+    expScore: 4.48,
+    shopDims: [
+      {name:'资质核验得分',      val:null,  unit:'分', target:95, max:100, noData:true},
+      {name:'商家评分得分',      val:95.0,  unit:'分', target:95, max:100},
+      {name:'高峰营业时长得分',  val:97.2,  unit:'分', target:95, max:100},
+      {name:'后厨环境核验得分',  val:null,  unit:'分', target:95, max:100, noData:true},
+      {name:'基础营业时长得分',  val:94.7,  unit:'分', target:95, max:100},
+      {name:'出餐上报/准时率得分',val:91.0, unit:'分', target:95, max:100},
+    ],
+    expDims: [
+      {name:'商品满意度',         val:4.52, unit:'', target:4.6, max:5},
+      {name:'包装满意度',         val:4.60, unit:'', target:4.6, max:5},
+      {name:'复购率得分',         val:4.38, unit:'分', target:4.6, max:5},
+      {name:'消息回复率得分',     val:4.65, unit:'分', target:4.6, max:5},
+      {name:'服务负反馈率得分',   val:4.41, unit:'分', target:4.6, max:5},
+      {name:'食安负反馈率得分',   val:4.55, unit:'分', target:4.6, max:5},
+    ]
+  }
+};
+
+// ── 辅助函数 ──
+function lerpColor(a,b,t) {
+  var ah = parseInt(a.replace('#',''), 16),
+      bh = parseInt(b.replace('#',''), 16),
+      ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff,
+      br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff,
+      rr = Math.round(ar + (br - ar) * t),
+      rg = Math.round(ag + (bg - ag) * t),
+      rb = Math.round(ab + (bb - ab) * t);
+  return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1);
+}
+
+function renderDimCard(d) {
+  if (d.noData) {
+    return '<div class="score-dim-card no-data">'
+      + '<div class="dim-name">' + d.name + '</div>'
+      + '<div class="dim-value-row">'
+      + '<span class="dim-value" style="color:#9B9990;font-size:13px">--</span>'
+      + '<span class="dim-unit">' + d.unit + ' / ' + d.target + '</span>'
+      + '<span class="dim-status" style="background:#F0EEEA;color:#9B9990">数据待补</span>'
+      + '</div>'
+      + '<div class="dim-bar"><div class="dim-bar-fill" style="width:0%;background:#E0DCD0"></div></div>'
+      + '</div>';
+  }
+  var isNeg = d.name.indexOf('负') >= 0 && d.target < 10;
+  var status = isNeg ? (d.val <= d.target ? 'ok' : 'warn') : (d.val >= d.target ? 'ok' : d.val >= d.target * 0.9 ? 'warn' : 'bad');
+  var statusCls = 'status-' + status;
+  var pct = Math.min(100, Math.max(0, d.val / d.max * 100));
+  var barColor;
+  if (pct >= 100) barColor = '#2E7D32';
+  else if (pct >= 85) barColor = lerpColor('#FFC107', '#2E7D32', (pct - 85) / 15);
+  else if (pct >= 70) barColor = lerpColor('#E8321A', '#FFC107', (pct - 70) / 15);
+  else barColor = '#E8321A';
+  var fmtV = d.val >= 1 ? d.val.toFixed(1) : d.val.toFixed(2);
+  return '<div class="score-dim-card">'
+    + '<div class="dim-name">' + d.name + '</div>'
+    + '<div class="dim-value-row">'
+    + '<span class="dim-value" style="color:' + (status === 'ok' ? '#3B6D11' : status === 'warn' ? '#854F0B' : '#A32D2D') + '">' + fmtV + '</span>'
+    + '<span class="dim-unit">' + d.unit + ' / ' + d.target + '</span>'
+    + '<span class="dim-status ' + statusCls + '">' + (status === 'ok' ? '达标' : status === 'warn' ? '预警' : '未达标') + '</span>'
+    + '</div>'
+    + '<div class="dim-bar"><div class="dim-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>'
+    + '</div>';
+}
+
+function render(ver) {
+  var d = DATA[ver];
+  var shopBlock = d.shopDims.map(renderDimCard).join('');
+  var expBlock = d.expDims.map(renderDimCard).join('');
+
+  var missingCount = d.shopDims.filter(function(x){return x.noData;}).length;
+
+  var html = '';
+
+  // 版本标签
+  html += '<div class="version-tag">';
+  if (ver === 'v1') {
+    html += '<span class="version-dot v1"></span><span style="color:var(--text-secondary);font-weight:600">当前看板 (V1) · 旧评分体系</span>';
+    html += '<span class="data-mix-badge">约25%数据已为 --</span>';
+  } else {
+    html += '<span class="version-dot v2"></span><span style="color:var(--text-secondary);font-weight:600">新评分体系 (V2) · 2026年6月新规</span>';
+    if (missingCount > 0) {
+      html += '<span class="data-mix-badge">' + missingCount + ' 项指标数据待美团产出</span>';
+    }
+  }
+  html += '</div>';
+
+  // 总分卡片
+  var sc = d.shopScore;
+  var scColor = sc >= 95 ? '#3B6D11' : sc >= 90 ? '#854F0B' : '#A32D2D';
+  html += '<div class="total-card">';
+  html += '<div class="label">平台整体店铺分（534家门店均值）</div>';
+  html += '<div class="score" style="color:' + scColor + '">' + sc.toFixed(1) + '</div>';
+  html += '<div class="target">目标 ≥ 95 分</div>';
+  html += '</div>';
+
+  // 店铺分块
+  html += '<div class="score-main-block" style="border-left: 3px solid #667eea;">';
+  html += '<div class="score-main-header">';
+  html += '<div class="score-main-title"><span>店铺分</span><span class="score-main-badge badge-shop">' + d.shopScore.toFixed(1) + '</span></div>';
+  html += '<span class="score-main-target">目标 ≥ 95分</span>';
+  html += '</div>';
+  html += '<div class="score-dim-grid">' + shopBlock + '</div>';
+  html += '</div>';
+
+  // 体验分块
+  html += '<div class="score-main-block" style="border-left: 3px solid #f093fb;">';
+  html += '<div class="score-main-header">';
+  html += '<div class="score-main-title"><span>综合体验分</span><span class="score-main-badge badge-exp">' + d.expScore.toFixed(2) + '</span></div>';
+  html += '<span class="score-main-target">目标 ≥ 4.6</span>';
+  html += '</div>';
+  html += '<div class="score-dim-grid">' + expBlock + '</div>';
+  html += '</div>';
+
+  document.getElementById('dashboard-content').innerHTML = html;
+
+  // 变化说明区
+  var summary = document.getElementById('change-summary');
+  summary.style.display = (ver === 'v2') ? 'block' : 'none';
+}
+
+function switchVersion(ver) {
+  document.getElementById('btn-v1').classList.toggle('active', ver === 'v1');
+  document.getElementById('btn-v2').classList.toggle('active', ver === 'v2');
+  render(ver);
+}
+
+// 初始渲染 V1
+render('v1');
+</script>
+</body>
+</html>
