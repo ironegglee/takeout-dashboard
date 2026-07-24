@@ -3,6 +3,15 @@ from datetime import datetime, timedelta
 import math
 import traceback
 
+# Monkey-patch openpyxl 使用 lxml iterparse 解决大文件 XML 解析异常
+try:
+    import openpyxl.xml.functions as _oxf
+    from lxml.etree import iterparse as _lxml_iterparse
+    _oxf.iterparse = _lxml_iterparse
+    print('  ✅ 已切换为 lxml XML 解析器')
+except Exception:
+    pass
+
 sys.stdout.reconfigure(encoding='utf-8')
 
 _fatal_error = False
@@ -317,58 +326,98 @@ cutoff_str = cutoff_dt.strftime('%Y-%m-%d')
 recent_mt = {}  # {code: {date_str, row_tuple}} - 只保留最新日期
 mt_all_records = {}  # {code: [{date, row}, ...]} - 所有日期记录，用于得分字段回退
 for (date_str, mtid), row in mt_data.items():
+    code = str(col_val(row, mt_header_idx, '门店编码') or '').strip()
+    if not code:
+        continue
+    # 所有日期都进 mt_all_records（用于回退）
+    if code not in mt_all_records:
+        mt_all_records[code] = []
+    mt_all_records[code].append({'date': date_str, 'row': row})
+    # 近7天 cutoff 只影响 recent_mt（代表当前展示用的最新数据）
     if date_str >= cutoff_str:
-        code = str(col_val(row, mt_header_idx, '门店编码') or '').strip()
-        if not code:
-            continue
         if code not in recent_mt or date_str > recent_mt[code]['date']:
             recent_mt[code] = {'date': date_str, 'row': row}
-        if code not in mt_all_records:
-            mt_all_records[code] = []
-        mt_all_records[code].append({'date': date_str, 'row': row})
 
 print(f'近7日美团门店数(去重后): {len(recent_mt)}')
 
 # ═══════════════════════════════════════════
-# 检测"待更新"指标：最新日期中某字段全空/为0时，视为美团后台已下线该指标
-# 用途：避免看板显示 0.00 未达标 误导一线门店
+# 检测"待更新"指标：找出有效率断崖日期，作为指标下线 cutoff
+# 用途：cutoff 之前的日期如实显示分数，cutoff 之后显示"指标更新中"
 # ═══════════════════════════════════════════
 PENDING_DIM_CANDIDATES = {
-    'reply_rate': '差评回复率得分',     # 美团 2026.06 新规已下线
-    'reject_rate': '商家不接单率得分',   # 美团 2026.06 新规已下线
+    'reply_rate': '差评回复率得分',     # 美团 2026.07 中下线
+    'reject_rate': '商家不接单率得分',   # 美团 2026.07 中下线
 }
-PENDING_THRESHOLD = 0.05  # 有效率低于 5% 视为"全部没有数据"
+PENDING_THRESHOLD = 0.05  # 有效率低于 5% 视为"无效"
+PENDING_OK_THRESHOLD = 0.30  # 有效率高于 30% 视为"正常"
 
-mt_pending_dims = []
+mt_pending_dims = {}  # {field: {cutoff: 'YYYY-MM-DD', reason: '...'}}
 if mt_data:
-    # 找最新日期
-    latest_date = max(mt_data.keys(), key=lambda k: k[0])[0]
-    latest_rows = [r for (d, m), r in mt_data.items() if d == latest_date]
-    if latest_rows:
-        for field_key, col_name in PENDING_DIM_CANDIDATES.items():
+    # 收集每个候选指标每天的有效率
+    dim_daily_valid = {fk: {} for fk in PENDING_DIM_CANDIDATES}
+    dim_daily_total = {}
+    for (d, m), r in mt_data.items():
+        ds = str(d)[:10]
+        dim_daily_total[ds] = dim_daily_total.get(ds, 0) + 1
+        for fk, col_name in PENDING_DIM_CANDIDATES.items():
             col_idx = mt_header_idx.get(col_name)
-            if col_idx is None:
-                continue
-            total = len(latest_rows)
-            valid = 0
-            for r in latest_rows:
-                v = r[col_idx]
-                if v is None: continue
-                s = str(v).strip()
-                if s == '' or s == '--' or s == 'None': continue
-                try:
-                    fv = float(s)
-                    if fv > 0:
-                        valid += 1
-                except (ValueError, TypeError):
-                    pass
-            rate = valid / total if total else 0
-            if rate < PENDING_THRESHOLD:
-                mt_pending_dims.append(field_key)
-                print(f'  ⏳ 指标待更新: {col_name} (最新日期{latest_date} 有效率{rate*100:.1f}% < {PENDING_THRESHOLD*100:.0f}%)')
+            if col_idx is None: continue
+            v = r[col_idx]
+            if v is None: continue
+            s = str(v).strip()
+            if s == '' or s == '--' or s == 'None': continue
+            try:
+                if float(s) > 0:
+                    dim_daily_valid[fk][ds] = dim_daily_valid[fk].get(ds, 0) + 1
+            except (ValueError, TypeError):
+                pass
 
-mt_pending_dims_set = set(mt_pending_dims)
-print(f'检测到待更新指标: {len(mt_pending_dims)} 个 → {mt_pending_dims}')
+    sorted_dates = sorted(dim_daily_total.keys())
+
+    # 对每个候选指标找"从哪天起有效率断崖"
+    for fk, col_name in PENDING_DIM_CANDIDATES.items():
+        # 先算每日有效率
+        rates = []
+        for ds in sorted_dates:
+            total = dim_daily_total[ds]
+            valid = dim_daily_valid[fk].get(ds, 0)
+            rates.append((ds, valid / total if total else 0))
+
+        # 找"最后一天高有效率" → cutoff = 它的下一天
+        last_ok_date = None
+        for ds, rate in rates:
+            if rate >= PENDING_OK_THRESHOLD:
+                last_ok_date = ds
+
+        # 找"开始连续低有效率的第一天"
+        low_start = None
+        in_low = False
+        for ds, rate in rates:
+            if rate < PENDING_THRESHOLD:
+                if not in_low:
+                    low_start = ds
+                    in_low = True
+            else:
+                in_low = False
+
+        # 判定：是否真的"下线"（先高有效率、后连续低有效率）
+        if last_ok_date and low_start and low_start > last_ok_date:
+            # cutoff = low_start（指标从这天起无数据）
+            cutoff = low_start
+            mt_pending_dims[fk] = {
+                'cutoff': cutoff,
+                'reason': f'美团 2026.07 新规：{col_name} 已于 {cutoff} 起暂停更新'
+            }
+            print(f'  ⏳ 指标下线检测: {col_name} → cutoff={cutoff}（{last_ok_date} 有效率 {(dim_daily_valid[fk].get(last_ok_date,0)/dim_daily_total[last_ok_date]*100):.0f}%，{cutoff} 起掉到 0%）')
+        elif last_ok_date is None and any(r < PENDING_THRESHOLD for _, r in rates):
+            # 整个数据源都是低有效率 → 全局 pending，无 cutoff
+            mt_pending_dims[fk] = {
+                'cutoff': None,
+                'reason': f'美团后台未提供 {col_name} 数据'
+            }
+            print(f'  ⏳ 全局指标下线: {col_name}（整个数据源有效率 < 5%）')
+
+print(f'检测到待更新指标: {len(mt_pending_dims)} 个 → {list(mt_pending_dims.keys())}')
 
 # 构建 mt_stores
 mt_stores = []
@@ -390,20 +439,29 @@ exp_dim_labels = {
     'cook_report': '出餐上报/配送准时率',
 }
 
-def get_valid_score(code, field_name):
-    """获取某门店某字段的有效得分，最新日期缺失时回退到历史日期"""
-    # 优先取最新日期
+def get_valid_score(code, field_name, cutoff_date=None):
+    """获取某门店某字段的有效得分，最新日期缺失时回退到历史日期
+    cutoff_date: 该字段的指标下线日期（YYYY-MM-DD），cutoff 及之后日期视为无效
+    """
+    def _is_valid_date(ds):
+        if cutoff_date is None: return True
+        return ds < cutoff_date  # cutoff 之前才视为有效
+
+    # 优先取最新日期（且日期 < cutoff）
     if code in recent_mt:
-        val = col_val(recent_mt[code]['row'], mt_header_idx, field_name)
-        if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
-            return safe_float(val)
-    # 回退：按日期倒序查历史有效值
+        info = recent_mt[code]
+        if _is_valid_date(info['date']):
+            val = col_val(info['row'], mt_header_idx, field_name)
+            if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
+                return safe_float(val)
+    # 回退：按日期倒序查历史有效值（仅查 cutoff 之前）
     if code in mt_all_records:
         for rec in sorted(mt_all_records[code], key=lambda x: x['date'], reverse=True):
+            if not _is_valid_date(rec['date']): continue
             val = col_val(rec['row'], mt_header_idx, field_name)
             if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
                 return safe_float(val)
-    return 0.0
+    return None  # cutoff 之后无数据 → None（前端展示 pending）
 
 for code, info in recent_mt.items():
     row = info['row']
@@ -446,8 +504,8 @@ for code, info in recent_mt.items():
         'shop_dims': {
             'peak_hours': safe_float(col_val(row, mt_header_idx, '高峰营业时长得分')),
             'quality_rate': safe_float(col_val(row, mt_header_idx, '优质商品率得分')),
-            'reject_rate': None if 'reject_rate' in mt_pending_dims_set else get_valid_score(code, '商家不接单率得分'),
-            'reply_rate': None if 'reply_rate' in mt_pending_dims_set else get_valid_score(code, '差评回复率得分'),
+            'reject_rate': get_valid_score(code, '商家不接单率得分', mt_pending_dims.get('reject_rate', {}).get('cutoff')),
+            'reply_rate': get_valid_score(code, '差评回复率得分', mt_pending_dims.get('reply_rate', {}).get('cutoff')),
             'merchant_rating': safe_float(col_val(row, mt_header_idx, '商家评分得分')),
             'menu_rich': safe_float(col_val(row, mt_header_idx, '菜单丰富度得分')),
             'decor_rich': safe_float(col_val(row, mt_header_idx, '装修丰富度得分')),
@@ -477,15 +535,27 @@ print(f'美团门店匹配: {len(mt_stores)}/{len(recent_mt)}, 未匹配: {mt_un
 print('\n=== 3. 读取小程序配送数据 ===')
 
 def read_mp_header(filepath):
-    """读取小程序配送数据源的表头"""
-    wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-    ws = wb['小程序配送数据源']
-    header = None
-    for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
-        header = row
-        break
-    wb.close()
-    return header
+    """读取小程序配送数据源的表头，带 XML 解析降级兼容"""
+    for attempt, (read_only, label) in enumerate([
+        (True, 'read_only'), (False, '普通')
+    ]):
+        try:
+            wb = openpyxl.load_workbook(filepath, read_only=read_only, data_only=True)
+            ws = wb['小程序配送数据源']
+            header = None
+            for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
+                header = row
+                break
+            wb.close()
+            if attempt > 0:
+                print(f'  ⚠ 降级读取({label})表头成功')
+            return header
+        except Exception as e:
+            if attempt == 0:
+                print(f'  ⚠ read_only 模式读取表头失败，尝试普通模式: {e}')
+            else:
+                raise
+    return None
 
 def process_mp_file(filepath, mp_data, mp_header_idx, skip_existing=False):
     """流式处理小程序配送数据文件，逐个读取行，不保留整个列表"""
@@ -840,8 +910,12 @@ for s in mt_stores:
         low_dims = []
         for dim_name in ['peak_hours','quality_rate','reject_rate','reply_rate','merchant_rating',
                           'menu_rich','decor_rich','service_rich','cook_report','base_hours']:
-            dim_val = s.get('shop_dims', {}).get(dim_name, 0) or 0
+            dim_val = s.get('shop_dims', {}).get(dim_name)
             dim_label = dim_labels.get(dim_name, dim_name)
+            # pending 维度（cutoff 之后无数据）显示"指标更新中"
+            if dim_val is None:
+                dim_detail_parts.append(f'{dim_label} 指标更新中')
+                continue
             status_mark = '⚠' if dim_val < 80 else '✓'
             dim_detail_parts.append(f'{dim_label}{dim_val}分{status_mark}')
             if dim_val < 80:
@@ -1044,8 +1118,8 @@ output = clean_nan({
     'mt_stores': mt_stores,
     'mp_stores': mp_stores,
     'store_arch': arch_by_code,
-    'mt_pending_dims': mt_pending_dims,  # 待更新指标列表（数据源已下线，前端展示"指标更新中"）
-    'mt_pending_reason': '美团 2026.06 店铺分新规上线，差评回复率/商家不接单率已从新评分体系移除',
+    'mt_pending_dims': mt_pending_dims,  # 待更新指标 {field: {cutoff: 'YYYY-MM-DD', reason: '...'}}
+    'mt_pending_reason': '美团后台暂停更新该指标，前端展示"指标更新中"',
     'alerts': alerts,
     'match_summary': {
         'arch_total': len(arch_by_mtid),

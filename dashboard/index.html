@@ -12,7 +12,7 @@
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.11.0@20260723";
+  var VER = "v2.11.0@20260724";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -1095,11 +1095,30 @@ const EMBEDDED_DATE_START = "2026-05-01";
 const EMBEDDED_DATE_END = "2026-07-08";
    // 真实汇总 {total_orders,avg_cook_time,达标率}
 
-// 待更新指标：数据源已下线但前端不能直接隐藏（避免误导），统一显示"指标更新中"
-// 来源：gen_data_v4.py 检测 7月数据源最新日期字段有效率 < 5% 时自动写入
-const MT_PENDING_DIMS = new Set(EMBEDDED_DATA.mt_pending_dims || []);
+// 待更新指标：结构 {field: {cutoff: 'YYYY-MM-DD', reason: '...'}}
+// cutoff 之前的日期如实显示分数，cutoff 之后显示"指标更新中"
+// 来源：gen_data_v4.py 检测有效率断崖日期
+const MT_PENDING_MAP = EMBEDDED_DATA.mt_pending_dims || {};
 const MT_PENDING_REASON = EMBEDDED_DATA.mt_pending_reason || '';
-console.log('[MT] 待更新指标:', Array.from(MT_PENDING_DIMS), '原因:', MT_PENDING_REASON);
+console.log('[MT] 待更新指标:', MT_PENDING_MAP, '原因:', MT_PENDING_REASON);
+
+// 判定某指标在给定时间窗口内是否 pending
+// user_end_date: 用户选的时间窗口结束日期（YYYY-MM-DD 字符串）
+function isDimPending(field, user_end_date) {
+  const cfg = MT_PENDING_MAP[field];
+  if (!cfg) return false;
+  // cutoff 为空 → 全局 pending
+  if (!cfg.cutoff) return true;
+  // 用户没选日期（默认嵌入日期）→ 按嵌入日期判断
+  if (!user_end_date) return false;
+  // 用户选的窗口结束日期 ≥ cutoff → 该窗口内全部日期都 pending
+  return user_end_date >= cfg.cutoff;
+}
+
+// 全局"当前窗口结束日期"快捷引用
+function currentWindowEnd() {
+  return gfState.dateEnd || EMBEDDED_DATE_END;
+}
 
 const STORE_MP = [
   { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',avg:5.2,max:9,rate:98.1,revenue:12800},
@@ -2387,7 +2406,7 @@ function drillDim(dimName, category){
   var meta = DIM_META[dimName];
   if(!meta) return;
   // ── pending 状态：指标已下线，弹窗友好提示 ──
-  if(MT_PENDING_DIMS.has(meta.field)){
+  if(isDimPending(meta.field, currentWindowEnd())){
     var h = '<div style="background:#fff;border-radius:12px;max-width:520px;margin:0 auto;box-shadow:0 8px 40px rgba(0,0,0,0.15);overflow:hidden">';
     h += '<div style="background:linear-gradient(135deg,#9B9990,#C8C5BE);color:#fff;padding:16px 20px">';
     h += '<div style="font-size:16px;font-weight:700">⏳ '+dimName+' · 指标更新中</div>';
@@ -3637,7 +3656,7 @@ function openStoreMerged(storeName){
     const sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
     const dimRow = (name, val, target, max, unit, field) => {
       // ── pending dims: 数据源已下线 ──
-      if(val===null&&field&&MT_PENDING_DIMS.has(field)){
+      if(val===null&&field&&isDimPending(field, currentWindowEnd())){
         return`<div class="detail-dim-row detail-dim-pending"><div class="detail-dim-name" style="color:#9B9990">${name}</div><div class="detail-dim-bar-wrap"><div class="detail-dim-bar-fill" style="width:0;background:#D8D3C5"></div><span class="detail-dim-val" style="color:#9B9990;font-size:11px">指标更新中</span></div><div class="detail-dim-target" style="color:#B8B5AD">暂不展示</div></div>`;
       }
       if (val == null || isNaN(val)) val = 0;
@@ -3841,7 +3860,7 @@ function renderMtDetail(store, body){
 
   const dimRow=(name,val,target,max,unit,field)=>{
     // ── pending dims: 数据源已下线，显示"指标更新中" ──
-    if(val===null&&field&&MT_PENDING_DIMS.has(field)){
+    if(val===null&&field&&isDimPending(field, currentWindowEnd())){
       return`<div class="detail-dim-row detail-dim-pending">
         <div class="detail-dim-name" style="color:#9B9990">${name}</div>
         <div class="detail-dim-bar-wrap">
@@ -4388,7 +4407,7 @@ function drillScore(name, type){
   const getVal=(s,k)=>{
     if(k==='shop_score')return s.shop_score;
     if(k==='exp_score')return s.exp_score;
-    if(k==='reply_rate')return s.shop_dims.reply_rate;
+    if(k==='reply_rate')return isDimPending('reply_rate', currentWindowEnd()) ? null : s.shop_dims.reply_rate;
     if(k==='merchant_rating')return s.shop_dims.merchant_rating;
     if(k==='cook_report')return s.shop_dims.cook_report;
     return 0;
@@ -4411,7 +4430,7 @@ function drillScore(name, type){
       <td>${s.name}</td>
       <td style="font-weight:500">${(s.shop_score??0).toFixed(1)}</td>
       <td>${(s.exp_score??0).toFixed(2)}</td>
-      <td>${(s.shop_dims.reply_rate??0)}%</td>
+      <td>${isDimPending('reply_rate', currentWindowEnd()) ? '<span style="color:#9B9990">指标更新中</span>' : (s.shop_dims.reply_rate ?? 0)+'%'}</td>
       <td>${(s.shop_dims.merchant_rating??0).toFixed(2)}</td>
       <td>${(s.shop_dims.cook_report??0)}%</td></tr>`;
   });
@@ -4569,8 +4588,9 @@ function calcRealMetrics(){
   }
   var mtDimCount = mtForDims.length || 1;
   // pending 辅助函数：字段是 pending 状态时返回 null 而不是 0
+  // pending 辅助函数：当前时间窗口下该字段是否 pending
   const dimVal=(s,field)=>{
-    if(MT_PENDING_DIMS.has(field)) return null;
+    if(isDimPending(field, currentWindowEnd())) return null;
     return (s.shop_dims||{})[field] || 0;
   };
   const pendingReason=MT_PENDING_REASON;
@@ -4578,10 +4598,10 @@ function calcRealMetrics(){
   const mtShopBlock = {
     score: +mtAvgScore.toFixed(1), target:95, max:100,
     dims: [
-      {name:'差评回复率得分',   val:MT_PENDING_DIMS.has('reply_rate')?null:+(mtForDims.reduce((a,s)=>a+dimVal(s,'reply_rate'),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'reply_rate', pending:MT_PENDING_DIMS.has('reply_rate'), pendingReason},
+      {name:'差评回复率得分',   val:isDimPending('reply_rate', currentWindowEnd())?null:+(mtForDims.reduce((a,s)=>a+dimVal(s,'reply_rate'),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'reply_rate', pending:isDimPending('reply_rate', currentWindowEnd()), pendingReason},
       {name:'商家评分得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'merchant_rating'},
       {name:'高峰营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'peak_hours'},
-      {name:'商家不接单率',   val:MT_PENDING_DIMS.has('reject_rate')?null:+(mtForDims.reduce((a,s)=>a+dimVal(s,'reject_rate'),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'reject_rate', pending:MT_PENDING_DIMS.has('reject_rate'), pendingReason},
+      {name:'商家不接单率',   val:isDimPending('reject_rate', currentWindowEnd())?null:+(mtForDims.reduce((a,s)=>a+dimVal(s,'reject_rate'),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'reject_rate', pending:isDimPending('reject_rate', currentWindowEnd()), pendingReason},
       {name:'基础营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'base_hours'},
       {name:'出餐上报/准时率得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'cook_report'},
     ]
