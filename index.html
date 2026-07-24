@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-24T11:13:36+08:00">
+<meta name="build-time" content="2026-07-24T15:20:48+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -1118,6 +1118,31 @@ const STORE_MP = [
   { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'林阳阳',city:'长沙',name:'古德墨柠荷花路店',avg:5.2,max:9,rate:97.0,revenue:4800},
   { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
 ];
+
+// 待更新指标：结构 {field: {cutoff: 'YYYY-MM-DD', reason: '...'}}
+// cutoff 之前的日期如实显示分数，cutoff 之后显示"指标更新中"
+// 来源：gen_data_v4.py 检测有效率断崖日期
+const MT_PENDING_MAP = EMBEDDED_DATA.mt_pending_dims || {};
+const MT_PENDING_REASON = EMBEDDED_DATA.mt_pending_reason || '';
+console.log('[MT] 待更新指标:', MT_PENDING_MAP, '原因:', MT_PENDING_REASON);
+
+// 判定某指标在给定时间窗口内是否 pending
+// user_end_date: 用户选的时间窗口结束日期（YYYY-MM-DD 字符串）
+function isDimPending(field, user_end_date) {
+  const cfg = MT_PENDING_MAP[field];
+  if (!cfg) return false;
+  // cutoff 为空 → 全局 pending
+  if (!cfg.cutoff) return true;
+  // 用户没选日期（默认嵌入日期）→ 按嵌入日期判断
+  if (!user_end_date) return false;
+  // 用户选的窗口结束日期 ≥ cutoff → 该窗口内全部日期都 pending
+  return user_end_date >= cfg.cutoff;
+}
+
+// 全局"当前窗口结束日期"快捷引用
+function currentWindowEnd() {
+  return gfState.dateEnd || EMBEDDED_DATE_END;
+}
 
 const STORE_MT = [
   { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',

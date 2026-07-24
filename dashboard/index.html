@@ -1095,6 +1095,30 @@ const EMBEDDED_DATE_START = "2026-05-01";
 const EMBEDDED_DATE_END = "2026-07-08";
    // 真实汇总 {total_orders,avg_cook_time,达标率}
 
+const STORE_MP = [
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',avg:5.2,max:9,rate:98.1,revenue:12800},
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'五一广场万达一楼店',avg:5.8,max:10,rate:97.0,revenue:15200},
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'吴龙琪',city:'长沙',name:'万科魅力之城店',avg:6.1,max:11,rate:96.4,revenue:9600},
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'吴龙琪',city:'株洲',name:'株洲中心广场店',avg:6.5,max:12,rate:95.0,revenue:8300},
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈琦',area_mgr:'曹倩',city:'长沙',name:'太平街店',avg:6.8,max:13,rate:94.7,revenue:18600},
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈琦',area_mgr:'曹倩',city:'湘潭',name:'湘潭步步高店',avg:7.0,max:14,rate:93.3,revenue:7200},
+  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈琦',area_mgr:'肖佳文',city:'常德',name:'常德万达店',avg:7.3,max:15,rate:91.5,revenue:6800},
+  { market:'湖北',brand:'茶颜悦色',region_mgr:'袁聪',area_mgr:'周斌',city:'武汉',name:'江汉路店',avg:6.3,max:11,rate:95.8,revenue:21400},
+  { market:'湖北',brand:'茶颜悦色',region_mgr:'袁聪',area_mgr:'李欢',city:'武汉',name:'光谷广场店',avg:6.7,max:12,rate:93.5,revenue:19800},
+  { market:'湖北',brand:'茶颜悦色',region_mgr:'袁聪',area_mgr:'李欢',city:'宜昌',name:'宜昌万达店',avg:7.1,max:14,rate:90.0,revenue:5500},
+  { market:'江苏',brand:'茶颜悦色',region_mgr:'肖湘',area_mgr:'侯望清',city:'南京',name:'新街口店',avg:6.0,max:10,rate:96.0,revenue:25600},
+  { market:'江苏',brand:'茶颜悦色',region_mgr:'肖湘',area_mgr:'王俊',city:'南京',name:'夫子庙店',avg:6.5,max:12,rate:93.0,revenue:18200},
+  { market:'江苏',brand:'茶颜悦色',region_mgr:'肖湘',area_mgr:'侯望清',city:'无锡',name:'无锡恒隆店',avg:5.8,max:10,rate:96.5,revenue:12400},
+  { market:'江苏',brand:'茶颜悦色',region_mgr:'王婵',area_mgr:'曹海龙',city:'苏州',name:'苏州观前街店',avg:6.2,max:11,rate:95.2,revenue:16800},
+  { market:'重庆',brand:'茶颜悦色',region_mgr:'张钰',area_mgr:'刘弯弯',city:'重庆',name:'解放碑店',avg:5.5,max:9,rate:97.5,revenue:16200},
+  { market:'重庆',brand:'茶颜悦色',region_mgr:'张钰',area_mgr:'林聪',city:'重庆',name:'观音桥店',avg:5.9,max:10,rate:96.0,revenue:14500},
+  { market:'湖南',brand:'鸳央咖啡',region_mgr:'周薇',area_mgr:'周薇',city:'长沙',name:'鸳央五一店',avg:5.3,max:9,rate:97.8,revenue:8600},
+  { market:'湖南',brand:'鸳央咖啡',region_mgr:'周薇',area_mgr:'张娇',city:'长沙',name:'鸳央德思勤店',avg:5.7,max:10,rate:96.5,revenue:7200},
+  { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'李曦',city:'长沙',name:'古德墨柠裕园店',avg:4.8,max:8,rate:98.5,revenue:5200},
+  { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'林阳阳',city:'长沙',name:'古德墨柠荷花路店',avg:5.2,max:9,rate:97.0,revenue:4800},
+  { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
+];
+
 // 待更新指标：结构 {field: {cutoff: 'YYYY-MM-DD', reason: '...'}}
 // cutoff 之前的日期如实显示分数，cutoff 之后显示"指标更新中"
 // 来源：gen_data_v4.py 检测有效率断崖日期
@@ -1119,30 +1143,6 @@ function isDimPending(field, user_end_date) {
 function currentWindowEnd() {
   return gfState.dateEnd || EMBEDDED_DATE_END;
 }
-
-const STORE_MP = [
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',avg:5.2,max:9,rate:98.1,revenue:12800},
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'五一广场万达一楼店',avg:5.8,max:10,rate:97.0,revenue:15200},
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'吴龙琪',city:'长沙',name:'万科魅力之城店',avg:6.1,max:11,rate:96.4,revenue:9600},
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'吴龙琪',city:'株洲',name:'株洲中心广场店',avg:6.5,max:12,rate:95.0,revenue:8300},
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈琦',area_mgr:'曹倩',city:'长沙',name:'太平街店',avg:6.8,max:13,rate:94.7,revenue:18600},
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈琦',area_mgr:'曹倩',city:'湘潭',name:'湘潭步步高店',avg:7.0,max:14,rate:93.3,revenue:7200},
-  { market:'湖南',brand:'茶颜悦色',region_mgr:'陈琦',area_mgr:'肖佳文',city:'常德',name:'常德万达店',avg:7.3,max:15,rate:91.5,revenue:6800},
-  { market:'湖北',brand:'茶颜悦色',region_mgr:'袁聪',area_mgr:'周斌',city:'武汉',name:'江汉路店',avg:6.3,max:11,rate:95.8,revenue:21400},
-  { market:'湖北',brand:'茶颜悦色',region_mgr:'袁聪',area_mgr:'李欢',city:'武汉',name:'光谷广场店',avg:6.7,max:12,rate:93.5,revenue:19800},
-  { market:'湖北',brand:'茶颜悦色',region_mgr:'袁聪',area_mgr:'李欢',city:'宜昌',name:'宜昌万达店',avg:7.1,max:14,rate:90.0,revenue:5500},
-  { market:'江苏',brand:'茶颜悦色',region_mgr:'肖湘',area_mgr:'侯望清',city:'南京',name:'新街口店',avg:6.0,max:10,rate:96.0,revenue:25600},
-  { market:'江苏',brand:'茶颜悦色',region_mgr:'肖湘',area_mgr:'王俊',city:'南京',name:'夫子庙店',avg:6.5,max:12,rate:93.0,revenue:18200},
-  { market:'江苏',brand:'茶颜悦色',region_mgr:'肖湘',area_mgr:'侯望清',city:'无锡',name:'无锡恒隆店',avg:5.8,max:10,rate:96.5,revenue:12400},
-  { market:'江苏',brand:'茶颜悦色',region_mgr:'王婵',area_mgr:'曹海龙',city:'苏州',name:'苏州观前街店',avg:6.2,max:11,rate:95.2,revenue:16800},
-  { market:'重庆',brand:'茶颜悦色',region_mgr:'张钰',area_mgr:'刘弯弯',city:'重庆',name:'解放碑店',avg:5.5,max:9,rate:97.5,revenue:16200},
-  { market:'重庆',brand:'茶颜悦色',region_mgr:'张钰',area_mgr:'林聪',city:'重庆',name:'观音桥店',avg:5.9,max:10,rate:96.0,revenue:14500},
-  { market:'湖南',brand:'鸳央咖啡',region_mgr:'周薇',area_mgr:'周薇',city:'长沙',name:'鸳央五一店',avg:5.3,max:9,rate:97.8,revenue:8600},
-  { market:'湖南',brand:'鸳央咖啡',region_mgr:'周薇',area_mgr:'张娇',city:'长沙',name:'鸳央德思勤店',avg:5.7,max:10,rate:96.5,revenue:7200},
-  { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'李曦',city:'长沙',name:'古德墨柠裕园店',avg:4.8,max:8,rate:98.5,revenue:5200},
-  { market:'湖南',brand:'墨柠',region_mgr:'周丹',area_mgr:'林阳阳',city:'长沙',name:'古德墨柠荷花路店',avg:5.2,max:9,rate:97.0,revenue:4800},
-  { market:'湖南',brand:'昼夜',region_mgr:'周薇',area_mgr:'李怡',city:'长沙',name:'昼夜文艺店',avg:5.0,max:8,rate:98.0,revenue:3800},
-];
 
 const STORE_MT = [
   { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',
