@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-07-27T11:11:53+08:00">
+<meta name="build-time" content="2026-07-27T13:57:52+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -2065,8 +2065,8 @@ function setDateQuick(days){
   const latestD=new Date(latest+'T00:00:00');
   let ds='',de='';
   if(days===-1){
-    // 昨日：最新日期的前一天（如果最新就是今天则取昨天，否则取最新日期）
-    var yd=new Date(latestD); yd.setDate(yd.getDate()-1);
+    // 昨日：基于真实日历的昨天（而非数据最新日期的前一天）
+    var yd=new Date(); yd.setDate(yd.getDate()-1);
     ds=fmt(yd); de=fmt(yd);
   }else if(days===0){
     // 全部：清空筛选，显示全量数据
@@ -2089,8 +2089,8 @@ function updateDateQuickBtns(){
   if(!s && !e) { setDqActive(btns,0); return; }
   var fmt=d=>{var p=t=>String(t).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());};
   var latestStr=EMBEDDED_DATE_END||fmt(new Date()), latestD=new Date(latestStr+'T00:00:00');
-  // 昨日
-  var yd=new Date(latestD); yd.setDate(yd.getDate()-1); var ys=fmt(yd);
+  // 昨日（基于日历昨天）
+  var yd=new Date(); yd.setDate(yd.getDate()-1); var ys=fmt(yd);
   if(s===ys && e===ys) { setDqActive(btns,-1); return; }
   // 近7天
   var d7=new Date(latestD); d7.setDate(d7.getDate()-6); var d7s=fmt(d7);
