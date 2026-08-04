@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外卖看板指标设计方案 v3.0</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f3ef; color: #2c2c2c; line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* 头部 */
+  .header { background: linear-gradient(135deg, #8B6F47, #6B5437); color: #fff; border-radius: 16px; padding: 36px 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(107,84,55,0.15); }
+  .header h1 { font-size: 26px; margin-bottom: 8px; }
+  .header .sub { font-size: 14px; opacity: 0.85; }
+  .header .meta { display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .header .meta-item { font-size: 12px; opacity: 0.9; }
+  .header .meta-item b { font-size: 20px; display: block; }
+
+  /* 原则 */
+  .principle { background: #fff; border-radius: 12px; padding: 24px 28px; margin-bottom: 28px; border-left: 4px solid #8B6F47; }
+  .principle h2 { font-size: 16px; color: #6B5437; margin-bottom: 12px; }
+  .principle p { font-size: 13px; color: #555; margin-bottom: 8px; }
+  .principle .tag { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+  .tag-in { background: #e8f5e9; color: #2e7d32; }
+  .tag-out { background: #fbe9e7; color: #c62828; }
+
+  /* 分组标题 */
+  .group-title { font-size: 18px; font-weight: 700; color: #6B5437; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e0d6c6; display: flex; align-items: center; gap: 8px; }
+  .group-title .badge { font-size: 12px; background: #8B6F47; color: #fff; padding: 2px 10px; border-radius: 12px; }
+
+  /* 指标卡片 */
+  .card { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 16px; border: 1px solid #eee; transition: box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .card-head { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f5f0e8; gap: 12px; }
+  .card-head .num { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .num-a { background: #f0e6d6; color: #8B6F47; }
+  .num-b { background: #e8f0fe; color: #1967d2; }
+  .card-head .title { font-size: 16px; font-weight: 600; flex: 1; }
+  .card-head .status { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .status-ok { background: #e8f5e9; color: #2e7d32; }
+  .status-pending { background: #fff3e0; color: #e65100; }
+
+  .card-body { padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card-body.single { grid-template-columns: 1fr; }
+  .info-block { font-size: 12px; }
+  .info-block .label { color: #999; font-weight: 600; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-block .value { color: #333; }
+  .info-block .value code { background: #f5f0e8; padding: 1px 6px; border-radius: 3px; font-size: 11px; color: #8B6F47; }
+
+  .action-box { margin-top: 12px; background: #f9f7f4; border-radius: 8px; padding: 12px 16px; border-left: 3px solid #8B6F47; }
+  .action-box .action-label { font-size: 11px; font-weight: 700; color: #8B6F47; margin-bottom: 6px; }
+  .action-box ol { padding-left: 18px; }
+  .action-box li { font-size: 12px; color: #555; margin-bottom: 4px; }
+
+  /* 展示形式建议 */
+  .viz-tag { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; margin-bottom: 4px; }
+  .viz-card { background: #e3f2fd; color: #1565c0; }
+  .viz-gauge { background: #fce4ec; color: #c62828; }
+  .viz-bar { background: #e8f5e9; color: #2e7d32; }
+  .viz-table { background: #fff3e0; color: #e65100; }
+  .viz-text { background: #f3e5f5; color: #7b1fa2; }
+  .viz-trend { background: #e0f7fa; color: #00838f; }
+
+  /* 排除表 */
+  .exclude-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+  .exclude-table th { background: #f5f0e8; padding: 10px 12px; text-align: left; font-weight: 600; color: #6B5437; border-bottom: 2px solid #e0d6c6; }
+  .exclude-table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
+  .exclude-table tr:hover td { background: #faf9f7; }
+
+  /* 看板布局建议 */
+  .layout-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .layout-item { background: #fff; border-radius: 8px; padding: 16px; border: 1px solid #eee; text-align: center; }
+  .layout-item .icon { font-size: 28px; margin-bottom: 8px; }
+  .layout-item .name { font-size: 13px; font-weight: 600; color: #333; }
+  .layout-item .desc { font-size: 11px; color: #999; margin-top: 4px; }
+
+  /* 统计 */
+  .stats-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card { flex: 1; min-width: 140px; background: #fff; border-radius: 10px; padding: 16px 20px; text-align: center; border: 1px solid #eee; }
+  .stat-card .num { font-size: 28px; font-weight: 700; }
+  .stat-card .label { font-size: 12px; color: #999; margin-top: 4px; }
+  .stat-card.in .num { color: #2e7d32; }
+  .stat-card.out .num { color: #c62828; }
+  .stat-card.pending .num { color: #e65100; }
+
+  @media (max-width: 768px) {
+    .card-body { grid-template-columns: 1fr; }
+    .layout-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 头部 -->
+  <div class="header">
+    <h1>外卖看板指标设计方案 v3.0</h1>
+    <div class="sub">基于美团指标数据源48列字段全量梳理 | 核心原则：只呈现门店可处理的追踪指标</div>
+    <div class="meta">
+      <div class="meta-item"><b>14</b>纳入指标</div>
+      <div class="meta-item"><b>7</b>排除指标</div>
+      <div class="meta-item"><b>2</b>pending指标</div>
+      <div class="meta-item"><b>533</b>覆盖门店</div>
+    </div>
+  </div>
+
+  <!-- 核心原则 -->
+  <div class="principle">
+    <h2>核心筛选原则</h2>
+    <p><span class="tag tag-in">纳入标准</span>门店有权限自行维护、调整、改进的指标。门店侧有明确操作动作可直接影响该指标分数。</p>
+    <p><span class="tag tag-out">排除标准</span>门店无直接调整权限的指标，包括：平台算法综合分、平台流量/用户行为驱动的指标、纯结果指标。</p>
+    <p style="margin-top:12px;background:#e8f5e9;border-radius:6px;padding:10px 12px;font-size:12px;color:#2e7d32;"><b>重要说明：</b>店铺分、综合体验分作为看板核心追踪目标，<b>保留在顶部概览区</b>继续展示。本次筛选排除的是将它们作为"门店可处理指标"纳入下钻清单，而不是从看板删除。</p>
+    <p style="margin-top:8px;color:#888;font-size:11px">数据源文件：外卖业务运营看板数据源7月.xlsx → 美团指标数据源 sheet（48列）</p>
+  </div>
+
+  <!-- 统计概览 -->
+  <div class="stats-row">
+    <div class="stat-card in"><div class="num">14</div><div class="label">门店可操作指标</div></div>
+    <div class="stat-card pending"><div class="num">2</div><div class="label">Pending（7/14下线）</div></div>
+    <div class="stat-card"><div class="num" style="color:#1967d2">2</div><div class="label">顶部概览指标（保留）</div></div>
+    <div class="stat-card out"><div class="num">5</div><div class="label">排除指标</div></div>
+    <div class="stat-card"><div class="num" style="color:#8B6F47">4</div><div class="label">看板布局区域</div></div>
+  </div>
+
+  <!-- ============ A组：店铺分维度 ============ -->
+  <div class="group-title">
+    A组 · 店铺分维度
+    <span class="badge">9个指标</span>
+  </div>
+
+  <!-- 1. 高峰营业时长 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">1</div>
+      <div class="title">高峰营业时长</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>高峰营业时长得分</code>（100分制）<br>原始值：<code>近30日日均高峰营业时长</code>（小时）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">得分仪表盘</span>
+          <span class="viz-tag viz-text">原始值数值卡（小时）</span>
+          <span class="viz-tag viz-trend">30天趋势折线</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>每日打烊后检查平台开关是否开启，次日开早再次确认</li>
+        <li>闭店重装/停水停电等特殊情况，必须开启歇业保护，避免因闭店导致权重降低</li>
+        <li>合理排班、备料，尽可能不停单、少停单，确保高峰时段（10:00-21:00）持续在线</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 2. 基础营业时长 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">2</div>
+      <div class="title">基础营业时长</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>基础营业时长得分</code>（100分制）<br>原始值：<code>基础营业时长</code>（小时）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">得分仪表盘</span>
+          <span class="viz-tag viz-text">原始值数值卡（小时）</span>
+          <span class="viz-tag viz-trend">30天趋势折线</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>确保每日营业时长达到平台建议标准（约14小时以上）</li>
+        <li>每日打烊后开启平台、每日开早检查平台开关状态</li>
+        <li>如遇特殊情况需关平台，需开启歇业保护</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 3. 出餐完成上报率/配送准时率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">3</div>
+      <div class="title">出餐完成上报率 / 配送准时率</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>出餐完成上报率得分/配送准时率得分</code>（100分制）<br>原始值：<code>出餐完成上报率/配送准时率</code>（百分比）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">得分仪表盘</span>
+          <span class="viz-tag viz-bar">上报率进度条</span>
+          <span class="viz-tag viz-trend">周趋势折线</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li><b>每一笔订单完成必须在骑手取餐之前在CYPOS点击"出餐完成"</b></li>
+        <li>骑手到店点击已取餐后，门店出餐上报无效——确保先上报再让骑手取餐</li>
+        <li>出餐完成上报率≥90%且出餐真实上报率≥90%可得满分</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 4. 优质商品率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">4</div>
+      <div class="title">优质商品率</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>优质商品率得分</code>（100分制）<br>原始值：<code>优质商品率</code>（百分比，样例=1即100%）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-card">得分数值卡</span>
+          <span class="viz-tag viz-bar">率值进度条</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>严格按SOP制作饮品，确保品质稳定性</li>
+        <li>定期检查原材料效期，杜绝使用过期/变质原料</li>
+        <li>出品前核对配方、温度、甜度等参数，减少品质偏差</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 5. 菜单丰富度 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">5</div>
+      <div class="title">菜单丰富度</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>菜单丰富度得分</code>（100分制）<br>原始值：<code>菜单丰富度</code>（文本：分类数/菜品数/招牌菜）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-card">得分数值卡</span>
+          <span class="viz-tag viz-text">原始值文本展示</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>在美团商家后台维护菜单分类、菜品数量、设置招牌菜</li>
+        <li>确保菜单分类清晰、菜品信息完整（图片、描述、规格）</li>
+        <li>定期更新菜单，下架长期无销量菜品，上新及时上线</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 6. 装修丰富度 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">6</div>
+      <div class="title">装修丰富度</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>装修丰富度得分</code>（100分制）<br>原始值：<code>装修丰富度</code>（文本：招牌/海报/老板推荐/热销/进店必买）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-card">得分数值卡</span>
+          <span class="viz-tag viz-text">已配置项标签展示</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>在美团商家后台上传店铺招牌图、海报图</li>
+        <li>设置"老板推荐""热销""进店必买"等标签菜品</li>
+        <li>定期更换海报图片，配合活动/季节上新</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 7. 服务功能丰富度 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">7</div>
+      <div class="title">服务功能丰富度</div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>服务功能丰富度得分</code>（100分制）<br>原始值：<code>服务功能丰富度</code>（文本：开发票/放心吃/预订单/准时宝等）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-card">得分数值卡</span>
+          <span class="viz-tag viz-text">已开通功能标签</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>在美团商家后台开通所有可用服务功能：开发票、放心吃、预订单、准时宝等</li>
+        <li>定期检查功能是否正常生效，避免因系统问题导致功能下线</li>
+        <li>满分100分，每缺少一个功能项扣分</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 8. 商家不接单率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">8</div>
+      <div class="title">商家不接单率</div>
+      <div class="status status-pending">Pending（7/14起下线）</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>商家不接单率得分</code>（100分制，cutoff=2026-07-14）<br>原始值：<code>近30日商家不接单率</code>（百分比，有效率仅17.6%）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">得分仪表盘</span>
+          <span class="viz-tag viz-trend">历史趋势（标注cutoff）</span>
+          <span class="viz-tag viz-text">Pending提示卡</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>定闹钟定时检查菜单，断货商品及时设为售罄，避免下单后拒单</li>
+        <li>如遇下单但缺货，主动联系顾客沟通协商换/退货</li>
+        <li>如顾客需退单，委婉建议选择"不想要了"进行退款，避免计入拒单</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 9. 差评回复率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-a">9</div>
+      <div class="title">差评回复率</div>
+      <div class="status status-pending">Pending（7/14起下线）</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>差评回复率得分</code>（100分制，cutoff=2026-07-14）<br>原始值：<code>近30日差评回复率</code>（百分比）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">得分仪表盘</span>
+          <span class="viz-tag viz-trend">历史趋势（标注cutoff）</span>
+          <span class="viz-tag viz-text">Pending提示卡</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>日常维护需在1-2天内完成差评回复，建议加入值班本/打烊日志每天检查</li>
+        <li>定闹钟，值班主管追踪闭环，确保24小时内完成回复</li>
+        <li>回复内容诚恳、具体，针对用户反馈给出解决方案</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ============ B组：综合体验分维度 ============ -->
+  <div class="group-title">
+    B组 · 综合体验分维度
+    <span class="badge">5个指标</span>
+  </div>
+
+  <!-- 10. 商品满意度 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-b">10</div>
+      <div class="title">商品满意度 <span style="font-size:12px;color:#999;font-weight:400">权重30%（最高）</span></div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">原始值：<code>商品满意度</code>（5分制，有效率99.5%）<br>计算周期：60天评价加权均值</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">5分制仪表盘</span>
+          <span class="viz-tag viz-trend">60天趋势折线</span>
+          <span class="viz-tag viz-table">门店排行下钻</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>通过顾客反馈定位高频关键词，针对性改进（口味、温度、分量等）</li>
+        <li>打包增加检查动作，安排熟练伙伴操作，尽可能不错餐漏餐</li>
+        <li>出现负反馈后立即解决顾客诉求，取得谅解并向平台申诉（上传顾客不追究截图可提高成功率）</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 11. 包装满意度 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-b">11</div>
+      <div class="title">包装满意度 <span style="font-size:12px;color:#999;font-weight:400">权重10%</span></div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">原始值：<code>包装满意度</code>（5分制，有效率99.5%）<br>计算周期：60天评价加权均值</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">5分制仪表盘</span>
+          <span class="viz-tag viz-trend">60天趋势折线</span>
+          <span class="viz-tag viz-table">门店排行下钻</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>打包加盖确认扣合，减少洒餐概率；热饮按标准张贴易撕贴防止溢出</li>
+        <li>使用完好、整洁的保温袋、餐具包，包材损坏严禁使用</li>
+        <li>保温袋、辅料分装、零售分装均需按标准张贴安心贴</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 12. 消息回复率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-b">12</div>
+      <div class="title">消息回复率 <span style="font-size:12px;color:#999;font-weight:400">权重10%</span></div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>消息回复率指标得分</code>（5分制）<br>原始值：<code>消息回复率</code>（百分比，有效率96.9%）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">5分制仪表盘</span>
+          <span class="viz-tag viz-bar">回复率进度条</span>
+          <span class="viz-tag viz-trend">30天趋势</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>开启机器人自动回复，处理顾客日常询问</li>
+        <li>店机跟随值班主管或打包伙伴，便于接收消息并第一时间解决顾客诉求</li>
+        <li>保持出餐时间不超时、不错漏餐，从源头减少顾客询问概率</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 13. 服务负反馈率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-b">13</div>
+      <div class="title">服务负反馈率 <span style="font-size:12px;color:#999;font-weight:400">权重10%</span></div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>服务负反馈率指标得分</code>（5分制）<br>计算周期：30天</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">5分制仪表盘</span>
+          <span class="viz-tag viz-trend">30天趋势</span>
+          <span class="viz-tag viz-table">门店排行下钻</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>每单随餐附"如有问题请联系我们"卡片，引导私了而非差评</li>
+        <li>出餐前二次核对订单内容与饮品，减少漏装/错装</li>
+        <li>立即介入顾客在任意渠道反馈的服务问题，在线解决诉求并争取谅解，计分后提供沟通过程向平台申诉</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 14. 食品安全负反馈率 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="num num-b">14</div>
+      <div class="title">食品安全负反馈率 <span style="font-size:12px;color:#999;font-weight:400">权重20%</span></div>
+      <div class="status status-ok">正常</div>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <div class="label">数据来源字段</div>
+        <div class="value">得分：<code>食品安全负反馈率指标得分</code>（5分制）<br>原始值：<code>食品安全负反馈率</code>（万分比，样例=0）</div>
+      </div>
+      <div class="info-block">
+        <div class="label">展示形式建议</div>
+        <div class="value">
+          <span class="viz-tag viz-gauge">5分制仪表盘</span>
+          <span class="viz-tag viz-text">负反馈率数值卡</span>
+          <span class="viz-tag viz-trend">30天趋势</span>
+        </div>
+      </div>
+    </div>
+    <div class="action-box">
+      <div class="action-label">门店可操作动作</div>
+      <ol>
+        <li>伙伴着装穿戴规范、饮品制作场景规范，避免制作过程中产生食安风险</li>
+        <li>收到顾客食安反馈立即介入处理，避免客诉升级，争取在线取得顾客谅解</li>
+        <li>提供沟通过程向平台申诉（上传顾客不追究或承认非门店原因截图，可提高成功率）</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ============ 顶部概览保留指标 ============ -->
+  <div class="group-title">
+    顶部概览保留指标
+    <span class="badge" style="background:#1967d2">2个保留</span>
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;overflow-x:auto;">
+    <table class="exclude-table">
+      <thead>
+        <tr>
+          <th width="30">#</th>
+          <th>指标名称</th>
+          <th>数据源字段</th>
+          <th>在看板中的定位</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><b>店铺分（总分）</b></td>
+          <td><code>店铺分</code></td>
+          <td>看板核心追踪目标，保留在顶部概览区。作为店铺分维度（A组）各子维度的汇总得分展示</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><b>综合体验分（总分）</b></td>
+          <td><code>综合体验分</code></td>
+          <td>看板核心追踪目标，保留在顶部概览区。作为综合体验分维度（B组）各子维度的汇总得分展示</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ 排除指标 ============ -->
+  <div class="group-title">
+    排除指标清单
+    <span class="badge" style="background:#c62828">5个排除</span>
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;overflow-x:auto;">
+    <table class="exclude-table">
+      <thead>
+        <tr>
+          <th width="30">#</th>
+          <th>指标名称</th>
+          <th>数据源字段</th>
+          <th>排除原因</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>商家评分得分</td>
+          <td><code>商家评分得分</code> / <code>近30日日均商家评分</code></td>
+          <td>用户评价综合体现，受多因素影响，非门店单一可操作的指标。已通过商品满意度、包装满意度等子维度覆盖</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>商品质量分</td>
+          <td><code>商品质量分</code></td>
+          <td>平台基于用户评价计算的分数，与"商品满意度"高度重叠且门店无法直接操作该分值</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>服务体验分</td>
+          <td><code>服务体验分</code></td>
+          <td>平台基于用户评价计算的分数，与"服务负反馈率"高度重叠且门店无法直接操作该分值</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>复购率指标得分</td>
+          <td><code>复购率指标得分</code> / <code>复购率</code></td>
+          <td>受平台推荐流量、用户消费习惯等外部因素影响大，门店无法直接操作复购行为</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>营业收入</td>
+          <td><code>营业收入</code></td>
+          <td>结果指标而非过程指标，门店无法直接"操作收入"。看板聚焦可操作的追踪指标</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ 看板布局建议 ============ -->
+  <div class="group-title">
+    看板布局建议
+    <span class="badge">5个区域</span>
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:24px;border:1px solid #eee;">
+    <p style="font-size:13px;color:#555;margin-bottom:16px">建议将16个指标（2个概览+14个可操作）按功能归类，分为5个展示区域：</p>
+    <div class="layout-grid">
+      <div class="layout-item" style="background:#e8f0fe;border:1px solid #c6dafc;">
+        <div class="icon">🏆</div>
+        <div class="name">区域一：顶部概览</div>
+        <div class="desc">店铺分 + 综合体验分<br>2个指标 · 大数值卡+趋势</div>
+      </div>
+      <div class="layout-item">
+        <div class="icon">🕐</div>
+        <div class="name">区域二：营业时长</div>
+        <div class="desc">高峰营业时长 + 基础营业时长<br>2个指标 · 仪表盘+趋势</div>
+      </div>
+      <div class="layout-item">
+        <div class="icon">🍳</div>
+        <div class="name">区域三：出餐与品质</div>
+        <div class="desc">出餐上报率 + 优质商品率<br>2个指标 · 仪表盘+进度条</div>
+      </div>
+      <div class="layout-item">
+        <div class="icon">📋</div>
+        <div class="name">区域四：店铺装修</div>
+        <div class="desc">菜单/装修/服务功能丰富度<br>3个指标 · 数值卡+标签</div>
+      </div>
+      <div class="layout-item">
+        <div class="icon">⭐</div>
+        <div class="name">区域五：用户评价</div>
+        <div class="desc">商品/包装满意度 + 消息回复率 + 服务/食安负反馈<br>5个指标 · 仪表盘+趋势+下钻</div>
+      </div>
+    </div>
+    <div class="layout-item" style="margin-top:12px;background:#fff3e0;border:1px solid #ffe0b2;">
+      <div class="icon">⏳</div>
+      <div class="name">Pending 区域（折叠展示）</div>
+      <div class="desc">商家不接单率 + 差评回复率<br>2个指标 · 历史趋势+Pending提示</div>
+    </div>
+  </div>
+
+  <!-- 底部说明 -->
+  <div style="margin-top:32px;padding:20px;background:#fff;border-radius:12px;border:1px solid #eee;font-size:12px;color:#999;line-height:1.8;">
+    <b style="color:#6B5437">说明：</b><br>
+    1. 本方案基于美团指标数据源（48/52列字段）全量梳理，数据日期范围 2026-06-01 ~ 2026-08-03<br>
+    2. Pending指标（商家不接单率、差评回复率）因美团后台7/14起停止更新数据，看板保留历史展示+Pending状态提示<br>
+    3. 店铺分、综合体验分作为看板核心追踪目标，<b>保留在顶部概览区</b>；排除的是将其作为"门店可处理指标"纳入下钻清单<br>
+    4. 各指标的目标值、计算方式、操作指引沿用现有 DIM_META 配置，无需重新维护<br>
+    5. 生成时间：2026-08-04
+  </div>
+
+</div>
+</body>
+</html>
