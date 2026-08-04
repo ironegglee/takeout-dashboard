@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-08-04T16:06:57+08:00">
+<meta name="build-time" content="2026-08-04T16:36:06+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -1456,7 +1456,8 @@ const DRILL_SORT={
   brand:{key:'avg',dir:'asc'},
   region:{key:'avg',dir:'asc'},
   area:{key:'avg',dir:'asc'},
-  score:{key:'shop_score',dir:'desc'}
+  score:{key:'shop_score',dir:'desc'},
+  dim:{key:'val',dir:'asc'}
 };
 let currentDrill={type:'',name:'',market:'',scoreType:''};
 
@@ -2446,9 +2447,9 @@ function drillDim(dimName, category){
     }
     if(val > 0) stores.push({name:s.name, market:s.market, city:s.city, brand:s.brand, val:val});
   });
-  // 默认升序
-  stores.sort(function(a,b){return a.val - b.val;});
-  var sortDir = 'asc'; // 当前排序方向
+  // 使用 DRILL_SORT.dim 状态排序
+  var sm = DRILL_SORT.dim;
+  stores.sort(function(a,b){ return sm.dir==='asc' ? a.val - b.val : b.val - a.val; });
   var avg = stores.length>0 ? (stores.reduce(function(a,s){return a+s.val;},0)/stores.length).toFixed(2) : '--';
   var below = stores.filter(function(s){return s.val < meta.target;}).length;
   
@@ -2469,7 +2470,7 @@ function drillDim(dimName, category){
   h += '</div></div>';
   h += '<div style="max-height:400px;overflow-y:auto;padding:0 20px 16px">';
   h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
-  h += '<tr style="background:#faf9f7;text-align:left"><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:36px">#</th><th style="padding:8px 6px;border-bottom:1px solid var(--border)">门店</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px">市场</th><th onclick="drillDimResort(this)" data-dim="'+dimName+'" data-cat="'+category+'" style="padding:8px 6px;border-bottom:1px solid var(--border);width:56px;text-align:right;cursor:pointer;user-select:none;color:#667eea">'+dimName+' ▲</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px;text-align:center">状态</th></tr>';
+  h += '<tr style="background:#faf9f7;text-align:left"><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:36px">#</th><th style="padding:8px 6px;border-bottom:1px solid var(--border)">门店</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px">市场</th><th class="sortable" onclick="onDrillDimSort()" style="padding:8px 6px;border-bottom:1px solid var(--border);width:72px;text-align:right">'+dimName+drillSortArrow('dim','val')+'</th><th style="padding:8px 6px;border-bottom:1px solid var(--border);width:48px;text-align:center">状态</th></tr>';
   h += '<tbody id="drill-dim-tbody">';
   for(var i=0;i<stores.length;i++){
     var s = stores[i], ok = s.val >= meta.target;
@@ -2491,22 +2492,27 @@ function drillDim(dimName, category){
 }
 
 // ── drillDim 排序切换 ──
-function drillDimResort(th){
+function onDrillDimSort(){
+  var s = DRILL_SORT.dim;
+  s.dir = s.dir==='asc' ? 'desc' : 'asc';
   var stores = window._drillStores;
   var meta = window._drillMeta;
   if(!stores || stores.length===0) return;
-  var curDir = th.textContent.indexOf('▲')>=0 ? 'asc' : 'desc';
-  var newDir = curDir==='asc' ? 'desc' : 'asc';
-  th.textContent = th.textContent.replace(/[▲▼]/, newDir==='asc'?'▲':'▼');
-  stores.sort(function(a,b){ return newDir==='asc' ? a.val - b.val : b.val - a.val; });
+  stores.sort(function(a,b){ return s.dir==='asc' ? a.val - b.val : b.val - a.val; });
   var tbody = document.getElementById('drill-dim-tbody');
   if(!tbody) return;
   var h = '';
   for(var i=0;i<stores.length;i++){
-    var s = stores[i], ok = s.val >= meta.target;
-    h += '<tr style="border-bottom:1px solid #f0edeb"><td style="padding:6px;color:var(--text-muted);font-size:10px">'+(i+1)+'</td><td style="padding:6px;font-weight:500">'+s.name+'</td><td style="padding:6px;color:var(--text-muted);font-size:10px">'+s.market+'</td><td style="padding:6px;text-align:right;font-weight:600;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+s.val.toFixed(2)+'</td><td style="padding:6px;text-align:center;font-size:10px;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+(ok?'达标':'未达标')+'</td></tr>';
+    var _s = stores[i], ok = _s.val >= meta.target;
+    h += '<tr style="border-bottom:1px solid #f0edeb"><td style="padding:6px;color:var(--text-muted);font-size:10px">'+(i+1)+'</td><td style="padding:6px;font-weight:500">'+_s.name+'</td><td style="padding:6px;color:var(--text-muted);font-size:10px">'+_s.market+'</td><td style="padding:6px;text-align:right;font-weight:600;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+_s.val.toFixed(2)+'</td><td style="padding:6px;text-align:center;font-size:10px;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+(ok?'达标':'未达标')+'</td></tr>';
   }
   tbody.innerHTML = h;
+  // 同步更新表头箭头
+  var th = tbody.previousElementSibling.querySelector('.sortable');
+  if(th){
+    var arrow = th.querySelector('.sort-arrow');
+    if(arrow) arrow.className = 'sort-arrow active ' + s.dir;
+  }
 }
 
 let alertDetailModal = null;
