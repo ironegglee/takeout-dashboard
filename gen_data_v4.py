@@ -27,9 +27,9 @@ sys.excepthook = _handle_exception
 # 数据源统一从 D:\工作\workbuddy\ 读取 —— 这是唯一权威数据源目录
 # 不要使用 data_sources/ 或其他副本
 SRC_DIR = 'D:/工作/workbuddy'
-OLD_PATH = f'{SRC_DIR}/外卖业务运营看板数据源5月.xlsx'
-MID_PATH = f'{SRC_DIR}/外卖业务运营看板数据源6月.xlsx'
-NEW_PATH = f'{SRC_DIR}/外卖业务运营看板数据源7月.xlsx'
+OLD_PATH = f'{SRC_DIR}/外卖业务运营看板数据源6月.xlsx'
+MID_PATH = f'{SRC_DIR}/外卖业务运营看板数据源7月.xlsx'
+NEW_PATH = f'{SRC_DIR}/外卖业务运营看板数据源8月.xlsx'
 OUT = 'C:/Users/CYYS/WorkBuddy/2026-06-16-11-25-31/dashboard/data.json'
 
 BRAND_MAP = {
@@ -178,22 +178,22 @@ def read_arch_openpyxl(filepath):
     
     return by_mtid, by_name, by_code
 
-# 按优先级读取架构：7月 > 6月 > 5月（后加载的覆盖前面的）
+# 按优先级读取架构：8月 > 7月 > 6月（后加载的覆盖前面的）
 arch_by_mtid, arch_by_name, arch_by_code = {}, {}, {}
 
-# 5月（优先级最低，最后合并）
+# 6月（优先级最低，最后合并）
 m5_mtid, m5_name, m5_code = read_arch_openpyxl(OLD_PATH)
-print(f'5月架构: {len(m5_mtid)} 门店(有美团ID)')
+print(f'6月架构: {len(m5_mtid)} 门店(有美团ID)')
 
-# 6月（覆盖5月）
+# 7月（覆盖6月）
 m6_mtid, m6_name, m6_code = read_arch_openpyxl(MID_PATH)
-print(f'6月架构: {len(m6_mtid)} 门店(有美团ID)')
+print(f'7月架构: {len(m6_mtid)} 门店(有美团ID)')
 
-# 7月（最高优先级）
+# 8月（最高优先级）
 m7_mtid, m7_name, m7_code = read_arch_openpyxl(NEW_PATH)
-print(f'7月架构: {len(m7_mtid)} 门店(有美团ID)')
+print(f'8月架构: {len(m7_mtid)} 门店(有美团ID)')
 
-# 按优先级合并：5月 → 6月覆盖 → 7月覆盖
+# 按优先级合并：6月 → 7月覆盖 → 8月覆盖
 for mtid, info in m5_mtid.items(): arch_by_mtid[mtid] = info
 for name, info in m5_name.items(): arch_by_name[name] = info
 for code, info in m5_code.items(): arch_by_code[code] = info
@@ -242,11 +242,11 @@ m5_header, m5_mt_rows = read_mt_sheet(OLD_PATH)
 m6_header, m6_mt_rows = read_mt_sheet(MID_PATH)
 m7_header, m7_mt_rows = read_mt_sheet(NEW_PATH)
 
-print(f'5月美团指标: {len(m5_mt_rows)} 行, 6月: {len(m6_mt_rows)} 行, 7月: {len(m7_mt_rows)} 行')
-print(f'7月表头列数: {len(m7_header)}, 6月: {len(m6_header)}, 5月: {len(m5_header)}')
+print(f'6月美团指标: {len(m5_mt_rows)} 行, 7月: {len(m6_mt_rows)} 行, 8月: {len(m7_mt_rows)} 行')
+print(f'8月表头列数: {len(m7_header)}, 7月: {len(m6_header)}, 6月: {len(m5_header)}')
 
-# mt_header_idx: {列名: 索引}，基于最新文件（7月）的表头
-# 三个文件表头结构一致，用7月的即可
+# mt_header_idx: {列名: 索引}，基于最新文件（8月）的表头
+# 三个文件表头结构一致，用8月的即可
 mt_header_idx = make_header_index(m7_header)
 
 # 为了方便从行元组读值，提供一个安全访问函数
@@ -257,7 +257,7 @@ def col_val(row, header_idx, col_name, default=None):
         return default
     return row[idx]
 
-# 合并去重：用 (日期, 门店id) 作为唯一键，7月 > 6月 > 5月
+# 合并去重：用 (日期, 门店id) 作为唯一键，8月 > 7月 > 6月
 # 存储为 { (date_str, mtid): row_tuple }，不转为 dict，避免重复列名问题
 mt_data = {}
 MIN_MT_COLS = max(len(m7_header), len(m6_header), len(m5_header))
@@ -276,12 +276,12 @@ def process_mt_rows(rows, label):
             cnt += 1
     return cnt
 
-# 5月 → 6月覆盖 → 7月覆盖
-n5 = process_mt_rows(m5_mt_rows, '5月')
-n6 = process_mt_rows(m6_mt_rows, '6月')
-n7 = process_mt_rows(m7_mt_rows, '7月')
+# 6月 → 7月覆盖 → 8月覆盖
+n5 = process_mt_rows(m5_mt_rows, '6月')
+n6 = process_mt_rows(m6_mt_rows, '7月')
+n7 = process_mt_rows(m7_mt_rows, '8月')
 
-print(f'5月写入: {n5}, 6月写入: {n6}, 7月写入: {n7}, 合并后: {len(mt_data)} 条')
+print(f'6月写入: {n5}, 7月写入: {n6}, 8月写入: {n7}, 合并后: {len(mt_data)} 条')
 
 # 提取所有日期
 all_mt_dates = sorted(set(k[0] for k in mt_data.keys()))
@@ -573,24 +573,24 @@ def process_mp_file(filepath, mp_data, mp_header_idx, skip_existing=False):
     wb.close()
     return count
 
-# 读取表头（以7月为准）
+# 读取表头（以8月为准）
 m7_mp_header = read_mp_header(NEW_PATH)
 mp_header_idx = make_header_index(m7_mp_header)
 
-# 合并去重：用 (订单编码) 作为唯一键，7月 > 6月 > 5月
-# 先处理7月（最新），再补充6月和5月的去重数据，减少内存峰值
+# 合并去重：用 (订单编码) 作为唯一键，8月 > 7月 > 6月
+# 先处理8月（最新），再补充7月和6月的去重数据，减少内存峰值
 mp_data = {}  # {order_code: row_dict}
 
 m7_count = process_mp_file(NEW_PATH, mp_data, mp_header_idx)
-print(f'7月小程序配送处理: {m7_count} 条')
+print(f'8月小程序配送处理: {m7_count} 条')
 gc.collect()
 
 m6_count = process_mp_file(MID_PATH, mp_data, mp_header_idx, skip_existing=True)
-print(f'6月小程序配送处理: {m6_count} 条')
+print(f'7月小程序配送处理: {m6_count} 条')
 gc.collect()
 
 m5_count = process_mp_file(OLD_PATH, mp_data, mp_header_idx, skip_existing=True)
-print(f'5月小程序配送处理: {m5_count} 条')
+print(f'6月小程序配送处理: {m5_count} 条')
 gc.collect()
 
 print(f'合并去重后: {len(mp_data)} 条订单')
