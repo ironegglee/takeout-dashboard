@@ -2478,9 +2478,9 @@ function drillDim(dimName, category){
   }
   h += '</tbody></table></div></div>';
   
-  // Store sort data in global for resort
-  window._drillStores = stores;
-  window._drillMeta = meta;
+  // Store params for resort
+  window._drillDimName = dimName;
+  window._drillDimCategory = category;
   
   if(alertDetailModal){ try{document.body.removeChild(alertDetailModal);}catch(e){} }
   alertDetailModal = document.createElement('div');
@@ -2495,24 +2495,8 @@ function drillDim(dimName, category){
 function onDrillDimSort(){
   var s = DRILL_SORT.dim;
   s.dir = s.dir==='asc' ? 'desc' : 'asc';
-  var stores = window._drillStores;
-  var meta = window._drillMeta;
-  if(!stores || stores.length===0) return;
-  stores.sort(function(a,b){ return s.dir==='asc' ? a.val - b.val : b.val - a.val; });
-  var tbody = document.getElementById('drill-dim-tbody');
-  if(!tbody) return;
-  var h = '';
-  for(var i=0;i<stores.length;i++){
-    var _s = stores[i], ok = _s.val >= meta.target;
-    h += '<tr style="border-bottom:1px solid #f0edeb"><td style="padding:6px;color:var(--text-muted);font-size:10px">'+(i+1)+'</td><td style="padding:6px;font-weight:500">'+_s.name+'</td><td style="padding:6px;color:var(--text-muted);font-size:10px">'+_s.market+'</td><td style="padding:6px;text-align:right;font-weight:600;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+_s.val.toFixed(2)+'</td><td style="padding:6px;text-align:center;font-size:10px;color:'+(ok?'#3B6D11':'#A32D2D')+'">'+(ok?'达标':'未达标')+'</td></tr>';
-  }
-  tbody.innerHTML = h;
-  // 同步更新表头箭头
-  var th = tbody.previousElementSibling.querySelector('.sortable');
-  if(th){
-    var arrow = th.querySelector('.sort-arrow');
-    if(arrow) arrow.className = 'sort-arrow active ' + s.dir;
-  }
+  // 重新调用 drillDim 整体重绘，表头箭头和数据同步更新（与其他下钻一致）
+  drillDim(window._drillDimName, window._drillDimCategory);
 }
 
 let alertDetailModal = null;
