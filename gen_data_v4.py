@@ -606,7 +606,7 @@ mp_header_idx = make_header_index(m7_mp_header)
 # 提前确定小时列名，用于后续时段分布计算
 hour_col_name = None
 for h in m7_mp_header:
-    if h and '小时' in str(h):
+    if h and ('小时' in str(h) or '时段' in str(h)):
         hour_col_name = h
         break
 
