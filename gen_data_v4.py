@@ -246,8 +246,14 @@ print(f'6月美团指标: {len(m5_mt_rows)} 行, 7月: {len(m6_mt_rows)} 行, 8�
 print(f'8月表头列数: {len(m7_header)}, 7月: {len(m6_header)}, 6月: {len(m5_header)}')
 
 # mt_header_idx: {列名: 索引}，基于最新文件（8月）的表头
-# 三个文件表头结构一致，用8月的即可
+# 注意：8月文件新增了4列（资质信息/环境信息），列位置与6月/7月不同
+# 需要按各文件自己的表头索引读取，再统一映射到8月列布局
 mt_header_idx = make_header_index(m7_header)
+mt_max_cols = (max(mt_header_idx.values()) + 1) if mt_header_idx else 0
+
+# 各文件的表头索引
+m5_header_idx = make_header_index(m5_header)
+m6_header_idx = make_header_index(m6_header)
 
 # 为了方便从行元组读值，提供一个安全访问函数
 def col_val(row, header_idx, col_name, default=None):
@@ -258,28 +264,35 @@ def col_val(row, header_idx, col_name, default=None):
     return row[idx]
 
 # 合并去重：用 (日期, 门店id) 作为唯一键，8月 > 7月 > 6月
-# 存储为 { (date_str, mtid): row_tuple }，不转为 dict，避免重复列名问题
+# 存储为 { (date_str, mtid): row_tuple }，行已统一映射到8月列布局
 mt_data = {}
-MIN_MT_COLS = max(len(m7_header), len(m6_header), len(m5_header))
 
-def process_mt_rows(rows, label):
-    """处理一批MT行，写入 mt_data"""
+def normalize_mt_row(row, file_header_idx):
+    """将行从文件特定的列布局转换为8月标准列布局"""
+    result = [None] * mt_max_cols
+    for col_name, file_idx in file_header_idx.items():
+        target_idx = mt_header_idx.get(col_name)
+        if target_idx is not None and file_idx < len(row):
+            result[target_idx] = row[file_idx]
+    return tuple(result)
+
+def process_mt_rows(rows, file_header_idx, label):
+    """处理一批MT行，写入 mt_data（统一到8月列布局）"""
     cnt = 0
     for row in rows:
-        if len(row) < MIN_MT_COLS:
-            row = row + (None,) * (MIN_MT_COLS - len(row))
-        date_str = parse_date_str(col_val(row, mt_header_idx, '日期'))
-        mtid_raw = col_val(row, mt_header_idx, '门店id')
+        normalized = normalize_mt_row(row, file_header_idx)
+        date_str = parse_date_str(col_val(normalized, mt_header_idx, '日期'))
+        mtid_raw = col_val(normalized, mt_header_idx, '门店id')
         mtid = str(int(mtid_raw)) if mtid_raw is not None and str(mtid_raw).replace('.','').isdigit() else ''
         if date_str and mtid:
-            mt_data[(date_str, mtid)] = row
+            mt_data[(date_str, mtid)] = normalized
             cnt += 1
     return cnt
 
 # 6月 → 7月覆盖 → 8月覆盖
-n5 = process_mt_rows(m5_mt_rows, '6月')
-n6 = process_mt_rows(m6_mt_rows, '7月')
-n7 = process_mt_rows(m7_mt_rows, '8月')
+n5 = process_mt_rows(m5_mt_rows, m5_header_idx, '6月')
+n6 = process_mt_rows(m6_mt_rows, m6_header_idx, '7月')
+n7 = process_mt_rows(m7_mt_rows, mt_header_idx, '8月')
 
 print(f'6月写入: {n5}, 7月写入: {n6}, 8月写入: {n7}, 合并后: {len(mt_data)} 条')
 
@@ -345,8 +358,7 @@ print(f'近7日美团门店数(去重后): {len(recent_mt)}')
 # 用途：cutoff 之前的日期如实显示分数，cutoff 之后显示"指标更新中"
 # ═══════════════════════════════════════════
 PENDING_DIM_CANDIDATES = {
-    'reply_rate': '差评回复率得分',     # 美团 2026.07 中下线
-    'reject_rate': '商家不接单率得分',   # 美团 2026.07 中下线
+    # 差评回复率/商家不接单率已替换为环境信息/资质信息（8月起新增），无需pending检测
 }
 PENDING_THRESHOLD = 0.05  # 有效率低于 5% 视为"无效"
 PENDING_OK_THRESHOLD = 0.30  # 有效率高于 30% 视为"正常"
@@ -425,7 +437,7 @@ mt_unmatched = 0
 
 dim_labels = {
     'peak_hours': '高峰营业时长得分', 'quality_rate': '优质商品率得分',
-    'reject_rate': '商家不接单率得分', 'reply_rate': '差评回复率得分',
+    'qual_info': '资质信息得分', 'env_info': '环境信息得分',
     'merchant_rating': '商家评分得分', 'menu_rich': '菜单丰富度得分',
     'decor_rich': '装修丰富度得分', 'service_rich': '服务功能丰富度得分',
     'cook_report': '出餐完成上报率得分/配送准时率得分', 'base_hours': '基础营业时长得分'
@@ -504,8 +516,8 @@ for code, info in recent_mt.items():
         'shop_dims': {
             'peak_hours': safe_float(col_val(row, mt_header_idx, '高峰营业时长得分')),
             'quality_rate': safe_float(col_val(row, mt_header_idx, '优质商品率得分')),
-            'reject_rate': get_valid_score(code, '商家不接单率得分', mt_pending_dims.get('reject_rate', {}).get('cutoff')),
-            'reply_rate': get_valid_score(code, '差评回复率得分', mt_pending_dims.get('reply_rate', {}).get('cutoff')),
+            'qual_info': safe_float(col_val(row, mt_header_idx, '资质信息得分')),
+            'env_info': safe_float(col_val(row, mt_header_idx, '环境信息得分')),
             'merchant_rating': safe_float(col_val(row, mt_header_idx, '商家评分得分')),
             'menu_rich': safe_float(col_val(row, mt_header_idx, '菜单丰富度得分')),
             'decor_rich': safe_float(col_val(row, mt_header_idx, '装修丰富度得分')),
@@ -914,7 +926,7 @@ for s in mt_stores:
         # 构建子维度详情（仅供参考，不作为触发条件）
         dim_detail_parts = []
         low_dims = []
-        for dim_name in ['peak_hours','quality_rate','reject_rate','reply_rate','merchant_rating',
+        for dim_name in ['peak_hours','quality_rate','qual_info','env_info','merchant_rating',
                           'menu_rich','decor_rich','service_rich','cook_report','base_hours']:
             dim_val = s.get('shop_dims', {}).get(dim_name)
             dim_label = dim_labels.get(dim_name, dim_name)
