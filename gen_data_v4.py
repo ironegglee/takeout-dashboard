@@ -557,19 +557,33 @@ def read_mp_header(filepath):
                 raise
     return None
 
-def process_mp_file(filepath, mp_data, mp_header_idx, skip_existing=False):
-    """流式处理小程序配送数据文件，逐个读取行，不保留整个列表"""
+def process_mp_file(filepath, mp_data, mp_header_idx, skip_existing=False, hour_col_name=None):
+    """流式处理小程序配送数据文件，仅保留必要字段以减少内存占用"""
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
     ws = wb['小程序配送数据源']
     count = 0
     for row in ws.iter_rows(min_row=2, values_only=True):
         d = row_to_dict(row, mp_header_idx)
         order_code = str(d.get('订单编码','')).strip() if d.get('订单编码') else ''
-        if order_code:
-            if skip_existing and order_code in mp_data:
-                continue
-            mp_data[order_code] = d
-            count += 1
+        if not order_code:
+            continue
+        if skip_existing and order_code in mp_data:
+            continue
+        # 只保留后续计算需要的字段，避免保存全部30列
+        mp_data[order_code] = {
+            'pt(day)': d.get('pt(day)'),
+            '转化日期': d.get('转化日期'),
+            '门店名称': d.get('门店名称'),
+            '门店代码': d.get('门店代码'),
+            '城市': d.get('城市'),
+            '区域': d.get('区域'),
+            '大店长': d.get('大店长'),
+            '制作时长': d.get('制作时长'),
+            '订单杯数': d.get('订单杯数'),
+            '订单编码': d.get('订单编码'),
+            '_hour': d.get(hour_col_name) if hour_col_name else None,
+        }
+        count += 1
     wb.close()
     return count
 
@@ -577,19 +591,26 @@ def process_mp_file(filepath, mp_data, mp_header_idx, skip_existing=False):
 m7_mp_header = read_mp_header(NEW_PATH)
 mp_header_idx = make_header_index(m7_mp_header)
 
+# 提前确定小时列名，用于后续时段分布计算
+hour_col_name = None
+for h in m7_mp_header:
+    if h and '小时' in str(h):
+        hour_col_name = h
+        break
+
 # 合并去重：用 (订单编码) 作为唯一键，8月 > 7月 > 6月
 # 先处理8月（最新），再补充7月和6月的去重数据，减少内存峰值
 mp_data = {}  # {order_code: row_dict}
 
-m7_count = process_mp_file(NEW_PATH, mp_data, mp_header_idx)
+m7_count = process_mp_file(NEW_PATH, mp_data, mp_header_idx, hour_col_name=hour_col_name)
 print(f'8月小程序配送处理: {m7_count} 条')
 gc.collect()
 
-m6_count = process_mp_file(MID_PATH, mp_data, mp_header_idx, skip_existing=True)
+m6_count = process_mp_file(MID_PATH, mp_data, mp_header_idx, skip_existing=True, hour_col_name=hour_col_name)
 print(f'7月小程序配送处理: {m6_count} 条')
 gc.collect()
 
-m5_count = process_mp_file(OLD_PATH, mp_data, mp_header_idx, skip_existing=True)
+m5_count = process_mp_file(OLD_PATH, mp_data, mp_header_idx, skip_existing=True, hour_col_name=hour_col_name)
 print(f'6月小程序配送处理: {m5_count} 条')
 gc.collect()
 
@@ -691,19 +712,7 @@ for o in mp_orders_7d:
 
 print(f'近7天小程序门店数: {len(mp_store_7d)}')
 
-# 出餐耗时时段分布（需要小时列）
-# 先找到小时列索引
-hour_col = None
-for i, h in enumerate(m7_mp_header):
-    if h and '小时' in str(h):
-        hour_col = i
-        break
-
-if hour_col is None:
-    # 尝试第26列（0-indexed: 26）
-    hour_col = 26
-
-# 收集时段数据
+# 出餐耗时时段分布（使用已缓存的小时字段）
 hourly_data = {h: [] for h in range(7, 25)}
 for d in mp_data.values():
     date_str = parse_mp_date(d.get('pt(day)')) or parse_mp_date(d.get('转化日期'))
@@ -720,11 +729,8 @@ for d in mp_data.values():
     if cook_min is None:
         continue
     
-    hour_val = d.get(list(mp_header_idx.keys())[hour_col] if hour_col < len(list(mp_header_idx.keys())) else None)
+    hour_val = d.get('_hour')
     if hour_val is None:
-        # 直接尝试索引
-        row_idx = list(mp_data.keys()).index(d.get('订单编码')) if d.get('订单编码') in mp_data else -1
-        # 无法获取，跳过
         continue
     try:
         hour = int(float(hour_val))
