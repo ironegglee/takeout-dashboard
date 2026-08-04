@@ -438,6 +438,7 @@ mt_unmatched = 0
 dim_labels = {
     'peak_hours': '高峰营业时长得分', 'quality_rate': '优质商品率得分',
     'qual_info': '资质信息得分', 'env_info': '环境信息得分',
+    'reply_rate': '差评回复率得分', 'reject_rate': '商家不接单率得分',
     'merchant_rating': '商家评分得分', 'menu_rich': '菜单丰富度得分',
     'decor_rich': '装修丰富度得分', 'service_rich': '服务功能丰富度得分',
     'cook_report': '出餐完成上报率得分/配送准时率得分', 'base_hours': '基础营业时长得分'
@@ -459,19 +460,29 @@ def get_valid_score(code, field_name, cutoff_date=None):
         if cutoff_date is None: return True
         return ds < cutoff_date  # cutoff 之前才视为有效
 
+    def _is_valid_val(val):
+        if val is None or val == '' or str(val) == '--' or str(val) == 'None':
+            return False
+        # 排除非数字文本（如"本门店不考核此指标，无需关注"）
+        try:
+            float(val)
+            return True
+        except (ValueError, TypeError):
+            return False
+
     # 优先取最新日期（且日期 < cutoff）
     if code in recent_mt:
         info = recent_mt[code]
         if _is_valid_date(info['date']):
             val = col_val(info['row'], mt_header_idx, field_name)
-            if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
+            if _is_valid_val(val):
                 return safe_float(val)
     # 回退：按日期倒序查历史有效值（仅查 cutoff 之前）
     if code in mt_all_records:
         for rec in sorted(mt_all_records[code], key=lambda x: x['date'], reverse=True):
             if not _is_valid_date(rec['date']): continue
             val = col_val(rec['row'], mt_header_idx, field_name)
-            if val is not None and val != '' and str(val) != '--' and str(val) != 'None':
+            if _is_valid_val(val):
                 return safe_float(val)
     return None  # cutoff 之后无数据 → None（前端展示 pending）
 
@@ -518,6 +529,8 @@ for code, info in recent_mt.items():
             'quality_rate': safe_float(col_val(row, mt_header_idx, '优质商品率得分')),
             'qual_info': safe_float(col_val(row, mt_header_idx, '资质信息得分')),
             'env_info': safe_float(col_val(row, mt_header_idx, '环境信息得分')),
+            'reply_rate': get_valid_score(code, '差评回复率得分', '2026-08-01') or 0,
+            'reject_rate': get_valid_score(code, '商家不接单率得分', '2026-08-01') or 0,
             'merchant_rating': safe_float(col_val(row, mt_header_idx, '商家评分得分')),
             'menu_rich': safe_float(col_val(row, mt_header_idx, '菜单丰富度得分')),
             'decor_rich': safe_float(col_val(row, mt_header_idx, '装修丰富度得分')),
@@ -926,7 +939,7 @@ for s in mt_stores:
         # 构建子维度详情（仅供参考，不作为触发条件）
         dim_detail_parts = []
         low_dims = []
-        for dim_name in ['peak_hours','quality_rate','qual_info','env_info','merchant_rating',
+        for dim_name in ['peak_hours','quality_rate','qual_info','env_info','reply_rate','reject_rate','merchant_rating',
                           'menu_rich','decor_rich','service_rich','cook_report','base_hours']:
             dim_val = s.get('shop_dims', {}).get(dim_name)
             dim_label = dim_labels.get(dim_name, dim_name)

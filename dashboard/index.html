@@ -1143,6 +1143,10 @@ function isDimPending(field, user_end_date) {
 function currentWindowEnd() {
   return gfState.dateEnd || EMBEDDED_DATE_END;
 }
+// 判断当前筛选时间范围是否应显示新指标（8月起美团用环境信息/资质信息替换了差评回复率/商家不接单率）
+function useNewShopMetrics() {
+  return currentWindowEnd() >= '2026-08-01';
+}
 
 const STORE_MT = [
   { market:'湖南',brand:'茶颜悦色',region_mgr:'陈坤',area_mgr:'何关顺',city:'长沙',name:'德思勤镖局店',
@@ -2389,9 +2393,11 @@ function renderMtScoreTree(shopB,expB){
 // ═══ 指标释义库 + 维度下钻 ═══
 var DIM_META = {
   '环境信息得分': {cat:'shop',field:'env_info',def:'衡量门店环境信息的完善程度，包括后厨环境卫生核验等。完成核验即得分。',calc:'环境信息核验项达成率，满分100分',source:'美团商家后台—店铺分—环境信息',tips:['按平台要求完成环境信息核验，确保后厨环境卫生达标','定期自查门店环境，确保符合平台核验标准'],target:95,max:100},
+  '差评回复率得分': {cat:'shop',field:'reply_rate',def:'衡量商家对用户差评的回复及时性和质量。回复率越高、回复越及时，得分越高。',calc:'近30日至前日差评回复数/近30日至前日差评总数',source:'美团商家后台—店铺分—差评回复率',tips:['日常维护需在1-2天内完成，建议加入值班本/打烊日志每天反馈，避免考核超时','定闹钟，值班主管追踪闭环，确保24小时内完成回复','回复内容要诚恳、具体，针对用户反馈给出解决方案'],target:95,max:100},
   '商家评分得分': {cat:'shop',field:'merchant_rating',def:'用户对商家的综合评分，包含商品质量、服务态度、配送体验等维度的主观评价。',calc:'近30日商家评分均值（剔除已删除评价）；近60日未删除美团外卖评价不足5条，或评价数为2-4条但平均评分低于4分，则无商家评分',source:'美团用户评价系统—店铺分—商家评分',tips:['重视顾客诉求，及时处理满足，并在门店内复盘，针对性进行改善','不合理、内容不实差评及时申诉，消除影响'],target:95,max:100},
   '高峰营业时长得分': {cat:'shop',field:'peak_hours',def:'考核商家在午餐和晚餐高峰时段的在线营业时长，保障用户下单体验。',calc:'当前高峰营业时段：10:00-21:00 ，在高峰时段中近30天的日均营业时长达到8.0小时，可得满分',source:'美团商家后台—店铺分—高峰营业时长',tips:['每日打烊后开启平台、每日开早检查平台开关，避免因前一天提前关闭次日忘记开启，导致整日未营业','如遇闭店重装/停水停电等特殊情况需关平台，需开启歇业保护，避免因闭店导致权重降低','合理排班、备料，尽可能不停单、少停单'],target:95,max:100},
   '资质信息得分': {cat:'shop',field:'qual_info',def:'衡量门店资质信息的完善程度，包括门店真实性验证等。完成验证即得分。',calc:'资质信息验证项达成率，满分100分',source:'美团商家后台—店铺分—资质信息',tips:['按平台要求完成资质信息验证，确保门店信息真实有效','定期检查资质信息是否过期，及时更新'],target:95,max:100},
+  '商家不接单率得分': {cat:'shop',field:'reject_rate',def:'衡量商家在收到订单后拒绝接单或超时未接单的比例。拒单率越低得分越高。',calc:'已接订单数÷总订单数×100。满分100分，拒单率越低得分越高。',source:'美团商家后台—店铺分—接单率',tips:['定闹钟定时检查菜单，断货及时售罄','如遇下单但缺货，请主动联系顾客沟通协商换/退货','如顾客需退单，请委婉建议选择"不想要了"进行退款'],target:95,max:100},
   '基础营业时长得分': {cat:'shop',field:'base_hours',def:'考核商家每日基础营业时长是否达到平台标准，营业时间越长、覆盖时段越合理，得分越高。',calc:'实际营业时长÷平台建议营业时长×100，满分100分。',source:'美团商家后台—店铺分—基础营业时长',tips:['每日打烊后开启平台、每日开早检查平台开关，避免因前一天提前关闭次日忘记开启，导致整日未营业','如遇闭店重装/停水停电等特殊情况需关平台，需开启歇业保护，避免因闭店导致权重降低','合理排班、备料，尽可能不停单、少停单'],target:95,max:100},
   '出餐上报/准时率得分': {cat:'shop',field:'cook_report',def:'考核商家出餐速度的准确上报和准时出餐率。出餐越快、上报越准确，得分越高。',calc:'自然周出餐完成上报率 * 系数 *100，自然周出餐完成上报率>=90%，且出餐真实上报率>=90%，可获得满分，骑手到店点击已取餐后门店出餐上报无效',source:'美团商家后台—店铺分—出餐上报率',tips:['每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成'],target:95,max:100},
   '商品满意度': {cat:'exp',field:'product_sat',def:'用户对商品本身的满意程度，包括口味、分量、品质等方面。权重最高（30%）。',calc:'（1×一星评价数+2×二星评价数+3×三星评价数+4×四星评价数+5×五星评价数）÷ 总评价数，计算周期60天',source:'美团用户评价—综合体验分—商品满意度',tips:['通过顾客反馈，定位高频关键词，并针对性进行改进','打包增加检查动作，或安排熟练伙伴，尽可能不错餐漏餐','出现负反馈后当下立即解决顾客诉求，取得谅解，并向平台申诉（申诉路径-商家APP-店铺分-商家评分查看评分-查看明细，申诉时上传顾客不追究或承认不是门店原因的截图，可有效提高成功率）'],target:4.6,max:5},
@@ -2561,9 +2567,11 @@ function applyOrgFilter(alerts){
 function getDimImproveTips(dimName){
   var map = {
     '环境信息得分':        {why:'门店环境信息未通过核验（如后厨环境卫生核验）', tip:'按平台要求完成环境信息核验，确保后厨环境卫生达标'},
+    '差评回复率得分':    {why:'饮品/周边卖完了没有及时操作售罄，顾客点了单后导致退款', tip:'日常维护需在1-2天内完成，建议加入值班本/打烊日志每天反馈'},
     '商家评分得分':      {why:'顾客投诉或差评未及时处理，拉低评分', tip:'重视顾客诉求，及时处理满足，并在门店内复盘针对性改善'},
     '高峰营业时长得分':  {why:'高峰时段未开启平台营业，错失订单', tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业'},
     '资质信息得分':        {why:'门店资质信息未完成验证（如门店真实性验证）', tip:'按平台要求完成资质信息验证，确保门店信息真实有效'},
+    '商家不接单率得分':  {why:'商家主动"拒单"或"超时不接单"造成的取消订单', tip:'定闹钟定时检查菜单，断货及时售罄'},
     '基础营业时长得分':  {why:'平台营业时长不足，影响曝光和下单转化', tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业'},
     '出餐上报/准时率得分':{why:'美团默认餐前调度，未在骑手取餐前点击出餐完成会影响上报率', tip:'每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成'},
     '出餐上报/配送准时率得分':{why:'美团默认餐前调度，未在骑手取餐前点击出餐完成会影响上报率', tip:'每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成'},
@@ -2611,8 +2619,8 @@ function renderImproveGuide(){
       color: '#EF9F27',
       desc: '店铺分低于95分会影响曝光和流量，优先攻克权重最高的维度',
       items: [
-        {title:'环境信息', desc:getDimImproveTips('环境信息得分')?getDimImproveTips('环境信息得分').why+'。'+getDimImproveTips('环境信息得分').tip:'按平台要求完成环境信息核验，确保后厨环境卫生达标。'},
-        {title:'资质信息', desc:getDimImproveTips('资质信息得分')?getDimImproveTips('资质信息得分').why+'。'+getDimImproveTips('资质信息得分').tip:'按平台要求完成资质信息验证，确保门店信息真实有效。'},
+        {title:useNewShopMetrics()?'环境信息':'差评回复率', desc:(function(){var n=useNewShopMetrics()?'环境信息得分':'差评回复率得分';var t=getDimImproveTips(n);return t?t.why+'。'+t.tip:'';})()},
+        {title:useNewShopMetrics()?'资质信息':'商家不接单率', desc:(function(){var n=useNewShopMetrics()?'资质信息得分':'商家不接单率得分';var t=getDimImproveTips(n);return t?t.why+'。'+t.tip:'';})()},
         {title:'高峰营业时长', desc:getDimImproveTips('高峰营业时长得分')?getDimImproveTips('高峰营业时长得分').why+'。'+getDimImproveTips('高峰营业时长得分').tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业。'},
         {title:'基础营业时长', desc:getDimImproveTips('基础营业时长得分')?getDimImproveTips('基础营业时长得分').why+'。'+getDimImproveTips('基础营业时长得分').tip:'确保平台营业时长充足，影响曝光和下单转化。'},
         {title:'菜单丰富度', desc:getDimImproveTips('菜单丰富度得分')?getDimImproveTips('菜单丰富度得分').why+'。'+getDimImproveTips('菜单丰富度得分').tip:'定期更新菜单，丰富品类展示，提高吸引力。'},
@@ -3500,7 +3508,7 @@ function getStoreDiag(storeName){
     var sd = mtStore.shop_dims || {}, ed = mtStore.exp_dims || {};
     if(mtStore.shop_score < 85) { status = 'bad'; issues.push('店铺分'+mtStore.shop_score+'分，严重低于标准(≥95)');
       actions.push('① 建议立即召开门店会议，逐项分析六维失分原因');
-      actions.push('② 优先攻克"环境信息"和"资质信息"（权重最高、见效最快）'); }
+      actions.push('② 优先攻克"' + (useNewShopMetrics()?'环境信息':'差评回复率') + '"和"' + (useNewShopMetrics()?'资质信息':'商家不接单率') + '"（权重最高、见效最快）'); }
     else if(mtStore.shop_score < 95) { status = (status==='ok'?'warn':status); issues.push('店铺分'+mtStore.shop_score+'分，距达标(≥95)差'+(95-mtStore.shop_score)+'分');
       actions.push('① 对照六维得分逐项排查，找到最低维度优先提升'); }
     if(mtStore.exp_score < 4.0) { status = 'bad'; issues.push('综合体验分'+mtStore.exp_score+'，远低于预警线(4.6)');
@@ -3510,19 +3518,25 @@ function getStoreDiag(storeName){
       actions.push('① 分析体验分六维中最短板，集中资源改善最关键的一项'); }
     // 找出最差维度并给针对性建议
     var worstShop = '', worstShopVal = 100, worstExp = '', worstExpVal = 5;
-    var shopDims = [['环境信息',sd.env_info||0],['商家评分',sd.merchant_rating||0],['高峰营业',sd.peak_hours||0],['资质信息',sd.qual_info||0],['基础营业',sd.base_hours||0],['出餐上报',sd.cook_report||0]];
+    var shopDims = useNewShopMetrics()
+      ? [['环境信息',sd.env_info||0],['商家评分',sd.merchant_rating||0],['高峰营业',sd.peak_hours||0],['资质信息',sd.qual_info||0],['基础营业',sd.base_hours||0],['出餐上报',sd.cook_report||0]]
+      : [['差评回复率',sd.reply_rate||0],['商家评分',sd.merchant_rating||0],['高峰营业',sd.peak_hours||0],['商家不接单率',sd.reject_rate||0],['基础营业',sd.base_hours||0],['出餐上报',sd.cook_report||0]];
     var expDims = [['商品满意度',ed.product_sat||0],['包装满意度',ed.pack_sat||0],['复购率',ed.repurchase||0],['消息回复',ed.msg_reply||0],['服务负反馈',ed.service_neg||0],['食安负反馈',ed.food_safety||0]];
     shopDims.forEach(function(d){ if(d[1] < worstShopVal){ worstShop = d[0]; worstShopVal = d[1]; } });
     expDims.forEach(function(d){ if(d[1] < worstExpVal){ worstExp = d[0]; worstExpVal = d[1]; } });
     var dimActions = {
       '环境信息': {why:'门店环境信息未通过核验（如后厨环境卫生核验）',
         tips:['① 按平台要求完成环境信息核验，确保后厨环境卫生达标','② 定期自查门店环境，确保符合平台核验标准']},
+      '差评回复率': {why:'饮品/周边卖完了没有及时操作售罄，顾客点了单后导致退款',
+        tips:['① 日常维护需在1-2天内完成，建议加入值班本/打烊日志每天反馈，避免考核超时','② 定闹钟，值班主管追踪闭环，确保24小时内完成回复','③ 回复内容要诚恳、具体，针对用户反馈给出解决方案']},
       '商家评分': {why:'',
         tips:['① 重视顾客诉求，及时处理满足，并在门店内复盘，针对性进行改善','② 不合理、内容不实差评及时申诉，消除影响']},
       '高峰营业': {why:'',
         tips:['① 每日打烊后开启平台、每日开早检查平台开关，避免因前一天提前关闭次日忘记开启，导致整日未营业','② 如遇闭店重装/停水停电等特殊情况需关平台，需开启歇业保护，避免因闭店导致权重降低','③ 合理排班、备料，尽可能不停单、少停单']},
       '资质信息': {why:'门店资质信息未完成验证（如门店真实性验证）',
         tips:['① 按平台要求完成资质信息验证，确保门店信息真实有效','② 定期检查资质信息是否过期，及时更新']},
+      '商家不接单率': {why:'经常为商家主动"拒单"与"超时不接单"造成的取消订单，以及顾客申请退款时选择"商家通知我商品卖完了"',
+        tips:['① 定闹钟定时检查菜单，断货及时售罄','② 如遇下单但缺货，请主动联系顾客沟通协商换/退货','③ 如顾客需退单，请委婉建议选择"不想要了"进行退款']},
       '基础营业': {why:'',
         tips:['① 每日打烊后开启平台、每日开早检查平台开关，避免因前一天提前关闭次日忘记开启，导致整日未营业','② 如遇闭店重装/停水停电等特殊情况需关平台，需开启歇业保护，避免因闭店导致权重降低','③ 合理排班、备料，尽可能不停单、少停单']},
       '出餐上报': {why:'美团默认餐前调度，顾客下单后骑手就可以接到单，门店点不点出餐平台的骑手都可以接单配送，但未在骑手取餐之前点击出餐完成会影响出餐上报率',
@@ -3668,9 +3682,12 @@ function openStoreMerged(storeName){
       if(!ok){
         var dimTips = {
           '环境信息得分': [{why:'门店环境信息未通过核验（如后厨环境卫生核验）',tip:'按平台要求完成环境信息核验，确保后厨环境卫生达标'}],
+          '差评回复率得分': [{why:'饮品/周边卖完了没有及时操作售罄，顾客点了单后导致退款',tip:'日常维护需在1-2天内完成，建议加入值班本/打烊日志每天反馈'}],
           '商家评分得分': [{why:'',tip:'重视顾客诉求，及时处理满足，并在门店内复盘，针对性进行改善'}],
           '高峰营业时长得分': [{why:'',tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业'}],
           '资质信息': [{why:'门店资质信息未完成验证（如门店真实性验证）',tip:'按平台要求完成资质信息验证，确保门店信息真实有效'}],
+          '资质信息得分': [{why:'门店资质信息未完成验证（如门店真实性验证）',tip:'按平台要求完成资质信息验证，确保门店信息真实有效'}],
+          '商家不接单率得分': [{why:'商家主动"拒单"或"超时不接单"造成的取消订单',tip:'定闹钟定时检查菜单，断货及时售罄'}],
           '基础营业时长得分': [{why:'',tip:'每日打烊后开启平台，每日开早检查平台开关，避免整日未营业'}],
           '出餐上报/准时率得分': [{why:'美团默认餐前调度，未在骑手取餐前点击出餐完成会影响上报率',tip:'每一笔订单完成都必须在骑手取餐之前在CYPOS点击出餐完成'}],
           '商品满意度': [{why:'',tip:'打包增加检查动作，或安排熟练伙伴，尽可能不错餐漏餐'}],
@@ -3700,10 +3717,10 @@ function openStoreMerged(storeName){
       <div class="drawer-section">
         <div class="drawer-section-title" style="color:#667eea">店铺分 · 六维明细</div>
         <div class="detail-dim-list">
-          ${dimRow('环境信息得分', sd.env_info, 95, 100, '分', 'env_info')}
+          ${dimRow(useNewShopMetrics()?'环境信息得分':'差评回复率得分', useNewShopMetrics()?sd.env_info:sd.reply_rate, 95, 100, '分', useNewShopMetrics()?'env_info':'reply_rate')}
           ${dimRow('商家评分得分', sd.merchant_rating, 95, 100, '分', 'merchant_rating')}
           ${dimRow('高峰营业时长得分', sd.peak_hours, 95, 100, '分', 'peak_hours')}
-          ${dimRow('资质信息', sd.qual_info, 95, 100, '分', 'qual_info')}
+          ${dimRow(useNewShopMetrics()?'资质信息得分':'商家不接单率得分', useNewShopMetrics()?sd.qual_info:sd.reject_rate, 95, 100, '分', useNewShopMetrics()?'qual_info':'reject_rate')}
           ${dimRow('基础营业时长得分', sd.base_hours, 95, 100, '分', 'base_hours')}
           ${dimRow('出餐上报/准时率得分', sd.cook_report, 95, 100, '分', 'cook_report')}
         </div>
@@ -3896,10 +3913,10 @@ function renderMtDetail(store, body){
     <div class="drawer-section">
       <div class="drawer-section-title" style="color:#667eea">店铺分 · 六维明细</div>
       <div class="detail-dim-list">
-        ${dimRow('环境信息得分',sd.env_info,95,100,'分','env_info')}
+        ${dimRow(useNewShopMetrics()?'环境信息得分':'差评回复率得分',useNewShopMetrics()?sd.env_info:sd.reply_rate,95,100,'分',useNewShopMetrics()?'env_info':'reply_rate')}
         ${dimRow('商家评分得分',sd.merchant_rating,95,100,'分','merchant_rating')}
         ${dimRow('高峰营业时长得分',sd.peak_hours,95,100,'分','peak_hours')}
-        ${dimRow('资质信息',sd.qual_info,95,100,'分','qual_info')}
+        ${dimRow(useNewShopMetrics()?'资质信息得分':'商家不接单率得分',useNewShopMetrics()?sd.qual_info:sd.reject_rate,95,100,'分',useNewShopMetrics()?'qual_info':'reject_rate')}
         ${dimRow('基础营业时长得分',sd.base_hours,95,100,'分','base_hours')}
         ${dimRow('出餐上报/准时率得分',sd.cook_report,95,100,'分','cook_report')}
       </div>
@@ -4406,7 +4423,8 @@ function drillScore(name, type){
   const getVal=(s,k)=>{
     if(k==='shop_score')return s.shop_score;
     if(k==='exp_score')return s.exp_score;
-    if(k==='env_info')return s.shop_dims.env_info;
+    if(k==='env_info'||k==='reply_rate')return useNewShopMetrics()?s.shop_dims.env_info:s.shop_dims.reply_rate;
+    if(k==='qual_info'||k==='reject_rate')return useNewShopMetrics()?s.shop_dims.qual_info:s.shop_dims.reject_rate;
     if(k==='merchant_rating')return s.shop_dims.merchant_rating;
     if(k==='cook_report')return s.shop_dims.cook_report;
     return 0;
@@ -4419,9 +4437,14 @@ function drillScore(name, type){
   document.getElementById('drawerTitle').innerHTML=`📊 ${name} 店铺分详情`;
   document.getElementById('drawerMeta').innerHTML=`${type==='market'?'市场':type==='brand'?'品牌':type==='region'?'大区':'区经理'}　|　${filtered.length}家门店　|　均分 ${avgScore.toFixed(1)}`;
 
+  let _un=useNewShopMetrics();
+  let _sf=_un?'env_info':'reply_rate';
+  let _sf2=_un?'qual_info':'reject_rate';
+  let _sn=_un?'环境信息':'差评回复率';
+  let _sn2=_un?'资质信息':'商家不接单率';
   let h=`
     <table class="rank-table" style="margin-bottom:16px">
-      <thead><tr><th width="26">#</th><th>门店</th><th class="sortable" width="70" onclick="onDrillSort('score','shop_score')">店铺分${drillSortArrow('score','shop_score')}</th><th class="sortable" width="70" onclick="onDrillSort('score','exp_score')">体验分${drillSortArrow('score','exp_score')}</th><th class="sortable" width="90" onclick="onDrillSort('score','env_info')">环境信息${drillSortArrow('score','env_info')}</th><th class="sortable" width="80" onclick="onDrillSort('score','merchant_rating')">商家评分${drillSortArrow('score','merchant_rating')}</th><th class="sortable" width="90" onclick="onDrillSort('score','cook_report')">出餐上报率${drillSortArrow('score','cook_report')}</th></tr></thead>
+      <thead><tr><th width="26">#</th><th>门店</th><th class="sortable" width="70" onclick="onDrillSort('score','shop_score')">店铺分${drillSortArrow('score','shop_score')}</th><th class="sortable" width="70" onclick="onDrillSort('score','exp_score')">体验分${drillSortArrow('score','exp_score')}</th><th class="sortable" width="90" onclick="onDrillSort('score','${_sf}')">${_sn}${drillSortArrow('score','${_sf}')}</th><th class="sortable" width="80" onclick="onDrillSort('score','merchant_rating')">商家评分${drillSortArrow('score','merchant_rating')}</th><th class="sortable" width="90" onclick="onDrillSort('score','cook_report')">出餐上报率${drillSortArrow('score','cook_report')}</th></tr></thead>
       <tbody>`;
   filtered.forEach((s,i)=>{
     h+=`<tr class="store-row" onclick="openStoreMerged('${s.name.replace(/'/g,"\\'")}')">
@@ -4429,7 +4452,7 @@ function drillScore(name, type){
       <td>${s.name}</td>
       <td style="font-weight:500">${(s.shop_score??0).toFixed(1)}</td>
       <td>${(s.exp_score??0).toFixed(2)}</td>
-      <td>${(s.shop_dims.env_info ?? 0)+'分'}</td>
+      <td>${(_un?(s.shop_dims.env_info??0):(s.shop_dims.reply_rate??0))+'分'}</td>
       <td>${(s.shop_dims.merchant_rating??0).toFixed(2)}</td>
       <td>${(s.shop_dims.cook_report??0)}%</td></tr>`;
   });
@@ -4594,13 +4617,14 @@ function calcRealMetrics(){
   };
   const pendingReason=MT_PENDING_REASON;
 
+  const _useNew = useNewShopMetrics();
   const mtShopBlock = {
     score: +mtAvgScore.toFixed(1), target:95, max:100,
     dims: [
-      {name:'环境信息得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.env_info||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'env_info'},
+      {name:_useNew?'环境信息得分':'差评回复率得分',     val:+(mtForDims.reduce((a,s)=>a+(_useNew?(s.shop_dims.env_info||0):(s.shop_dims.reply_rate||0)),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:_useNew?'env_info':'reply_rate'},
       {name:'商家评分得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.merchant_rating||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'merchant_rating'},
       {name:'高峰营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.peak_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'peak_hours'},
-      {name:'资质信息得分',     val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.qual_info||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'qual_info'},
+      {name:_useNew?'资质信息得分':'商家不接单率得分',     val:+(mtForDims.reduce((a,s)=>a+(_useNew?(s.shop_dims.qual_info||0):(s.shop_dims.reject_rate||0)),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:_useNew?'qual_info':'reject_rate'},
       {name:'基础营业时长得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.base_hours||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'base_hours'},
       {name:'出餐上报/准时率得分', val:+(mtForDims.reduce((a,s)=>a+(s.shop_dims.cook_report||0),0)/mtDimCount).toFixed(1), unit:'分', target:95,   max:100, status:'ok', field:'cook_report'},
     ]
@@ -5562,9 +5586,11 @@ function applyRealData(jsonData){
     exp_score: s.exp_score || 0,
     shop_dims: {
       env_info: (s.shop_dims && s.shop_dims.env_info) || 0,
+      reply_rate: (s.shop_dims && s.shop_dims.reply_rate) || 0,
       merchant_rating: (s.shop_dims && s.shop_dims.merchant_rating) || 0,
       peak_hours: (s.shop_dims && s.shop_dims.peak_hours) || 0,
       qual_info: (s.shop_dims && s.shop_dims.qual_info) || 0,
+      reject_rate: (s.shop_dims && s.shop_dims.reject_rate) || 0,
       base_hours: (s.shop_dims && s.shop_dims.base_hours) || 0,
       cook_report: (s.shop_dims && s.shop_dims.cook_report != null) ? +s.shop_dims.cook_report.toFixed(1) : 0,
       quality_rate: (s.shop_dims && s.shop_dims.quality_rate) || 0,
