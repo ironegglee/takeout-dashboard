@@ -2445,7 +2445,7 @@ function drillDim(dimName, category){
     } else {
       val = (s.exp_dims||{})[meta.field] || 0;
     }
-    if(val > 0) stores.push({name:s.name, market:s.market, city:s.city, brand:s.brand, val:val});
+    if(val > 0 || meta.field==='env_info' || meta.field==='qual_info') stores.push({name:s.name, market:s.market, city:s.city, brand:s.brand, val:val});
   });
   // 使用 DRILL_SORT.dim 状态排序
   var sm = DRILL_SORT.dim;

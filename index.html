@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-08-04T16:51:08+08:00">
+<meta name="build-time" content="2026-08-04T17:26:32+08:00">
 <meta name="version" content="v2.11.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -2445,7 +2445,7 @@ function drillDim(dimName, category){
     } else {
       val = (s.exp_dims||{})[meta.field] || 0;
     }
-    if(val > 0) stores.push({name:s.name, market:s.market, city:s.city, brand:s.brand, val:val});
+    if(val > 0 || meta.field==='env_info' || meta.field==='qual_info') stores.push({name:s.name, market:s.market, city:s.city, brand:s.brand, val:val});
   });
   // 使用 DRILL_SORT.dim 状态排序
   var sm = DRILL_SORT.dim;
