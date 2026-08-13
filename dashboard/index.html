@@ -8,11 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
 <meta name="build-time" content="2026-07-10T15:08:03+08:00">
-<meta name="version" content="v2.11.0">
+<meta name="version" content="v2.12.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.11.0@20260813";
+  var VER = "v2.12.0@20260813";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -6289,6 +6289,13 @@ function exportAlertsCSV(){
   </div>
   <div class="changelog-body" id="changelogBody">
     <div class="changelog-item">
+      <span class="changelog-ver">v2.12.0</span><span class="changelog-time">2026-08-13</span>
+      <ul class="changelog-list">
+        <li>新增：小茶智能问答对话框（右下角悬浮入口，基于知识库本地检索）</li>
+        <li>支持多轮对话、快捷问题、知识库内检索回答</li>
+      </ul>
+    </div>
+    <div class="changelog-item">
       <span class="changelog-ver">v2.11.0</span><span class="changelog-time">2026-07-16</span>
       <ul class="changelog-list">
         <li>新增：访问统计面板（今日/累计/日均访问量 + 14天趋势图）</li>
@@ -6325,6 +6332,435 @@ function toggleChangelog(){
     toggle.classList.add('open');
   }
 }
+</script>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- AI 问答悬浮对话框（方案C：纯前端本地检索）                     -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<style>
+  /* ── 悬浮按钮 ── */
+  #aiChatFab {
+    position: fixed; bottom: 28px; right: 28px; z-index: 9000;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #C8873A, #A86A28);
+    box-shadow: 0 4px 16px rgba(200,135,58,0.35);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: transform 0.25s, box-shadow 0.25s;
+    border: none;
+  }
+  #aiChatFab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(200,135,58,0.45); }
+  #aiChatFab svg { width: 26px; height: 26px; fill: #fff; }
+  #aiChatFab .fab-badge {
+    position: absolute; top: -2px; right: -2px; width: 16px; height: 16px;
+    background: #639922; border-radius: 50%; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: #fff; font-weight: 700;
+  }
+
+  /* ── 对话框容器 ── */
+  #aiChatDialog {
+    position: fixed; bottom: 96px; right: 28px; z-index: 9001;
+    width: 400px; height: 560px;
+    background: var(--card); border-radius: 14px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    display: none; flex-direction: column; overflow: hidden;
+    border: 1px solid var(--border);
+    animation: aiChatSlideUp 0.3s ease;
+  }
+  #aiChatDialog.open { display: flex; }
+  @keyframes aiChatSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── 对话框头部 ── */
+  .ai-chat-header {
+    background: linear-gradient(135deg, #C8873A, #A86A28);
+    color: #fff; padding: 14px 18px; display: flex;
+    align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .ai-chat-header-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+  .ai-chat-header-title svg { width: 20px; height: 20px; fill: #fff; }
+  .ai-chat-header-sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+  .ai-chat-close {
+    background: rgba(255,255,255,0.2); border: none; color: #fff;
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: background 0.15s;
+  }
+  .ai-chat-close:hover { background: rgba(255,255,255,0.35); }
+
+  /* ── 消息区域 ── */
+  .ai-chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px;
+    background: #FAFAF8; scroll-behavior: smooth;
+  }
+  .ai-chat-messages::-webkit-scrollbar { width: 5px; }
+  .ai-chat-messages::-webkit-scrollbar-thumb { background: #D9D6CE; border-radius: 3px; }
+
+  .ai-msg { margin-bottom: 12px; display: flex; flex-direction: column; }
+  .ai-msg.user { align-items: flex-end; }
+  .ai-msg.bot { align-items: flex-start; }
+
+  .ai-msg-bubble {
+    max-width: 85%; padding: 10px 14px; border-radius: 12px;
+    font-size: 13px; line-height: 1.6; word-break: break-word;
+  }
+  .ai-msg.user .ai-msg-bubble {
+    background: #C8873A; color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .ai-msg.bot .ai-msg-bubble {
+    background: #fff; color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .ai-msg.bot .ai-msg-bubble .ai-source {
+    margin-top: 8px; padding-top: 6px; border-top: 1px dashed #E5E3DE;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .ai-msg.bot .ai-msg-bubble .ai-source b { color: #854F0B; }
+
+  /* ── 欢迎消息 ── */
+  .ai-welcome { text-align: center; padding: 20px 10px; }
+  .ai-welcome-icon { width: 48px; height: 48px; margin: 0 auto 10px; opacity: 0.8; }
+  .ai-welcome-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+  .ai-welcome-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ── 快捷问题 ── */
+  .ai-quick-chips {
+    padding: 8px 12px; display: flex; gap: 6px; flex-wrap: wrap;
+    background: #fff; border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+  .ai-chip {
+    padding: 5px 12px; font-size: 12px; border-radius: 16px;
+    background: var(--bg); color: var(--text-secondary);
+    border: 1px solid var(--border); cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .ai-chip:hover { background: #FFF8E1; color: #854F0B; border-color: #C8873A; }
+
+  /* ── 输入区域 ── */
+  .ai-chat-input-area {
+    padding: 10px 12px; background: #fff; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; flex-shrink: 0;
+  }
+  .ai-chat-input {
+    flex: 1; padding: 9px 12px; font-size: 13px; font-family: inherit;
+    border: 1px solid #D9D6CE; border-radius: 8px; outline: none;
+    background: #fff; color: var(--text-primary);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .ai-chat-input:focus { border-color: #C8873A; box-shadow: 0 0 0 2px rgba(200,135,58,0.12); }
+  .ai-chat-input::placeholder { color: #B5B0A6; }
+  .ai-chat-send {
+    padding: 0 16px; font-size: 13px; font-weight: 500;
+    background: #C8873A; color: #fff; border: none; border-radius: 8px;
+    cursor: pointer; transition: background 0.15s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .ai-chat-send:hover { background: #A86A28; }
+  .ai-chat-send:disabled { background: #D9D6CE; cursor: not-allowed; }
+  .ai-chat-send svg { width: 14px; height: 14px; fill: #fff; }
+
+  /* ── 打字动画 ── */
+  .ai-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+  .ai-typing span {
+    width: 6px; height: 6px; border-radius: 50%; background: #C8873A;
+    animation: aiTypingBounce 1.2s infinite;
+  }
+  .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes aiTypingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* ── 移动端适配 ── */
+  @media (max-width: 600px) {
+    #aiChatDialog { width: calc(100vw - 24px); right: 12px; bottom: 88px; height: calc(100vh - 130px); }
+    #aiChatFab { bottom: 20px; right: 20px; }
+  }
+</style>
+
+<!-- 悬浮按钮 -->
+<button id="aiChatFab" onclick="aiChatToggle()" title="智能问答">
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+  <span class="fab-badge">AI</span>
+</button>
+
+<!-- 对话框 -->
+<div id="aiChatDialog">
+  <div class="ai-chat-header">
+    <div>
+      <div class="ai-chat-header-title">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.99.97 4.29L1 23l6.71-1.97C9.01 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.3 0-2.54-.24-3.69-.67l-.49-.18-3.99 1.17 1.17-3.99-.18-.49C4.26 14.54 4 13.3 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+        <span>小茶智能问答</span>
+      </div>
+      <div class="ai-chat-header-sub">基于外卖知识库 · 离线检索</div>
+    </div>
+    <button class="ai-chat-close" onclick="aiChatToggle()">&times;</button>
+  </div>
+  <div class="ai-chat-messages" id="aiChatMessages">
+    <div class="ai-welcome">
+      <svg class="ai-welcome-icon" viewBox="0 0 24 24" fill="#C8873A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      <div class="ai-welcome-title">你好，我是小茶 🍵</div>
+      <div class="ai-welcome-desc">我可以帮你查询外卖运营相关的知识库内容<br>试试问我「满减活动规则」「闪购标准」等</div>
+    </div>
+  </div>
+  <div class="ai-quick-chips" id="aiQuickChips">
+    <span class="ai-chip" onclick="aiChatQuickAsk('满减活动怎么设置？')">满减活动怎么设置？</span>
+    <span class="ai-chip" onclick="aiChatQuickAsk('外卖闪购的通用标准是什么？')">闪购通用标准</span>
+    <span class="ai-chip" onclick="aiChatQuickAsk('美团外卖基础操作流程')">美团基础操作</span>
+    <span class="ai-chip" onclick="aiChatQuickAsk('茶颜外卖上线操作流程')">茶颜上线流程</span>
+  </div>
+  <div class="ai-chat-input-area">
+    <input type="text" class="ai-chat-input" id="aiChatInput"
+           placeholder="输入你的问题，回车发送..."
+           onkeydown="if(event.key==='Enter')aiChatSend()">
+    <button class="ai-chat-send" id="aiChatSendBtn" onclick="aiChatSend()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   AI 问答 - 纯前端本地检索（方案C）
+   知识库内容嵌入此脚本，离线运行，不联网
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 知识库数据 ──
+   来源：5个钉钉文档（待用户提供内容后替换）
+   结构：{ title, content, keywords[], source }
+*/
+const KB_SEGMENTS = [
+  // ── 占位知识库（待替换为真实文档内容）──
+  {
+    title: "知识库加载中",
+    content: "知识库内容正在准备中。请将5个钉钉文档的内容导出后提供给我，我会将其分段嵌入此处。当前你可以体验对话框的交互功能，但检索结果为占位内容。",
+    keywords: ["知识库", "加载", "准备", "文档", "导出"],
+    source: "系统提示"
+  }
+];
+
+/* ── 对话历史 ── */
+let aiChatHistory = [];
+
+/* ── 开关对话框 ── */
+function aiChatToggle() {
+  var dlg = document.getElementById('aiChatDialog');
+  var fab = document.getElementById('aiChatFab');
+  if (dlg.classList.contains('open')) {
+    dlg.classList.remove('open');
+    fab.style.display = 'flex';
+  } else {
+    dlg.classList.add('open');
+    fab.style.display = 'none';
+    setTimeout(function(){ document.getElementById('aiChatInput').focus(); }, 300);
+  }
+}
+
+/* ── 快捷提问 ── */
+function aiChatQuickAsk(q) {
+  document.getElementById('aiChatInput').value = q;
+  aiChatSend();
+}
+
+/* ── 发送消息 ── */
+function aiChatSend() {
+  var input = document.getElementById('aiChatInput');
+  var question = input.value.trim();
+  if (!question) return;
+
+  // 显示用户消息
+  aiChatAddMessage('user', question);
+  input.value = '';
+
+  // 显示打字动画
+  var typingId = 'typing-' + Date.now();
+  aiChatAddTyping(typingId);
+
+  // 模拟思考延迟（让交互更自然）
+  setTimeout(function() {
+    var typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+
+    // 检索知识库
+    var answer = aiChatSearch(question);
+    aiChatAddMessage('bot', answer.text, answer.source);
+  }, 600 + Math.random() * 400);
+}
+
+/* ── 添加消息到对话区 ── */
+function aiChatAddMessage(role, text, source) {
+  var container = document.getElementById('aiChatMessages');
+  var msgDiv = document.createElement('div');
+  msgDiv.className = 'ai-msg ' + role;
+
+  var bubble = document.createElement('div');
+  bubble.className = 'ai-msg-bubble';
+
+  // 将文本转换为 HTML（保留换行，支持简单的段落分隔）
+  bubble.innerHTML = text.replace(/\n/g, '<br>');
+
+  if (source) {
+    var srcDiv = document.createElement('div');
+    srcDiv.className = 'ai-source';
+    srcDiv.innerHTML = '📚 来源：<b>' + source + '</b>';
+    bubble.appendChild(srcDiv);
+  }
+
+  msgDiv.appendChild(bubble);
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+
+  // 保存到历史
+  aiChatHistory.push({ role: role, text: text, source: source });
+}
+
+/* ── 添加打字动画 ── */
+function aiChatAddTyping(id) {
+  var container = document.getElementById('aiChatMessages');
+  var msgDiv = document.createElement('div');
+  msgDiv.className = 'ai-msg bot';
+  msgDiv.id = id;
+
+  var bubble = document.createElement('div');
+  bubble.className = 'ai-msg-bubble';
+
+  var typing = document.createElement('div');
+  typing.className = 'ai-typing';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+
+  bubble.appendChild(typing);
+  msgDiv.appendChild(bubble);
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+/* ── 知识库检索核心逻辑 ── */
+function aiChatSearch(question) {
+  if (KB_SEGMENTS.length === 0 || (KB_SEGMENTS.length === 1 && KB_SEGMENTS[0].title === '知识库加载中')) {
+    return {
+      text: '📚 知识库内容正在准备中。\n\n我需要5个钉钉文档的内容来建立知识库。请在钉钉中打开这些文档，全选复制后粘贴给我，我会将其处理后嵌入看板。\n\n当前对话框功能已就绪，知识库内容到位后即可正常使用。',
+      source: '系统提示'
+    };
+  }
+
+  // 1. 问题分词（中文2-3字滑窗 + 关键词提取）
+  var queryTerms = aiTokenize(question);
+
+  // 2. 对每个知识库段落打分
+  var scored = KB_SEGMENTS.map(function(seg) {
+    var score = 0;
+    var combinedText = (seg.title + ' ' + seg.content + ' ' + seg.keywords.join(' ')).toLowerCase();
+
+    // 关键词精确匹配
+    for (var i = 0; i < queryTerms.length; i++) {
+      var term = queryTerms[i].toLowerCase();
+      if (term.length < 1) continue;
+
+      // 在标题中匹配（权重3）
+      if (seg.title.toLowerCase().indexOf(term) !== -1) score += 3;
+      // 在关键词中匹配（权重5）
+      for (var k = 0; k < seg.keywords.length; k++) {
+        if (seg.keywords[k].toLowerCase().indexOf(term) !== -1) {
+          score += 5;
+          break;
+        }
+      }
+      // 在正文中匹配（权重1，按出现次数）
+      var contentLower = seg.content.toLowerCase();
+      var idx = 0;
+      while ((idx = contentLower.indexOf(term, idx)) !== -1) {
+        score += 1;
+        idx += term.length;
+      }
+    }
+
+    return { seg: seg, score: score };
+  });
+
+  // 3. 排序取Top 3
+  scored.sort(function(a, b) { return b.score - a.score; });
+  var topResults = scored.filter(function(s) { return s.score > 0; }).slice(0, 3);
+
+  // 4. 构造回答
+  if (topResults.length === 0) {
+    return {
+      text: '抱歉，我在当前知识库中没有找到与「' + question + '」相关的内容。\n\n我可以回答以下方面的问题：\n• 外卖常规活动（满减、流量、转化）\n• 外卖Q&A常见问题\n• 外卖闪购通用标准\n• 美团外卖基础操作及上线\n• 茶颜外卖基础操作及上线\n\n请尝试换个方式提问，或检查问题是否属于以上范围。',
+      source: null
+    };
+  }
+
+  // 拼接回答
+  var answerText = '';
+  var sources = [];
+
+  if (topResults.length === 1) {
+    // 单条结果：完整展示
+    var r = topResults[0].seg;
+    answerText = r.content;
+    sources.push(r.source);
+  } else {
+    // 多条结果：分段展示
+    for (var j = 0; j < topResults.length; j++) {
+      var r2 = topResults[j].seg;
+      answerText += '【' + r2.title + '】\n' + r2.content;
+      if (j < topResults.length - 1) answerText += '\n\n---\n\n';
+      if (sources.indexOf(r2.source) === -1) sources.push(r2.source);
+    }
+  }
+
+  return {
+    text: answerText,
+    source: sources.join('、')
+  };
+}
+
+/* ── 中文分词（简易滑窗 + 停用词过滤）── */
+function aiTokenize(text) {
+  // 停用词
+  var stopWords = ['的', '了', '是', '在', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这', '那', '怎么', '什么', '为什么', '哪些', '哪个', '如何', '请问', '请', '问', '吗', '呢', '吧', '啊', '嘛'];
+
+  var terms = [];
+
+  // 提取2-4字滑窗词组
+  var cleanText = text.replace(/[\s\?\？\。\,\，\！\!\、\：\:\；\;\(\)（）\[\]【】《》""'']/g, '');
+
+  for (var len = 4; len >= 2; len--) {
+    for (var i = 0; i <= cleanText.length - len; i++) {
+      var word = cleanText.substr(i, len);
+      // 过滤停用词
+      if (stopWords.indexOf(word) === -1 && word.length >= 2) {
+        terms.push(word);
+      }
+    }
+  }
+
+  // 也保留单个有意义字符（特定领域词汇）
+  var domainChars = ['满', '减', '闪', '购', '美', '团', '茶', '颜', '外', '卖', '上', '线', '活', '动', '评', '分', '预', '警'];
+  for (var k = 0; k < cleanText.length; k++) {
+    if (domainChars.indexOf(cleanText[k]) !== -1) {
+      terms.push(cleanText[k]);
+    }
+  }
+
+  // 去重
+  return Array.from(new Set(terms));
+}
+
+/* ── 页面加载后初始化（隐藏对话框，显示按钮）── */
+(function aiChatInit() {
+  // 确保 DOM 就绪
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('aiChatDialog').style.display = '';
+    });
+  }
+})();
 </script>
 </body>
 </html>
