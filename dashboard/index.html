@@ -6506,14 +6506,14 @@ function toggleChangelog(){
     <div class="ai-welcome">
       <svg class="ai-welcome-icon" viewBox="0 0 24 24" fill="#C8873A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
       <div class="ai-welcome-title">你好，我是小茶 🍵</div>
-      <div class="ai-welcome-desc">我可以帮你查询外卖运营相关的知识库内容<br>试试问我「满减活动规则」「闪购标准」等</div>
+      <div class="ai-welcome-desc">我可以帮你查询外卖运营相关的知识库内容<br>试试问我「遇到骑手催餐怎么办」「什么是店铺分」等</div>
     </div>
   </div>
   <div class="ai-quick-chips" id="aiQuickChips">
-    <span class="ai-chip" onclick="aiChatQuickAsk('满减活动怎么设置？')">满减活动怎么设置？</span>
+    <span class="ai-chip" onclick="aiChatQuickAsk('遇到骑手催餐怎么办？')">骑手催餐怎么办</span>
+    <span class="ai-chip" onclick="aiChatQuickAsk('什么是美团店铺分？')">什么是店铺分</span>
+    <span class="ai-chip" onclick="aiChatQuickAsk('门店被置休是什么原因？')">门店被置休</span>
     <span class="ai-chip" onclick="aiChatQuickAsk('外卖闪购的通用标准是什么？')">闪购通用标准</span>
-    <span class="ai-chip" onclick="aiChatQuickAsk('美团外卖基础操作流程')">美团基础操作</span>
-    <span class="ai-chip" onclick="aiChatQuickAsk('茶颜外卖上线操作流程')">茶颜上线流程</span>
   </div>
   <div class="ai-chat-input-area">
     <input type="text" class="ai-chat-input" id="aiChatInput"
@@ -7126,44 +7126,57 @@ function aiChatSearch(question) {
   var queryTerms = aiTokenize(question);
 
   // 2. 对每个知识库段落打分
+  //    泛词降权 + 长词加权 + 正文计数，避免单个泛词硬凑答案
+  var GENERIC_WORDS = ['活动','设置','操作','管理','标准','流程','步骤','方法','方式','要求','规则','规定','制度','怎么','什么','如何','为什么','哪些','哪个','是否','可以','需要','进行','使用','处理','查询','查看','知道','了解','说明','介绍','内容','问题','情况','相关','事项','时候','外卖','美团','门店','平台','商家','功能','业务','工作','方面','解决'];
+  var isGeneric = function(t){ return GENERIC_WORDS.indexOf(t) !== -1; };
+
   var scored = KB_SEGMENTS.map(function(seg) {
     var score = 0;
-    var combinedText = (seg.title + ' ' + seg.content + ' ' + seg.keywords.join(' ')).toLowerCase();
+    var titleLower = seg.title.toLowerCase();
+    var contentLower = seg.content.toLowerCase();
+    var kwLower = [];
+    for (var kk = 0; kk < seg.keywords.length; kk++) kwLower.push(seg.keywords[kk].toLowerCase());
 
-    // 关键词精确匹配
     for (var i = 0; i < queryTerms.length; i++) {
       var term = queryTerms[i].toLowerCase();
       if (term.length < 1) continue;
+      var generic = isGeneric(term);
+      var isLong = term.length >= 3;
+      var isSingle = term.length === 1;
 
-      // 在标题中匹配（权重3）
-      if (seg.title.toLowerCase().indexOf(term) !== -1) score += 3;
-      // 在关键词中匹配（权重5）
-      for (var k = 0; k < seg.keywords.length; k++) {
-        if (seg.keywords[k].toLowerCase().indexOf(term) !== -1) {
-          score += 5;
+      // 在标题中匹配（弱信号1分 / 短词3分 / 长词5分）
+      if (titleLower.indexOf(term) !== -1) {
+        score += (generic || isSingle) ? 1 : (isLong ? 5 : 3);
+      }
+      // 在关键词中匹配（弱信号1分 / 短词5分 / 长词8分）
+      for (var k = 0; k < kwLower.length; k++) {
+        if (kwLower[k].indexOf(term) !== -1) {
+          score += (generic || isSingle) ? 1 : (isLong ? 8 : 5);
           break;
         }
       }
-      // 在正文中匹配（权重1，按出现次数）
-      var contentLower = seg.content.toLowerCase();
-      var idx = 0;
-      while ((idx = contentLower.indexOf(term, idx)) !== -1) {
-        score += 1;
-        idx += term.length;
+      // 在正文中匹配（单字与泛词不计分，按出现次数）
+      if (!generic && !isSingle) {
+        var idx = 0;
+        while ((idx = contentLower.indexOf(term, idx)) !== -1) {
+          score += isLong ? 3 : 1;
+          idx += term.length;
+        }
       }
     }
 
     return { seg: seg, score: score };
   });
 
-  // 3. 排序取Top 3
+  // 3. 排序取Top 3（最低得分阈值兜底：只命中泛词/单个短词不算命中）
   scored.sort(function(a, b) { return b.score - a.score; });
-  var topResults = scored.filter(function(s) { return s.score > 0; }).slice(0, 3);
+  var MIN_SCORE = 6;
+  var topResults = scored.filter(function(s) { return s.score >= MIN_SCORE; }).slice(0, 3);
 
   // 4. 构造回答
   if (topResults.length === 0) {
     return {
-      text: '抱歉，我在当前知识库中没有找到与「' + question + '」相关的内容。\n\n我可以回答以下方面的问题：\n• 外卖常规活动（满减、流量、转化）\n• 外卖Q&A常见问题\n• 外卖闪购通用标准\n• 美团外卖基础操作及上线\n• 茶颜外卖基础操作及上线\n\n请尝试换个方式提问，或检查问题是否属于以上范围。',
+      text: '抱歉，我在当前知识库中没有找到与「' + question + '」准确相关的内容。\n\n我可以回答以下方面的问题：\n• 店铺分 / 综合体验分怎么提升\n• 出餐、退款、差评申诉等日常操作\n• 外卖Q&A常见问题（置休、售罄、催餐等）\n• 外卖闪购通用标准\n• 外卖骑手管理制度\n\n请尝试换个方式提问，或检查问题是否属于以上范围。',
       source: null
     };
   }
@@ -7181,7 +7194,8 @@ function aiChatSearch(question) {
     // 多条结果：分段展示
     for (var j = 0; j < topResults.length; j++) {
       var r2 = topResults[j].seg;
-      answerText += '【' + r2.title + '】\n' + r2.content;
+      var t2 = r2.title.replace(/##+$/, '').trim();
+      answerText += '【' + t2 + '】\n' + r2.content;
       if (j < topResults.length - 1) answerText += '\n\n---\n\n';
       if (sources.indexOf(r2.source) === -1) sources.push(r2.source);
     }
