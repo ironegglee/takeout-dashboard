@@ -7,12 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-08-19T17:53:39+08:00">
+<meta name="build-time" content="2026-08-20T09:49:07+08:00">
 <meta name="version" content="v2.12.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
 (function(){
-  var VER = "v2.12.0@20260819";
+  var VER = "v2.12.0@20260820";
   var K = "takeout-dashboard-version";
   try {
     var old = localStorage.getItem(K);
@@ -7164,12 +7164,13 @@ function aiChatSearch(question) {
   var queryTerms = aiTokenize(question);
 
   // 2. 对每个知识库段落打分
-  //    泛词降权 + 长词加权 + 正文计数，避免单个泛词硬凑答案
+  //    泛词降权 + 长词加权 + 精确关键词加权 + 正文计数封顶
   var GENERIC_WORDS = ['活动','设置','操作','管理','标准','流程','步骤','方法','方式','要求','规则','规定','制度','怎么','什么','如何','为什么','哪些','哪个','是否','可以','需要','进行','使用','处理','查询','查看','知道','了解','说明','介绍','内容','问题','情况','相关','事项','时候','外卖','美团','门店','平台','商家','功能','业务','工作','方面','解决'];
   var isGeneric = function(t){ return GENERIC_WORDS.indexOf(t) !== -1; };
 
   var scored = KB_SEGMENTS.map(function(seg) {
     var score = 0;
+    var bodyTotal = 0; // 正文得分单独累计，最后封顶
     var titleLower = seg.title.toLowerCase();
     var contentLower = seg.content.toLowerCase();
     var kwLower = [];
@@ -7186,32 +7187,49 @@ function aiChatSearch(question) {
       if (titleLower.indexOf(term) !== -1) {
         score += (generic || isSingle) ? 1 : (isLong ? 5 : 3);
       }
-      // 在关键词中匹配（弱信号1分 / 短词5分 / 长词8分）
+      // 在关键词中匹配（弱信号1分 / 短词5分 / 长词8分；精确匹配额外+4分）
       for (var k = 0; k < kwLower.length; k++) {
-        if (kwLower[k].indexOf(term) !== -1) {
+        if (kwLower[k] === term) {
+          // 精确匹配：最高权重
+          score += (generic || isSingle) ? 2 : (isLong ? 12 : 9);
+          break;
+        } else if (kwLower[k].indexOf(term) !== -1) {
           score += (generic || isSingle) ? 1 : (isLong ? 8 : 5);
           break;
         }
       }
-      // 在正文中匹配（单字与泛词不计分，按出现次数）
+      // 在正文中匹配（单字与泛词不计分，按出现次数但逐词封顶）
       if (!generic && !isSingle) {
+        var bodyScore = 0;
         var idx = 0;
         while ((idx = contentLower.indexOf(term, idx)) !== -1) {
-          score += isLong ? 3 : 1;
+          bodyScore += isLong ? 3 : 1;
           idx += term.length;
         }
+        bodyTotal += Math.min(bodyScore, isLong ? 10 : 5);
       }
     }
 
+    // 正文总得分封顶 20 分，防止长多主题片段靠篇幅碾压精准匹配的短片段
+    score += Math.min(bodyTotal, 20);
     return { seg: seg, score: score };
   });
 
-  // 3. 排序取Top 3（最低得分阈值兜底：只命中泛词/单个短词不算命中）
+  // 3. 排序取候选结果
   scored.sort(function(a, b) { return b.score - a.score; });
   var MIN_SCORE = 6;
-  var topResults = scored.filter(function(s) { return s.score >= MIN_SCORE; }).slice(0, 3);
+  var candidates = scored.filter(function(s) { return s.score >= MIN_SCORE; });
 
-  // 4. 构造回答
+  // 4. 相关性截断：Top1 明显领先时只取一条，避免把沾边的长尾内容拼出来
+  var topResults = [];
+  if (candidates.length >= 2 && candidates[0].score >= 12 && (candidates[0].score - candidates[1].score) >= 6) {
+    topResults = [candidates[0]];
+  } else if (candidates.length > 0) {
+    // 否则最多取前 2 条，降低无关内容干扰
+    topResults = candidates.slice(0, 2);
+  }
+
+  // 5. 构造回答
   if (topResults.length === 0) {
     return {
       text: '抱歉，我在当前知识库中没有找到与「' + question + '」准确相关的内容。\n\n我可以回答以下方面的问题：\n• 店铺分 / 综合体验分怎么提升\n• 出餐、退款、差评申诉等日常操作\n• 外卖Q&A常见问题（置休、售罄、催餐等）\n• 外卖闪购通用标准\n• 外卖骑手管理制度\n\n请尝试换个方式提问，或检查问题是否属于以上范围。',
@@ -7224,16 +7242,17 @@ function aiChatSearch(question) {
   var sources = [];
 
   if (topResults.length === 1) {
-    // 单条结果：完整展示
+    // 单条结果：短片段完整展示，长片段做摘要
     var r = topResults[0].seg;
-    answerText = r.content;
+    answerText = aiSummarizeContent(r.content, question, 500);
     sources.push(r.source);
   } else {
-    // 多条结果：分段展示
+    // 多条结果：分段展示，每段做摘要
     for (var j = 0; j < topResults.length; j++) {
       var r2 = topResults[j].seg;
-      var t2 = r2.title.replace(/##+$/, '').trim();
-      answerText += '【' + t2 + '】\n' + r2.content;
+      var t2 = r2.title.replace(/##+$/, '').trim().split('\n')[0];
+      var summary = aiSummarizeContent(r2.content, question, 360);
+      answerText += '【' + t2 + '】\n' + summary;
       if (j < topResults.length - 1) answerText += '\n\n---\n\n';
       if (sources.indexOf(r2.source) === -1) sources.push(r2.source);
     }
@@ -7243,6 +7262,60 @@ function aiChatSearch(question) {
     text: answerText,
     source: sources.join('、')
   };
+}
+
+/* ── 对长片段做摘要：只保留与问题最相关的段落 ── */
+function aiSummarizeContent(content, question, maxLen) {
+  // 短片段直接返回
+  if (content.length <= 250) return content;
+
+  // 提取问题中的有效词（去掉泛词和停用词）
+  var qTerms = aiTokenize(question).filter(function(t) {
+    var GENERIC_WORDS = ['活动','设置','操作','管理','标准','流程','步骤','方法','方式','要求','规则','规定','制度','怎么','什么','如何','为什么','哪些','哪个','是否','可以','需要','进行','使用','处理','查询','查看','知道','了解','说明','介绍','内容','问题','情况','相关','事项','时候','外卖','美团','门店','平台','商家','功能','业务','工作','方面','解决'];
+    return t.length >= 2 && GENERIC_WORDS.indexOf(t) === -1;
+  });
+
+  // 按段落拆分
+  var paragraphs = content.split(/\n\n+/).map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+  if (paragraphs.length <= 1) return content.slice(0, maxLen) + (content.length > maxLen ? '...' : '');
+
+  // 给每个段落打分
+  var scoredParas = paragraphs.map(function(p, idx) {
+    var s = 0;
+    var pLower = p.toLowerCase();
+    for (var i = 0; i < qTerms.length; i++) {
+      var term = qTerms[i].toLowerCase();
+      var idx2 = 0;
+      while ((idx2 = pLower.indexOf(term, idx2)) !== -1) {
+        s += term.length >= 3 ? 2 : 1;
+        idx2 += term.length;
+      }
+    }
+    // Q&A 格式：以 "Q：" 或 "Q:" 开头的段落降权（问题行不是答案），
+    // 以 "A：" 或 "A:" 开头的段落加权（答案行才是用户要的）
+    if (/^[QA][：:]/.test(p)) {
+      if (/^A[：:]/.test(p)) {
+        s += 3; // 答案段落加分
+      } else if (/^Q[：:]/.test(p)) {
+        s = Math.floor(s * 0.3); // 问题段落大幅降权
+      }
+    }
+    return { para: p, score: s, idx: idx };
+  });
+
+  // 优先返回得分最高的段落；若没有命中有效词，返回前 maxLen 字符
+  scoredParas.sort(function(a, b) { return b.score - a.score; });
+  if (scoredParas[0].score === 0) {
+    return content.slice(0, maxLen) + (content.length > maxLen ? '...' : '');
+  }
+
+  // 取最相关的 1-2 段，凑够一定长度但不超过 maxLen
+  var result = scoredParas[0].para;
+  if (scoredParas.length > 1 && scoredParas[1].score > 0 && result.length < 180) {
+    var combined = result + '\n\n' + scoredParas[1].para;
+    if (combined.length <= maxLen) result = combined;
+  }
+  return result;
 }
 
 /* ── 中文分词（简易滑窗 + 停用词过滤）── */
