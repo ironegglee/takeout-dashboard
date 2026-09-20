@@ -840,24 +840,69 @@ for (lo,hi),label,color in zip(bins,labels,colors_bd):
 # MP门店明细
 mp_stores = []
 mp_unmatched = []
+mp_inferred = []   # 架构表未收录、靠编码前缀兜底品牌的门店
+mp_name_info = {}  # {物流门店名: 最终采用的架构/兜底信息} —— 供预警模块复用，保证归属一致
+
+# ── 编码前缀推断品牌（架构表未收录时的兜底；2026-09-20 新增）──
+def infer_brand_by_code(code):
+    u = str(code or '').strip().upper()
+    if u.startswith('G'): return '墨柠'
+    if u.startswith('Y'): return '鸳央咖啡'
+    if u.startswith('J'): return '昼夜诗'
+    return '茶颜悦色'
+
+# ── 城市 → 市场 反查表（从已收录架构统计众数，用于未收录门店的 market 兜底）──
+_city_market_vote = {}
+for _ai in arch_by_code.values():
+    _c, _m = _ai.get('city'), _ai.get('market')
+    if _c and _m:
+        _city_market_vote.setdefault(_c, {})
+        _city_market_vote[_c][_m] = _city_market_vote[_c].get(_m, 0) + 1
+CITY_TO_MARKET = {_c: max(_d.items(), key=lambda x: x[1])[0] for _c, _d in _city_market_vote.items()}
+
+# 物流文件「城市」列对墨柠/鸳央/昼夜门店填的是品牌名而非城市，需清洗
+_CITY_IS_BRAND = {'古德墨柠', '墨柠', '鸳央', '鸳央咖啡', '昼夜', '昼夜诗'}
+def clean_city(v):
+    v = str(v or '').strip()
+    return '' if (not v or v in _CITY_IS_BRAND) else v
 
 for name, s in mp_store_7d.items():
     if not name or not name.strip():
         continue
     code = s['store_code']
-    
-    # 优先用门店代码匹配架构
-    info = arch_by_code.get(code) or arch_by_name.get(name)
-    
+    prefix_brand = infer_brand_by_code(code)
+
+    # 1) 编码精确匹配（权威）
+    info = arch_by_code.get(code)
+
+    # 2) 名称精确匹配
+    if not info:
+        info = arch_by_name.get(name)
+
+    # 3) 名称子串匹配 —— 必须与编码前缀推断的品牌一致才采用。
+    #    修复前无品牌校验，导致「方圆荟G层店」被套到「鸳央方圆荟G层店」头上，
+    #    品牌/区域/大店长全部张冠李戴（2026-09-20 修复，涉及 9 家门店）
     if not info:
         for an, ai in arch_by_name.items():
             if (an and name) and (an in name or name in an):
-                info = ai
-                break
-    
+                if normalize_brand(ai.get('brand')) == prefix_brand:
+                    info = ai
+                    break
+
+    # 4) 兜底：架构表未收录 → 用物流文件真实信息 + 编码前缀推断品牌
     if not info:
-        mp_unmatched.append(name)
-        continue
+        _city = clean_city(s.get('city'))
+        info = {
+            'arch_name': name,
+            'brand': prefix_brand,
+            'market': CITY_TO_MARKET.get(_city, ''),
+            'city': _city,
+            'region_mgr': str(s.get('area') or '').strip(),
+            'area_mgr': '',
+            'leader': str(s.get('leader') or '').strip(),
+            'store_code': code,
+        }
+        mp_inferred.append(name)
     
     avg_cook = round(s['cook_sum'] / s['cook_count'], 1) if s['cook_count'] > 0 else 0
     rate = round(sum(1 for v in [o['cook_min'] for o in mp_orders_7d if o['store_name'] == name and o['cook_min'] is not None and o['cook_min'] <= 15]) / s['orders'] * 100, 1) if s['orders'] > 0 else 0
@@ -875,9 +920,11 @@ for name, s in mp_store_7d.items():
         'orders': s['orders'],
         'cups': s['cups'],
     })
+    mp_name_info[name] = info
 
 mp_stores = [s for s in mp_stores if s.get('name') and s.get('brand') and s['brand'] != 'nan']
-print(f'小程序匹配: {len(mp_stores)}/{len(mp_store_7d)}, 未匹配: {len(mp_unmatched)}')
+print(f'小程序匹配: {len(mp_stores)}/{len(mp_store_7d)} '
+      f'(架构表命中 {len(mp_stores) - len(mp_inferred)}, 前缀推断兜底 {len(mp_inferred)})')
 
 # ═══════════════════════════════════════════
 # 7. 预警中心数据
@@ -951,13 +998,9 @@ for name, dates in store_dates.items():
         }
 
 for mp_name, cook_info in over15_stores.items():
-    info = arch_by_name.get(mp_name)
-    if not info:
-        for an, ai in arch_by_name.items():
-            if an and mp_name and (an in mp_name or mp_name in an):
-                info = ai
-                break
-    if info:
+    # 复用门店明细阶段已确定的归属（含品牌校验 + 前缀兜底），避免二次模糊匹配造成口径不一致
+    info = mp_name_info.get(mp_name)
+if info:
         bad_dates = cook_info['dates']
         alerts.append({
             'type': 'cook',
