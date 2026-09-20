@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>茶颜悦色 · 外卖业务运营看板</title>
-<meta name="build-time" content="2026-09-20T11:14:57+08:00">
+<meta name="build-time" content="2026-09-20T13:57:07+08:00">
 <meta name="version" content="v2.12.0">
 <!-- 缓存刷新机制：对比 localStorage 版本，不匹配则强制从服务器加载 -->
 <script>
@@ -214,6 +214,11 @@
   .main { max-width: 1320px; margin: 0 auto; padding: 24px 32px 0; }
   .channel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
   /* ── 顶部统一指标行 ── */
+  .brand-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .brand-switch .bs-label { font-size: 11px; color: var(--text-muted); margin-right: 2px; }
+  .brand-chip { padding: 4px 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); font-size: 12px; color: var(--text-secondary); cursor: pointer; user-select: none; transition: all .15s; }
+  .brand-chip:hover { border-color: #639922; color: #639922; }
+  .brand-chip.active { background: #639922; border-color: #639922; color: #fff; font-weight: 600; }
   .top-metrics { display: grid; grid-template-columns: 1fr 200px 1fr; gap: 10px; margin-bottom: 20px; }
   .top-metrics-group { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
   .top-metrics-group.mp { border-top: 3px solid var(--mp-primary); }
@@ -859,6 +864,7 @@
   </div>
 
   <!-- ═══ 顶部统一指标行 ═══ -->
+  <div class="brand-switch" id="brand-switch"></div>
   <div class="top-metrics" id="top-metrics"></div>
 
   <div class="channel-grid">
@@ -1440,6 +1446,94 @@ const DATA = {
 ================================================================ */
 let charts={};
 const gfState={dateStart:'',dateEnd:'',marketBrand:'all',regionMgr:'all',areaMgr:'all',leader:'all',city:'all',storeSearch:''};
+
+/* ══════════════════════════════════════════════════
+   品牌口径（2026-09-20 新增）
+   门店数 / KPI 按品牌统计，默认「茶颜悦色」
+   基准校验（2026-09-17）：茶颜 外卖492 / 自配送424 / 美团443
+   ══════════════════════════════════════════════════ */
+// 品牌名以系统 normBrand() 归一后的标准名为准（昼夜诗 → 昼夜）
+var ARCH_BRAND = {};   // 架构表 code→brand（数据加载时填充，品牌口径权威来源）
+const BRAND_GROUPS = ['茶颜悦色','墨柠','鸳央咖啡','昼夜','全部品牌'];
+const BRAND_ALL = '全部品牌';
+try{
+  var _savedBrand = localStorage.getItem('cyys_brand_group');
+  gfState.brandGroup = (_savedBrand && BRAND_GROUPS.indexOf(_savedBrand) >= 0) ? _savedBrand : '茶颜悦色';
+}catch(e){ gfState.brandGroup = '茶颜悦色'; }
+
+// 编码前缀 → 品牌（用于未收录进组织架构表的门店）
+function inferBrandByCode(code){
+  if(!code) return '茶颜悦色';
+  const c = String(code).toUpperCase();
+  if(c.indexOf('G') === 0) return '墨柠';
+  if(c.indexOf('Y') === 0) return '鸳央咖啡';
+  if(c.indexOf('J') === 0) return '昼夜';   // 与 normBrand 标准名一致
+  return '茶颜悦色';   // C / CY（含茶叶子业态）
+}
+// 编码 → 品牌：优先取架构表(CODE_TO_ORG) brand，缺失时按编码前缀推断
+// 说明：不用 mp_stores/mt_stores 的 brand，因其随数据日期漂移，会导致同一天口径不稳定
+let _CODE_BRAND_MAP = null;
+function buildCodeBrandMap(){
+  _CODE_BRAND_MAP = (typeof CODE_TO_ORG!=='undefined'?CODE_TO_ORG:{}) || {};
+  return _CODE_BRAND_MAP;
+}
+function codeBrand(code){
+  if(!code) return '茶颜悦色';
+  // 1) 架构表（唯一权威，与总部品牌口径一致）
+  //    注意：不可回退到 CODE_TO_ORG —— 其 brand 混入了门店表口径，
+  //    会把 3 家架构表判「茶颜悦色」的门店误判为「鸳央咖啡」
+  const AB = (typeof ARCH_BRAND !== 'undefined' && ARCH_BRAND) ? ARCH_BRAND[code] : null;
+  if(AB) return normBrand(AB);
+  // 2) 编码前缀推断（未收录架构表的门店：G墨柠 / Y鸳央 / J昼夜 / C·CY茶颜）
+  return normBrand(inferBrandByCode(code));
+}
+function brandFilterActive(){
+  return !!gfState.brandGroup && gfState.brandGroup !== BRAND_ALL;
+}
+// 组织维度（不含品牌）筛选是否生效
+function orgFilterActive(){
+  return gfState.marketBrand !== 'all' || gfState.regionMgr !== 'all' || gfState.areaMgr !== 'all'
+    || gfState.leader !== 'all' || gfState.city !== 'all'
+    || !!(gfState.storeSearch && gfState.storeSearch.trim());
+}
+function orgMatchObj(o){
+  const mb = gfState.marketBrand;
+  if(mb !== 'all'){
+    if(mb.indexOf('mkt:') === 0 && o.market !== mb.slice(4)) return false;
+    if(mb.indexOf('brd:') === 0 && o.brand !== mb.slice(4)) return false;
+  }
+  if(gfState.regionMgr !== 'all' && o.region_mgr !== gfState.regionMgr) return false;
+  if(gfState.areaMgr !== 'all' && o.area_mgr !== gfState.areaMgr) return false;
+  if(gfState.leader !== 'all' && o.leader !== gfState.leader) return false;
+  if(gfState.city !== 'all' && o.city !== gfState.city) return false;
+  return true;
+}
+// 当前有效门店编码集 = 日期范围 ∩ 组织筛选 ∩ 品牌（无日期时返回 null）
+function getActiveCodes(field){
+  const ds = gfState.dateStart, de = gfState.dateEnd;
+  if(!ds || !de) return null;
+  const set = new Set();
+  const entries = Object.entries((typeof STORE_DAILY!=='undefined'?STORE_DAILY:{}) || {});
+  for(let i=0;i<entries.length;i++){
+    const dk = entries[i][0], sdv = entries[i][1];
+    if(dk < ds || dk > de) continue;
+    const arr = sdv[field] || [];
+    for(let j=0;j<arr.length;j++){ if(arr[j]) set.add(arr[j]); }
+  }
+  if(orgFilterActive()){
+    for(const c of Array.from(set)){
+      const o = (typeof CODE_TO_ORG!=='undefined'?CODE_TO_ORG:{})[c];
+      if(!o || !orgMatchObj(o)) set.delete(c);
+    }
+  }
+  if(brandFilterActive()){
+    const bg = gfState.brandGroup;
+    for(const c of Array.from(set)){
+      if(codeBrand(c) !== bg) set.delete(c);
+    }
+  }
+  return set;
+}
 const sortState={mp:{key:'avg',dir:'asc'},mt:{key:'shop_score',dir:'desc'}};
 const mgmtSortState={marketBrand:{key:'score',dir:'desc'},region:{key:'score',dir:'desc'},area:{key:'score',dir:'desc'}};
 let rankSortKey = 'score';   // 预警门店排序列: score(综合), avg(出餐均值), shop_score(店铺分), exp_score(体验分)
@@ -2277,6 +2371,8 @@ function clearFilter(f){
 }
 
 function filterStores(arr){return arr.filter(s=>{
+  // 品牌口径：默认只统计茶颜悦色，可切换其他品牌/全部（统一走架构表口径）
+  if(brandFilterActive() && codeBrand(s.code) !== gfState.brandGroup) return false;
   const mb=gfState.marketBrand;
   if(mb!=='all'){
     if(mb.startsWith('mkt:')&&s.market!==mb.slice(4))return false;
@@ -4469,29 +4565,28 @@ function calcRealMetrics(){
     mtDayFiltered = MT_DAILY.filter(d => d.date >= ds && d.date <= de);
   }
 
-  // 小程序 KPI：仅日期筛选用每日汇总，组织筛选用门店数据
+  // 品牌口径标记（mp/mt 已由 filterStores 完成品牌过滤）
+  const _bf = brandFilterActive();
+
+  // 小程序 KPI：品牌/组织筛选用门店数据（每日汇总无品牌维度）；仅日期筛选用每日加权
   let mpOrd, mpAvgCook;
-  if(mpDayFiltered.length > 0){
+  if(mpDayFiltered.length > 0 && !_bf){
     mpOrd = mpDayFiltered.reduce((a,d)=>a+(d.orders||0),0);
     const totalOrders = mpOrd;
     mpAvgCook = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.avg_cook||0),0)/totalOrders) : 0;
     mpAvgRate = totalOrders>0 ? (mpDayFiltered.reduce((a,d)=>a+(d.orders||0)*(d.rate||0),0)/totalOrders) : 0;
   } else {
     mpOrd = mp.reduce((a,s)=>a+(s.orders||0),0);
-    mpAvgCook = mp.length ? (mp.reduce((a,s)=>a+(s.avg||0),0)/mp.length) : 0;
-    mpAvgRate = mp.length ? (mp.reduce((a,s)=>a+(s.rate||0),0)/mp.length) : 0;
+    const _w = mp.reduce((a,s)=>a+(s.orders||0),0);
+    mpAvgCook = _w>0 ? (mp.reduce((a,s)=>a+(s.orders||0)*(s.avg||0),0)/_w)
+                     : (mp.length ? (mp.reduce((a,s)=>a+(s.avg||0),0)/mp.length) : 0);
+    mpAvgRate = _w>0 ? (mp.reduce((a,s)=>a+(s.orders||0)*(s.rate||0),0)/_w)
+                     : (mp.length ? (mp.reduce((a,s)=>a+(s.rate||0),0)/mp.length) : 0);
   }
 
-  // 小程序门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
-  let mpStoreCount;
-  if(mpDayFiltered.length > 0){
-    // 优先用每日汇总的门店数（全量数据源），避免STORE_MP（仅近7天）漏计数
-    mpStoreCount = mpDayFiltered[mpDayFiltered.length-1].store_count || mp.length;
-  } else if(ds && de && !hasOrgFilter){
-    mpStoreCount = 0;
-  } else {
-    mpStoreCount = mp.length;
-  }
+  // 小程序门店数 = 日期范围 ∩ 组织筛选 ∩ 品牌（与数据栏、总数卡片同源）
+  const mpAct = getActiveCodes('mp');
+  const mpStoreCount = (mpAct && mpAct.size > 0) ? mpAct.size : mp.length;
 
   const mpMetrics = [
     {label:'小程序门店', val: mpStoreCount+'', unit:'家', sub:'', dir:'', ref:''},
@@ -4499,29 +4594,20 @@ function calcRealMetrics(){
     {label:'15分钟达标率', val: mpAvgRate.toFixed(1)+'%', unit:'', sub:'', dir:'', ref:''},
   ];
 
-  // 美团 KPI：仅日期筛选用每日汇总，组织筛选用过滤门店汇总
+  // 美团 KPI：品牌/组织筛选用过滤门店；仅日期筛选用每日加权
   let mtAvgScore, mtAvgExp;
-  if(mtDayFiltered.length > 0){
+  if(mtDayFiltered.length > 0 && !_bf){
     const totalStores = mtDayFiltered.reduce((a,d)=>a+(d.store_count||0),0);
     mtAvgScore = totalStores>0 ? (mtDayFiltered.reduce((a,d)=>a+(d.store_count||0)*(d.avg_shop_score||0),0)/totalStores) : 0;
     mtAvgExp = totalStores>0 ? (mtDayFiltered.reduce((a,d)=>a+(d.store_count||0)*(d.avg_exp_score||0),0)/totalStores) : 0;
-  } else if(ds && de && !hasOrgFilter){
-    mtAvgScore = 0; mtAvgExp = 0;
   } else {
     mtAvgScore = mt.length ? (mt.reduce((a,s)=>a+(s.shop_score||0),0)/mt.length) : 0;
     mtAvgExp = mt.length ? (mt.reduce((a,s)=>a+(s.exp_score||0),0)/mt.length) : 0;
   }
 
-  // 美团门店数：有组织筛选时用过滤结果，仅日期筛选也用过滤门店（保持与数据栏一致）
-  let mtStoreCount;
-  if(mtDayFiltered.length > 0){
-    // 优先用每日汇总的门店数，避免STORE_MT漏计数
-    mtStoreCount = mtDayFiltered[mtDayFiltered.length-1].store_count || mt.length;
-  } else if(ds && de && !hasOrgFilter){
-    mtStoreCount = 0;
-  } else {
-    mtStoreCount = mt.length;
-  }
+  // 美团门店数 = 日期范围 ∩ 组织筛选 ∩ 品牌
+  const mtAct = getActiveCodes('mt');
+  const mtStoreCount = (mtAct && mtAct.size > 0) ? mtAct.size : mt.length;
 
   // ── 环比：计算上一周期数据，生成 delta ──
   function prevDelta(cur, prev, metricType) {
@@ -4643,24 +4729,11 @@ function calcRealMetrics(){
   });
 
   // ── 外卖总店数（双平台去重）──
-  // 口径统一（2026-09-17）：与 KPI 卡片一致——日期筛选时用 STORE_DAILY 范围内有单编码
-  // （数据源全量口径，含未匹配架构门店）；无日期筛选或组织筛选时用架构匹配门店（STORE_MP∪STORE_MT）
+  // 口径统一（2026-09-20）：与 KPI 卡片同源——日期范围 ∩ 组织筛选 ∩ 品牌
   let mpCodeSet, mtCodeSet;
-  if(ds && de && !hasOrgFilter){
-    mpCodeSet = new Set();
-    mtCodeSet = new Set();
-    const _sdEntries = Object.entries(STORE_DAILY || {});
-    for(let _i=0;_i<_sdEntries.length;_i++){
-      const _dk = _sdEntries[_i][0], _sdv = _sdEntries[_i][1];
-      if(_dk < ds || _dk > de) continue;
-      (_sdv.mp||[]).forEach(function(c){ if(c) mpCodeSet.add(c); });
-      (_sdv.mt||[]).forEach(function(c){ if(c) mtCodeSet.add(c); });
-    }
-    // 范围内无每日数据时回退到门店数组，避免显示 0
-    if(mpCodeSet.size===0 && mtCodeSet.size===0){
-      mpCodeSet = new Set(mp.map(s=>s.code).filter(Boolean));
-      mtCodeSet = new Set(mt.map(s=>s.code).filter(Boolean));
-    }
+  if(mpAct && mtAct && (mpAct.size > 0 || mtAct.size > 0)){
+    mpCodeSet = new Set(mpAct);
+    mtCodeSet = new Set(mtAct);
   } else {
     mpCodeSet = new Set(mp.map(s=>s.code).filter(Boolean));
     mtCodeSet = new Set(mt.map(s=>s.code).filter(Boolean));
@@ -5415,7 +5488,30 @@ function toggleSummaryDetail(){
   }
 }
 
+/* ── 品牌口径切换 ── */
+function renderBrandSwitch(){
+  const el = document.getElementById('brand-switch');
+  if(!el) return;
+  const bg = gfState.brandGroup || '茶颜悦色';
+  let h = '<span class="bs-label">品牌口径</span>';
+  for(let i=0;i<BRAND_GROUPS.length;i++){
+    const b = BRAND_GROUPS[i];
+    h += '<span class="brand-chip'+(b===bg?' active':'')+'" onclick="setBrandGroup(\''+b+'\')">'+b+'</span>';
+  }
+  el.innerHTML = h;
+}
+function setBrandGroup(b){
+  if(BRAND_GROUPS.indexOf(b) < 0) return;
+  gfState.brandGroup = b;
+  try{ localStorage.setItem('cyys_brand_group', b); }catch(e){}
+  _CODE_BRAND_MAP = null;   // 品牌切换后重建编码映射缓存
+  renderBrandSwitch();
+  if(typeof onFilterChange === 'function') onFilterChange();
+}
+
 function render(){
+  // 品牌口径切换条
+  renderBrandSwitch();
   // 大盘业绩概览
   renderDashboardSummary();
 
@@ -5656,6 +5752,14 @@ function applyRealData(jsonData){
       }
     });
   });
+  // 架构表品牌映射（品牌口径权威来源，优先于随日期漂移的门店表 brand）
+  ARCH_BRAND = {};
+  if(jsonData.store_arch){
+    Object.keys(jsonData.store_arch).forEach(function(code){
+      var ab = (jsonData.store_arch[code] || {}).brand;
+      if(ab) ARCH_BRAND[code] = ab;
+    });
+  }
   // 合并架构全量数据（含堂食专属门店），确保 computeGlobalStoreCount 能覆盖所有门店
   if(jsonData.store_arch){
     Object.keys(jsonData.store_arch).forEach(function(code){
