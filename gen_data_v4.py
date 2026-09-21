@@ -1,4 +1,4 @@
-import openpyxl, json, sys, gc, os
+import openpyxl, json, sys, gc, os, re
 from datetime import datetime, timedelta
 import math
 import traceback
@@ -862,9 +862,49 @@ CITY_TO_MARKET = {_c: max(_d.items(), key=lambda x: x[1])[0] for _c, _d in _city
 
 # 物流文件「城市」列对墨柠/鸳央/昼夜门店填的是品牌名而非城市，需清洗
 _CITY_IS_BRAND = {'古德墨柠', '墨柠', '鸳央', '鸳央咖啡', '昼夜', '昼夜诗'}
+_CITY_SUFFIX = re.compile(r'(市|地区)$')
 def clean_city(v):
+    """物流城市 → 架构表城市口径：去品牌脏值 + 去「市/地区」后缀（架构表城市不带后缀）"""
     v = str(v or '').strip()
+    if not v or v in _CITY_IS_BRAND:
+        return ''
+    v = _CITY_SUFFIX.sub('', v)
     return '' if (not v or v in _CITY_IS_BRAND) else v
+
+# ── 区域经理 → 大区 反查表（众数）+ 空城市按「区域经理+品牌」众数补齐 ──
+# 语义约定（对齐架构表与前端）：region_mgr = 大区，area_mgr = 区域经理
+_MGR_SUFFIX = re.compile(r'(区域|大店区|大区)$')
+def clean_mgr(v):
+    return _MGR_SUFFIX.sub('', str(v or '').strip())
+
+_region_area_vote, _city_by_region_brand = {}, {}
+for _ai in arch_by_code.values():
+    _ar = clean_mgr(_ai.get('area_mgr'))     # 区域经理
+    _rg = clean_mgr(_ai.get('region_mgr'))   # 大区
+    if _ar and _rg:
+        _region_area_vote.setdefault(_ar, {})
+        _region_area_vote[_ar][_rg] = _region_area_vote[_ar].get(_rg, 0) + 1
+    _c, _b = _ai.get('city'), _ai.get('brand')
+    if _ar and _c:
+        _city_by_region_brand.setdefault((_ar, _b), {})
+        _city_by_region_brand[(_ar, _b)][_c] = _city_by_region_brand[(_ar, _b)].get(_c, 0) + 1
+REGION_TO_AREA = {_r: max(_d.items(), key=lambda x: x[1])[0] for _r, _d in _region_area_vote.items()}
+CITY_BY_REGION_BRAND = {_k: max(_d.items(), key=lambda x: x[1])[0] for _k, _d in _city_by_region_brand.items()}
+_ALL_AREAS = set(REGION_TO_AREA.values())
+
+# 城市 → 大区（仅保留唯一归属的城市）。外围城市 100% 单一大区（常德/张家界→肖湘、
+# 株洲/衡阳/郴州/湘潭→陈坤、岳阳→瞿兆邦、益阳/永州/邵阳/娄底→从浩、武汉→张钰、
+# 南京/无锡/苏州/南通等→袁聪、重庆→邱汉信），只有长沙跨多个大区 → 不进本表，
+# 长沙门店退回「区域经理→大区」判定。此顺序可避免常德 2 家被误判到从浩大区。
+_city_area_vote = {}
+for _ai in arch_by_code.values():
+    _c, _rg = _ai.get('city'), clean_mgr(_ai.get('region_mgr'))
+    if _c and _rg:
+        _city_area_vote.setdefault(_c, {})
+        _city_area_vote[_c][_rg] = _city_area_vote[_c].get(_rg, 0) + 1
+CITY_TO_AREA = {_c: max(_d.items(), key=lambda x: x[1])[0] for _c, _d in _city_area_vote.items() if len(_d) == 1}
+print(f'  反查表: 城市→市场 {len(CITY_TO_MARKET)} 条 | 区域→大区 {len(REGION_TO_AREA)} 条 '
+      f'| 空城市兜底 {len(CITY_BY_REGION_BRAND)} 组')
 
 for name, s in mp_store_7d.items():
     if not name or not name.strip():
@@ -889,16 +929,24 @@ for name, s in mp_store_7d.items():
                     info = ai
                     break
 
-    # 4) 兜底：架构表未收录 → 用物流文件真实信息 + 编码前缀推断品牌
+    # 4) 兜底：架构表未收录 → 用物流文件真实信息 + 反查表补全市场/大区
+    #    （2026-09-21 修复：此前 market 因城市「市」后缀未清洗命中不了映射 → 38/40 家市场为空；
+    #     且区域经理被写进 region_mgr、大区留空 → 与架构表语义相反，分层下钻会错组）
     if not info:
-        _city = clean_city(s.get('city'))
+        _region = clean_mgr(str(s.get('area') or ''))          # 物流「区域」列 = 区域经理
+        _city = clean_city(s.get('city')) or CITY_BY_REGION_BRAND.get((_region, prefix_brand), '')
+        _market = CITY_TO_MARKET.get(_city, '')
+        # 大区判定顺序：城市（外围城市唯一）→ 区域经理（众数）→ 区域经理本身即大区名
+        _area = (CITY_TO_AREA.get(_city)
+                 or REGION_TO_AREA.get(_region)
+                 or (_region if _region in _ALL_AREAS else ''))
         info = {
             'arch_name': name,
             'brand': prefix_brand,
-            'market': CITY_TO_MARKET.get(_city, ''),
+            'market': _market,
             'city': _city,
-            'region_mgr': str(s.get('area') or '').strip(),
-            'area_mgr': '',
+            'region_mgr': _area,      # 对齐架构表：region_mgr = 大区
+            'area_mgr': _region,      # 对齐架构表：area_mgr = 区域经理
             'leader': str(s.get('leader') or '').strip(),
             'store_code': code,
         }
