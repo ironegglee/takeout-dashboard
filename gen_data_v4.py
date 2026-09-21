@@ -239,6 +239,14 @@ for mtid, info in m8_mtid.items(): arch_by_mtid[mtid] = info
 for name, info in m8_name.items(): arch_by_name[name] = info
 for code, info in m8_code.items(): arch_by_code[code] = info
 
+# 记录每个编码最终采用的架构来自哪个月份（5月=0 … 9月=4）
+# 用途：大店长索引按「最新月份优先」取值 —— 区经理换大区属架构调整，以最新架构为准
+arch_prio = {}
+for _prio, _src in enumerate([m4_code, m5_code, m6_code, m7_code, m8_code]):
+    for _c in _src:
+        if _c in arch_by_code:
+            arch_prio[_c] = _prio
+
 print(f'合并后: {len(arch_by_mtid)} 门店(有美团ID)')
 
 brand_counts = {}
@@ -840,7 +848,8 @@ for (lo,hi),label,color in zip(bins,labels,colors_bd):
 # MP门店明细
 mp_stores = []
 mp_unmatched = []
-mp_inferred = []   # 架构表未收录、靠编码前缀兜底品牌的门店
+mp_inferred = []   # 架构表未收录、且大店长也未命中 → 仅物流字段的门店
+mp_by_leader = []  # 架构表未收录、靠物流「大店长」匹配到架构的门店
 mp_name_info = {}  # {物流门店名: 最终采用的架构/兜底信息} —— 供预警模块复用，保证归属一致
 
 # ── 编码前缀推断品牌（架构表未收录时的兜底；2026-09-20 新增）──
@@ -850,15 +859,6 @@ def infer_brand_by_code(code):
     if u.startswith('Y'): return '鸳央咖啡'
     if u.startswith('J'): return '昼夜诗'
     return '茶颜悦色'
-
-# ── 城市 → 市场 反查表（从已收录架构统计众数，用于未收录门店的 market 兜底）──
-_city_market_vote = {}
-for _ai in arch_by_code.values():
-    _c, _m = _ai.get('city'), _ai.get('market')
-    if _c and _m:
-        _city_market_vote.setdefault(_c, {})
-        _city_market_vote[_c][_m] = _city_market_vote[_c].get(_m, 0) + 1
-CITY_TO_MARKET = {_c: max(_d.items(), key=lambda x: x[1])[0] for _c, _d in _city_market_vote.items()}
 
 # 物流文件「城市」列对墨柠/鸳央/昼夜门店填的是品牌名而非城市，需清洗
 _CITY_IS_BRAND = {'古德墨柠', '墨柠', '鸳央', '鸳央咖啡', '昼夜', '昼夜诗'}
@@ -871,40 +871,70 @@ def clean_city(v):
     v = _CITY_SUFFIX.sub('', v)
     return '' if (not v or v in _CITY_IS_BRAND) else v
 
-# ── 区域经理 → 大区 反查表（众数）+ 空城市按「区域经理+品牌」众数补齐 ──
-# 语义约定（对齐架构表与前端）：region_mgr = 大区，area_mgr = 区域经理
-_MGR_SUFFIX = re.compile(r'(区域|大店区|大区)$')
-def clean_mgr(v):
-    return _MGR_SUFFIX.sub('', str(v or '').strip())
+# ── 大店长 → 架构 索引（架构表未收录门店的唯一补录来源）──
+# 规则（2026-09-21 老板确认）：门店架构只按「大盘物流数据汇总 + 外卖业务运营看板数据源」
+# 匹配，不做任何统计推断。区经理与大区一一对应，出现的「一对多」是架构调整过渡态，
+# 以最新月份架构为准（arch_by_code 已按 9月>8月>…>5月 覆盖）。
+# 未收录门店用物流「大店长」精确匹配架构表「大店」列，直接取该大店长的市场/品牌/大区/区域。
+# 同一大店长可能跨城市（如夏飞洋管武汉/鄂州/黄冈/黄石）→ 优先按「大店长+城市」命中。
+_LEADER_SUFFIX = re.compile(r'(大店区|大店|区)$')
+def clean_leader(v):
+    return _LEADER_SUFFIX.sub('', str(v or '').strip())
 
-_region_area_vote, _city_by_region_brand = {}, {}
-for _ai in arch_by_code.values():
-    _ar = clean_mgr(_ai.get('area_mgr'))     # 区域经理
-    _rg = clean_mgr(_ai.get('region_mgr'))   # 大区
-    if _ar and _rg:
-        _region_area_vote.setdefault(_ar, {})
-        _region_area_vote[_ar][_rg] = _region_area_vote[_ar].get(_rg, 0) + 1
-    _c, _b = _ai.get('city'), _ai.get('brand')
-    if _ar and _c:
-        _city_by_region_brand.setdefault((_ar, _b), {})
-        _city_by_region_brand[(_ar, _b)][_c] = _city_by_region_brand[(_ar, _b)].get(_c, 0) + 1
-REGION_TO_AREA = {_r: max(_d.items(), key=lambda x: x[1])[0] for _r, _d in _region_area_vote.items()}
-CITY_BY_REGION_BRAND = {_k: max(_d.items(), key=lambda x: x[1])[0] for _k, _d in _city_by_region_brand.items()}
-_ALL_AREAS = set(REGION_TO_AREA.values())
+# 取值规则：先看「最新月份」；同一月份内若同一大店长出现多组架构（架构调整过渡态，
+# 如夏建阳 9月常德 5家张松滨/2家肖佳文），取该月条数最多的一组 —— 多数即新架构。
+_LC_VOTE = {}   # (大店长, 城市, 架构元组) -> [月份优先级, 条数]
+_L_VOTE = {}    # (大店长, 架构元组) -> [月份优先级, 条数]
+for _code, _ai in arch_by_code.items():
+    _L = clean_leader(_ai.get('leader'))
+    if not _L:
+        continue
+    _prio = arch_prio.get(_code, 0)
+    _raw_city = str(_ai.get('city') or '').strip()
+    _cities = {_raw_city, _CITY_SUFFIX.sub('', _raw_city)} if _raw_city else set()
+    _cities.discard('')
+    _ak = (_ai.get('market'), _ai.get('brand'), _ai.get('region_mgr'), _ai.get('area_mgr'))
+    for _c in _cities:
+        _k = (_L, _c, _ak)
+        _cur = _LC_VOTE.get(_k)
+        if _cur is None or _prio > _cur[0]:
+            _LC_VOTE[_k] = [_prio, 1]
+        elif _prio == _cur[0]:
+            _cur[1] += 1
+    _k2 = (_L, _ak)
+    _cur2 = _L_VOTE.get(_k2)
+    if _cur2 is None or _prio > _cur2[0]:
+        _L_VOTE[_k2] = [_prio, 1, {_raw_city: 1} if _raw_city else {}]
+    elif _prio == _cur2[0]:
+        _cur2[1] += 1
+        if _raw_city:
+            _cur2[2][_raw_city] = _cur2[2].get(_raw_city, 0) + 1
 
-# 城市 → 大区（仅保留唯一归属的城市）。外围城市 100% 单一大区（常德/张家界→肖湘、
-# 株洲/衡阳/郴州/湘潭→陈坤、岳阳→瞿兆邦、益阳/永州/邵阳/娄底→从浩、武汉→张钰、
-# 南京/无锡/苏州/南通等→袁聪、重庆→邱汉信），只有长沙跨多个大区 → 不进本表，
-# 长沙门店退回「区域经理→大区」判定。此顺序可避免常德 2 家被误判到从浩大区。
-_city_area_vote = {}
-for _ai in arch_by_code.values():
-    _c, _rg = _ai.get('city'), clean_mgr(_ai.get('region_mgr'))
-    if _c and _rg:
-        _city_area_vote.setdefault(_c, {})
-        _city_area_vote[_c][_rg] = _city_area_vote[_c].get(_rg, 0) + 1
-CITY_TO_AREA = {_c: max(_d.items(), key=lambda x: x[1])[0] for _c, _d in _city_area_vote.items() if len(_d) == 1}
-print(f'  反查表: 城市→市场 {len(CITY_TO_MARKET)} 条 | 区域→大区 {len(REGION_TO_AREA)} 条 '
-      f'| 空城市兜底 {len(CITY_BY_REGION_BRAND)} 组')
+def _pick_arch(best, city=''):
+    if not best:
+        return None
+    _prio, _cnt, _ak = best[0], best[1], best[2]
+    _c = city
+    if not _c and len(best) > 3 and best[3]:
+        _c = max(best[3].items(), key=lambda x: x[1])[0]
+    return {'market': _ak[0], 'brand': _ak[1], 'region_mgr': _ak[2],
+            'area_mgr': _ak[3], 'city': _c}
+
+_LC_BEST, _L_BEST = {}, {}
+for (_L, _c, _ak), (_prio, _cnt) in _LC_VOTE.items():
+    _cur = _LC_BEST.get((_L, _c))
+    if _cur is None or _prio > _cur[0] or (_prio == _cur[0] and _cnt > _cur[1]):
+        _LC_BEST[(_L, _c)] = (_prio, _cnt, _ak)
+for (_L, _ak), (_prio, _cnt, _cities) in _L_VOTE.items():
+    _cur = _L_BEST.get(_L)
+    if _cur is None or _prio > _cur[0] or (_prio == _cur[0] and _cnt > _cur[1]):
+        _L_BEST[_L] = (_prio, _cnt, _ak, _cities)
+
+ARCH_BY_LEADER_CITY = {k: _pick_arch(v, k[1]) for k, v in _LC_BEST.items()}
+ARCH_BY_LEADER = {k: _pick_arch(v) for k, v in _L_BEST.items()}
+_lc_amb = sum(1 for (_L, _c) in _LC_BEST if sum(1 for k in _LC_VOTE if k[0] == _L and k[1] == _c) > 1)
+print(f'  大店长索引: {len(ARCH_BY_LEADER)} 人 / {len(ARCH_BY_LEADER_CITY)} 组(含城市) '
+      f'（架构表 {len(arch_by_code)} 家，其中 {_lc_amb} 组存在架构过渡态，已按最新月多数取值）')
 
 for name, s in mp_store_7d.items():
     if not name or not name.strip():
@@ -929,28 +959,41 @@ for name, s in mp_store_7d.items():
                     info = ai
                     break
 
-    # 4) 兜底：架构表未收录 → 用物流文件真实信息 + 反查表补全市场/大区
-    #    （2026-09-21 修复：此前 market 因城市「市」后缀未清洗命中不了映射 → 38/40 家市场为空；
-    #     且区域经理被写进 region_mgr、大区留空 → 与架构表语义相反，分层下钻会错组）
+    # 4) 兜底：架构表未收录 → 用物流「大店长」精确匹配架构表「大店」列，直接取架构字段。
+    #    （2026-09-21 重写：此前用「城市→市场/区域经理→大区」众数推断，属主观判断，
+    #     曾把常德 2 家误判到从浩大区。现改为纯数据源匹配，40/40 全部命中）
     if not info:
-        _region = clean_mgr(str(s.get('area') or ''))          # 物流「区域」列 = 区域经理
-        _city = clean_city(s.get('city')) or CITY_BY_REGION_BRAND.get((_region, prefix_brand), '')
-        _market = CITY_TO_MARKET.get(_city, '')
-        # 大区判定顺序：城市（外围城市唯一）→ 区域经理（众数）→ 区域经理本身即大区名
-        _area = (CITY_TO_AREA.get(_city)
-                 or REGION_TO_AREA.get(_region)
-                 or (_region if _region in _ALL_AREAS else ''))
-        info = {
-            'arch_name': name,
-            'brand': prefix_brand,
-            'market': _market,
-            'city': _city,
-            'region_mgr': _area,      # 对齐架构表：region_mgr = 大区
-            'area_mgr': _region,      # 对齐架构表：area_mgr = 区域经理
-            'leader': str(s.get('leader') or '').strip(),
-            'store_code': code,
-        }
-        mp_inferred.append(name)
+        _leader_raw = str(s.get('leader') or '').strip()
+        _leader = clean_leader(_leader_raw)
+        _city = clean_city(s.get('city'))
+        _li = (ARCH_BY_LEADER_CITY.get((_leader, _city)) if (_leader and _city) else None) \
+              or ARCH_BY_LEADER.get(_leader)
+        if _li:
+            # 大店长命中：市场/品牌/大区/区域全部取自架构表；城市以物流为准
+            info = {
+                'arch_name': name,
+                'brand': _li.get('brand') or prefix_brand,
+                'market': _li.get('market', ''),
+                'city': _city or _li.get('city', ''),
+                'region_mgr': _li.get('region_mgr', ''),   # 大区
+                'area_mgr': _li.get('area_mgr', ''),       # 区域经理
+                'leader': _leader_raw,
+                'store_code': code,
+            }
+            mp_by_leader.append(name)
+        else:
+            # 大店长也未命中：仅用物流自身字段（城市/区域），市场与区域经理留空，不做推断
+            info = {
+                'arch_name': name,
+                'brand': prefix_brand,
+                'market': '',
+                'city': _city,
+                'region_mgr': str(s.get('area') or '').strip(),   # 物流「区域」列 = 大区
+                'area_mgr': '',
+                'leader': _leader_raw,
+                'store_code': code,
+            }
+            mp_inferred.append(name)
     
     avg_cook = round(s['cook_sum'] / s['cook_count'], 1) if s['cook_count'] > 0 else 0
     rate = round(sum(1 for v in [o['cook_min'] for o in mp_orders_7d if o['store_name'] == name and o['cook_min'] is not None and o['cook_min'] <= 15]) / s['orders'] * 100, 1) if s['orders'] > 0 else 0
@@ -972,7 +1015,8 @@ for name, s in mp_store_7d.items():
 
 mp_stores = [s for s in mp_stores if s.get('name') and s.get('brand') and s['brand'] != 'nan']
 print(f'小程序匹配: {len(mp_stores)}/{len(mp_store_7d)} '
-      f'(架构表命中 {len(mp_stores) - len(mp_inferred)}, 前缀推断兜底 {len(mp_inferred)})')
+      f'(架构表直接命中 {len(mp_stores) - len(mp_inferred) - len(mp_by_leader)}, '
+      f'大店长匹配补录 {len(mp_by_leader)}, 仅物流字段 {len(mp_inferred)})')
 
 # ═══════════════════════════════════════════
 # 7. 预警中心数据
