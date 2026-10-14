@@ -179,13 +179,6 @@ html = re.sub(r'var VER\s*=\s*"[^"]*"', f'var VER = "{ver_str}"', html)
 # 更新 version meta 标签
 html = re.sub(r'<meta name="version" content="[^"]*"', f'<meta name="version" content="{CURRENT_VERSION}"', html)
 
-# 同步更新 dashboard/index.html 中的 VER（保持源文件一致）
-with open(SRC_HTML, 'r', encoding='utf-8') as f:
-    src_html_new = f.read()
-src_html_new = re.sub(r'var VER\s*=\s*"[^"]*"', f'var VER = "{ver_str}"', src_html_new)
-with open(SRC_HTML, 'w', encoding='utf-8') as f:
-    f.write(src_html_new)
-
 print(f'build-time: {build_time}')
 print(f'VER: {ver_str}')
 
@@ -194,6 +187,13 @@ print(f'VER: {ver_str}')
 # ═══════════════════════════════════════════
 with open(INDEX_HTML, 'w', encoding='utf-8') as f:
     f.write(html)
+
+# 同步到 dashboard/index.html（源文件）
+# 用 shutil.copyfile 而非 Copy-Item：它会刷新 mtime，避免 git stat 缓存
+# 误判"文件未变"导致提交被静默漏掉（2026-09-21 踩过）
+import shutil
+shutil.copyfile(INDEX_HTML, SRC_HTML)
+print(f'已同步: {SRC_HTML}')
 
 fsize = len(html) / 1024
 print(f'\nindex.html: {fsize:.0f} KB')
